@@ -469,25 +469,52 @@ const AdminDashboard = () => {
 
   return (
     <div className="min-h-screen bg-gray-50">
-      {/* Modern Header */}
+      {/* Modern Header - Mobile Optimized */}
       <div className="bg-gradient-to-r from-blue-600 to-blue-800 shadow-lg">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="flex flex-col lg:flex-row justify-between items-start lg:items-center py-6 gap-4">
-            {/* Left Section - Title and Brand */}
-            <div className="flex items-center space-x-4">
+          {/* Mobile Header - Collapsible Design */}
+          <div className="flex flex-col space-y-4 py-4 sm:py-6">
+            {/* Top Row - Brand and Actions */}
+            <div className="flex items-center justify-between">
+              {/* Brand Section */}
               <div className="flex items-center space-x-3">
                 <div className="p-2 bg-white/20 rounded-lg backdrop-blur-sm">
-                  <Calendar className="w-6 h-6 text-white" />
+                  <Calendar className="w-5 h-5 sm:w-6 sm:h-6 text-white" />
                 </div>
                 <div>
-                  <h1 className="text-2xl lg:text-3xl font-bold text-white">Админ Панел</h1>
-                  <p className="text-blue-100 text-sm">Управление на резервации и потребители</p>
+                  <h1 className="text-xl sm:text-2xl lg:text-3xl font-bold text-white">Админ Панел</h1>
+                  <p className="text-blue-100 text-xs sm:text-sm hidden sm:block">Управление на резервации и потребители</p>
                 </div>
+              </div>
+              
+              {/* Mobile Actions */}
+              <div className="flex items-center space-x-2 sm:hidden">
+                <button
+                  onClick={startVoiceRecognition}
+                  disabled={isListening}
+                  className={`p-2 rounded-lg transition-all duration-200 ${
+                    isListening 
+                      ? 'bg-red-500 text-white animate-pulse' 
+                      : 'bg-white/20 text-white hover:bg-white/30'
+                  }`}
+                >
+                  {isListening ? <MicOff className="w-4 h-4" /> : <Mic className="w-4 h-4" />}
+                </button>
+                
+                <button
+                  onClick={() => {
+                    localStorage.removeItem('adminToken')
+                    window.location.href = '/admin/login'
+                  }}
+                  className="p-2 text-blue-100 hover:text-white transition-colors"
+                >
+                  <LogOut className="w-4 h-4" />
+                </button>
               </div>
             </div>
             
-            {/* Center Section - Voice Command */}
-            <div className="flex flex-col items-center space-y-3">
+            {/* Desktop Voice Command Section */}
+            <div className="hidden sm:flex flex-col items-center space-y-3">
               <button
                 onClick={startVoiceRecognition}
                 disabled={isListening}
@@ -498,9 +525,7 @@ const AdminDashboard = () => {
                 }`}
               >
                 {isListening ? <MicOff className="w-5 h-5" /> : <Mic className="w-5 h-5" />}
-                <span className="hidden sm:inline">
-                  {isListening ? 'Спиране...' : 'Гласова команда'}
-                </span>
+                <span>{isListening ? 'Спиране...' : 'Гласова команда'}</span>
               </button>
               
               {/* Voice Command Examples - Collapsible */}
@@ -508,7 +533,7 @@ const AdminDashboard = () => {
                 <button className="text-blue-100 hover:text-white text-xs underline">
                   Примери за команди
                 </button>
-                <div className="absolute top-full left-1/2 transform -translate-x-1/2 mt-2 w-96 bg-white rounded-lg shadow-xl border border-gray-200 opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all duration-200 z-50">
+                <div className="absolute top-full left-1/2 transform -translate-x-1/2 mt-2 w-80 sm:w-96 bg-white rounded-lg shadow-xl border border-gray-200 opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all duration-200 z-50">
                   <div className="p-4">
                     <h3 className="font-semibold text-gray-900 mb-3">Гласови команди:</h3>
                     <div className="space-y-3">
@@ -526,14 +551,14 @@ const AdminDashboard = () => {
               </div>
             </div>
             
-            {/* Right Section - Navigation and Actions */}
-            <div className="flex items-center space-x-4">
+            {/* Desktop Navigation */}
+            <div className="hidden sm:flex items-center justify-end space-x-4">
               <a
                 href="/"
                 className="flex items-center space-x-2 text-blue-100 hover:text-white transition-colors"
               >
                 <ArrowLeft className="w-4 h-4" />
-                <span className="hidden sm:inline">Към сайта</span>
+                <span>Към сайта</span>
               </a>
               
               <a
@@ -541,7 +566,7 @@ const AdminDashboard = () => {
                 className="flex items-center space-x-2 text-blue-100 hover:text-white transition-colors"
               >
                 <Smartphone className="w-4 h-4" />
-                <span className="hidden sm:inline">Siri Shortcuts</span>
+                <span>Siri Shortcuts</span>
               </a>
               
               <div className="h-6 w-px bg-blue-400"></div>
@@ -554,7 +579,7 @@ const AdminDashboard = () => {
                 className="flex items-center space-x-2 text-blue-100 hover:text-white transition-colors"
               >
                 <LogOut className="w-4 h-4" />
-                <span className="hidden sm:inline">Изход</span>
+                <span>Изход</span>
               </button>
             </div>
           </div>
@@ -661,10 +686,84 @@ const AdminDashboard = () => {
             </div>
           </div>
 
-          {/* Tabs - Modern Design */}
+          {/* Tabs - Mobile Optimized Design */}
           <div className="bg-white rounded-xl shadow-sm border border-gray-100 mb-8">
             <div className="p-1">
-              <nav className="flex space-x-1">
+              {/* Mobile: Horizontal Scrollable Tabs */}
+              <div className="sm:hidden overflow-x-auto scrollbar-hide">
+                <nav className="flex space-x-1 min-w-max">
+                  <button
+                    onClick={() => {
+                      setActiveTab('bookings')
+                      localStorage.setItem('adminActiveTab', 'bookings')
+                    }}
+                    className={`flex-shrink-0 px-4 py-3 text-sm font-medium rounded-lg transition-all duration-200 min-w-[120px] ${
+                      activeTab === 'bookings'
+                        ? 'bg-blue-600 text-white shadow-sm'
+                        : 'text-gray-600 hover:text-gray-900 hover:bg-gray-50'
+                    }`}
+                  >
+                    <div className="flex items-center justify-center space-x-2">
+                      <Calendar className="w-4 h-4" />
+                      <span>Резервации</span>
+                    </div>
+                  </button>
+                  
+                  <button
+                    onClick={() => {
+                      setActiveTab('calendar')
+                      localStorage.setItem('adminActiveTab', 'calendar')
+                    }}
+                    className={`flex-shrink-0 px-4 py-3 text-sm font-medium rounded-lg transition-all duration-200 min-w-[120px] ${
+                      activeTab === 'calendar'
+                        ? 'bg-blue-600 text-white shadow-sm'
+                        : 'text-gray-600 hover:text-gray-900 hover:bg-gray-50'
+                    }`}
+                  >
+                    <div className="flex items-center justify-center space-x-2">
+                      <Calendar className="w-4 h-4" />
+                      <span>Календар</span>
+                    </div>
+                  </button>
+                  
+                  <button
+                    onClick={() => {
+                      setActiveTab('users')
+                      localStorage.setItem('adminActiveTab', 'users')
+                    }}
+                    className={`flex-shrink-0 px-4 py-3 text-sm font-medium rounded-lg transition-all duration-200 min-w-[120px] ${
+                      activeTab === 'users'
+                        ? 'bg-blue-600 text-white shadow-sm'
+                        : 'text-gray-600 hover:text-gray-900 hover:bg-gray-50'
+                    }`}
+                  >
+                    <div className="flex items-center justify-center space-x-2">
+                      <Users className="w-4 h-4" />
+                      <span>Потребители</span>
+                    </div>
+                  </button>
+                  
+                  <button
+                    onClick={() => {
+                      setActiveTab('services')
+                      localStorage.setItem('adminActiveTab', 'services')
+                    }}
+                    className={`flex-shrink-0 px-4 py-3 text-sm font-medium rounded-lg transition-all duration-200 min-w-[120px] ${
+                      activeTab === 'services'
+                        ? 'bg-blue-600 text-white shadow-sm'
+                        : 'text-gray-600 hover:text-gray-900 hover:bg-gray-50'
+                    }`}
+                  >
+                    <div className="flex items-center justify-center space-x-2">
+                      <TrendingUp className="w-4 h-4" />
+                      <span>Услуги</span>
+                    </div>
+                  </button>
+                </nav>
+              </div>
+              
+              {/* Desktop: Full Width Tabs */}
+              <nav className="hidden sm:flex space-x-1">
                 <button
                   onClick={() => {
                     setActiveTab('bookings')
@@ -940,19 +1039,7 @@ const AdminDashboard = () => {
                     setEditingBooking(booking)
                     setShowBookingModal(true)
                   }}
-                  onNewBooking={(date) => {
-                    setEditingBooking({
-                      id: '',
-                      name: '',
-                      phone: '',
-                      service: '',
-                      date: date,
-                      time: '',
-                      status: 'pending',
-                      createdAt: new Date().toISOString()
-                    })
-                    setShowBookingModal(true)
-                  }}
+
                 />
               </div>
             </div>

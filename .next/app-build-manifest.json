@@ -12,15 +12,8 @@
       "static/chunks/fd9d1056-cf48984c1108c87a.js",
       "static/chunks/117-23d354c87a93db8d.js",
       "static/chunks/main-app-936f5ea4c8d436d2.js",
-      "static/css/bb2b723d71f98ec3.css",
+      "static/css/60d4ed1289a464fc.css",
       "static/chunks/app/layout-6ed1f40d4bcd5354.js"
-    ],
-    "/admin/page": [
-      "static/chunks/webpack-57586abe07dbe25a.js",
-      "static/chunks/fd9d1056-cf48984c1108c87a.js",
-      "static/chunks/117-23d354c87a93db8d.js",
-      "static/chunks/main-app-936f5ea4c8d436d2.js",
-      "static/chunks/app/admin/page-2be580c43c7f8db7.js"
     ],
     "/admin/login/page": [
       "static/chunks/webpack-57586abe07dbe25a.js",
@@ -29,12 +22,12 @@
       "static/chunks/main-app-936f5ea4c8d436d2.js",
       "static/chunks/app/admin/login/page-2c5f94acc735158c.js"
     ],
-    "/siri/page": [
+    "/admin/page": [
       "static/chunks/webpack-57586abe07dbe25a.js",
       "static/chunks/fd9d1056-cf48984c1108c87a.js",
       "static/chunks/117-23d354c87a93db8d.js",
       "static/chunks/main-app-936f5ea4c8d436d2.js",
-      "static/chunks/app/siri/page-a4b61a60fb78a428.js"
+      "static/chunks/app/admin/page-652389c5880eaa4b.js"
     ],
     "/page": [
       "static/chunks/webpack-57586abe07dbe25a.js",
@@ -43,6 +36,13 @@
       "static/chunks/main-app-936f5ea4c8d436d2.js",
       "static/chunks/95-6fd185fc54354c9e.js",
       "static/chunks/app/page-e4e7276a50ee2b16.js"
+    ],
+    "/siri/page": [
+      "static/chunks/webpack-57586abe07dbe25a.js",
+      "static/chunks/fd9d1056-cf48984c1108c87a.js",
+      "static/chunks/117-23d354c87a93db8d.js",
+      "static/chunks/main-app-936f5ea4c8d436d2.js",
+      "static/chunks/app/siri/page-a4b61a60fb78a428.js"
     ]
   }
 }
