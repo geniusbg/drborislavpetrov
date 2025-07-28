@@ -1,0 +1,13 @@
+# Tasks Directory
+
+This directory contains task-specific documentation files.
+
+Format: `TASKID-description.md` (e.g., `TNSELV_0001-23.md`)
+
+Each task file includes:
+- Background information
+- Requirements and acceptance criteria  
+- Meeting notes and updates
+- Status and decisions
+
+Files are maintained by @virtual-pm based on meeting notes and project updates. 
