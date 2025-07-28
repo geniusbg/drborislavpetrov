@@ -565,8 +565,8 @@ async function executeCommand(command: ParsedCommand) {
       console.log('Created new user:', user)
     } else {
       // Update existing user's phone and email if provided
-      let updateFields = []
-      let updateValues = []
+      const updateFields = []
+      const updateValues = []
       
       if (command.phone && command.phone !== user.phone) {
         // Check if new phone already exists
@@ -605,7 +605,7 @@ async function executeCommand(command: ParsedCommand) {
 
     // Create booking
     try {
-      const result = await db.run(`
+      await db.run(`
         INSERT INTO bookings (name, phone, service, date, time, status)
         VALUES (?, ?, ?, ?, ?, 'pending')
       `, [command.patientName, user.phone, serviceId, command.date, command.time])
@@ -645,7 +645,7 @@ async function executeCommand(command: ParsedCommand) {
     }
 
     // Create new user
-    const result = await db.run(`
+    await db.run(`
       INSERT INTO users (name, phone, email)
       VALUES (?, ?, ?)
     `, [command.patientName, defaultPhone, command.email || null])
@@ -679,8 +679,8 @@ async function executeCommand(command: ParsedCommand) {
     }
 
     // Update user fields
-    let updateFields = []
-    let updateValues = []
+    const updateFields = []
+    const updateValues = []
     
     if (command.patientName && command.patientName !== user.name) {
       updateFields.push('name = ?')

@@ -1,9 +1,5 @@
 /** @type {import('next').NextConfig} */
 const nextConfig = {
-  // Enable HTTPS in development for iOS compatibility
-  experimental: {
-    https: true
-  },
   images: {
     domains: ['localhost'],
   },

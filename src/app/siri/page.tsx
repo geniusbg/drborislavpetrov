@@ -1,7 +1,8 @@
+/* eslint-disable react/no-unescaped-entities */
 'use client'
 
 import { useState } from 'react'
-import { Copy, Download, Smartphone, Mic, Calendar, Users, CheckCircle, XCircle } from 'lucide-react'
+import { Copy, Smartphone, Calendar, Users, CheckCircle, XCircle } from 'lucide-react'
 
 const SiriShortcutsPage = () => {
   const [copied, setCopied] = useState<string | null>(null)
@@ -105,7 +106,7 @@ const SiriShortcutsPage = () => {
                 </div>
                 <div>
                   <h3 className="font-medium text-gray-900">Създайте нов Shortcut</h3>
-                  <p className="text-gray-600">Натиснете "+" за да създадете нов Shortcut</p>
+                  <p className="text-gray-600">Натиснете &quot;+&quot; за да създадете нов Shortcut</p>
                 </div>
               </div>
               <div className="flex items-start space-x-3">
@@ -113,8 +114,8 @@ const SiriShortcutsPage = () => {
                   <span className="text-blue-600 font-semibold">3</span>
                 </div>
                 <div>
-                  <h3 className="font-medium text-gray-900">Добавете "Get Contents of URL"</h3>
-                  <p className="text-gray-600">Търсете и добавете действието "Get Contents of URL"</p>
+                  <h3 className="font-medium text-gray-900">Добавете &quot;Get Contents of URL&quot;</h3>
+                  <p className="text-gray-600">Търсете и добавете действието &quot;Get Contents of URL&quot;</p>
                 </div>
               </div>
             </div>
@@ -134,7 +135,7 @@ const SiriShortcutsPage = () => {
                 </div>
                 <div>
                   <h3 className="font-medium text-gray-900">Настройте метода на POST</h3>
-                  <p className="text-gray-600">Променете метода на "POST" и добавете JSON данни</p>
+                  <p className="text-gray-600">Променете метода на &quot;POST&quot; и добавете JSON данни</p>
                 </div>
               </div>
               <div className="flex items-start space-x-3">
@@ -143,7 +144,7 @@ const SiriShortcutsPage = () => {
                 </div>
                 <div>
                   <h3 className="font-medium text-gray-900">Добавете към Siri</h3>
-                  <p className="text-gray-600">Натиснете "Add to Siri" и задайте гласова команда</p>
+                  <p className="text-gray-600">Натиснете &quot;Add to Siri&quot; и задайте гласова команда</p>
                 </div>
               </div>
             </div>

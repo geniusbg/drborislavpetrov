@@ -1,5 +1,7 @@
-import React, { useState, useEffect } from 'react'
-import { X } from 'lucide-react'
+'use client'
+
+import { useState, useEffect } from 'react'
+import { User, Phone, Mail, MapPin, FileText, Save, XCircle } from 'lucide-react'
 
 interface User {
   id?: number

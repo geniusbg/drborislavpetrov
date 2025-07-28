@@ -31,8 +31,8 @@ export async function POST(request: NextRequest) {
     }
 
     // Update user fields
-    let updateFields = []
-    let updateValues = []
+    const updateFields = []
+    const updateValues = []
     
     if (patientName && patientName !== user.name) {
       updateFields.push('name = ?')

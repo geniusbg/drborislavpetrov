@@ -54,8 +54,6 @@ const AdminDashboard = () => {
   const [bookings, setBookings] = useState<Booking[]>([])
   const [services, setServices] = useState<Service[]>([])
   const [users, setUsers] = useState<User[]>([])
-  const [selectedService, setSelectedService] = useState<Service | null>(null)
-  const [selectedUser, setSelectedUser] = useState<User | null>(null)
   const [editingBooking, setEditingBooking] = useState<Booking | null>(null)
   const [editingService, setEditingService] = useState<Service | null>(null)
   const [editingUser, setEditingUser] = useState<User | null>(null)
@@ -71,7 +69,6 @@ const AdminDashboard = () => {
   const [userFromHistory, setUserFromHistory] = useState<User | null>(null)
   const [availableSlots, setAvailableSlots] = useState<string[]>([])
   const [availabilityDate, setAvailabilityDate] = useState<string>('')
-  const [availabilityDateStr, setAvailabilityDateStr] = useState<string>('')
 
   // Check authentication on mount
   useEffect(() => {
@@ -341,7 +338,6 @@ const AdminDashboard = () => {
     // Clear availability data after selecting a slot
     setAvailableSlots([])
     setAvailabilityDate('')
-    setAvailabilityDateStr('')
   }
 
   // Filter users based on search term
@@ -420,12 +416,10 @@ const AdminDashboard = () => {
             if (result.result && result.result.availableSlots) {
               setAvailableSlots(result.result.availableSlots)
               setAvailabilityDate(result.result.targetDate)
-              setAvailabilityDateStr(result.result.dateStr)
             } else {
               // Clear availability data for other commands
               setAvailableSlots([])
               setAvailabilityDate('')
-              setAvailabilityDateStr('')
             }
             
             // Refresh all sections after voice command
@@ -437,7 +431,6 @@ const AdminDashboard = () => {
             // Clear availability data on error
             setAvailableSlots([])
             setAvailabilityDate('')
-            setAvailabilityDateStr('')
           }
         } catch (error) {
           console.error('Voice command error:', error)
@@ -519,11 +512,11 @@ const AdminDashboard = () => {
                     <div className="space-y-3">
                       <div>
                         <p className="font-medium text-green-600 text-sm">Резервации:</p>
-                        <p className="text-xs text-gray-600">"запази ми час за Иван Иванов за 24 август от 10 часа за почистване на зъби"</p>
+                        <p className="text-xs text-gray-600">&quot;запази ми час за Иван Иванов за 24 август от 10 часа за почистване на зъби&quot;</p>
                       </div>
                       <div>
                         <p className="font-medium text-blue-600 text-sm">Потребители:</p>
-                        <p className="text-xs text-gray-600">"добави потребител Иван Иванов телефон 0881234567"</p>
+                        <p className="text-xs text-gray-600">&quot;добави потребител Иван Иванов телефон 0881234567&quot;</p>
                       </div>
                     </div>
                   </div>
