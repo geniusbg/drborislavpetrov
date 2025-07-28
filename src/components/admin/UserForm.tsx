@@ -1,7 +1,7 @@
 'use client'
 
 import { useState, useEffect } from 'react'
-import { User, Phone, Mail, MapPin, FileText, Save, XCircle } from 'lucide-react'
+import { User } from 'lucide-react'
 
 interface User {
   id?: number
