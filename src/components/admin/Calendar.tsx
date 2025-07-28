@@ -19,13 +19,41 @@ interface Booking {
 interface CalendarProps {
   bookings: Booking[]
   onBookingClick: (booking: Booking) => void
-  onNewBooking?: (date: string) => void
 }
 
-const Calendar = ({ bookings, onBookingClick, onNewBooking }: CalendarProps) => {
+const Calendar = ({ bookings, onBookingClick }: CalendarProps) => {
   const [currentDate, setCurrentDate] = useState(new Date())
   const [selectedDate, setSelectedDate] = useState<Date | null>(null)
   const [statusFilter, setStatusFilter] = useState<string>('all')
+  const [touchStart, setTouchStart] = useState<number | null>(null)
+  const [touchEnd, setTouchEnd] = useState<number | null>(null)
+
+  // Touch gesture handling for mobile swipe
+  const minSwipeDistance = 50
+
+  const onTouchStart = (e: React.TouchEvent) => {
+    setTouchEnd(null)
+    setTouchStart(e.targetTouches[0].clientX)
+  }
+
+  const onTouchMove = (e: React.TouchEvent) => {
+    setTouchEnd(e.targetTouches[0].clientX)
+  }
+
+  const onTouchEnd = () => {
+    if (!touchStart || !touchEnd) return
+    const distance = touchStart - touchEnd
+    const isLeftSwipe = distance > minSwipeDistance
+    const isRightSwipe = distance < -minSwipeDistance
+
+    if (isLeftSwipe) {
+      // Swipe left - next month
+      setCurrentDate(new Date(currentDate.getFullYear(), currentDate.getMonth() + 1, 1))
+    } else if (isRightSwipe) {
+      // Swipe right - previous month
+      setCurrentDate(new Date(currentDate.getFullYear(), currentDate.getMonth() - 1, 1))
+    }
+  }
 
   // Filter bookings based on status
   const filteredBookings = bookings.filter(booking => {
@@ -117,227 +145,215 @@ const Calendar = ({ bookings, onBookingClick, onNewBooking }: CalendarProps) => 
     }
   }
 
+  const handleDateClick = (date: Date) => {
+    setSelectedDate(date)
+  }
+
+  const handleMonthChange = (direction: 'prev' | 'next') => {
+    if (direction === 'prev') {
+      setCurrentDate(new Date(currentDate.getFullYear(), currentDate.getMonth() - 1, 1))
+    } else {
+      setCurrentDate(new Date(currentDate.getFullYear(), currentDate.getMonth() + 1, 1))
+    }
+  }
+
   return (
-    <div className="bg-white rounded-lg shadow-lg p-6">
-      {/* Calendar Header */}
-      <div className="flex items-center justify-between mb-6">
-        <div className="flex items-center space-x-4">
-          <CalendarIcon className="w-6 h-6 text-blue-600" />
-          <h2 className="text-2xl font-bold text-gray-900">
-            {monthNames[currentDate.getMonth()]} {currentDate.getFullYear()}
-          </h2>
-        </div>
-        <div className="flex items-center space-x-4">
-          {/* Status Filter */}
-          <div className="flex items-center space-x-2">
-            <span className="text-sm text-gray-600">Филтър:</span>
-            <select
-              value={statusFilter}
-              onChange={(e) => setStatusFilter(e.target.value)}
-              className="px-3 py-1 text-sm border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
-            >
-              <option value="all">Всички</option>
-              <option value="pending">Чакащи</option>
-              <option value="confirmed">Потвърдени</option>
-              <option value="cancelled">Отменени</option>
-            </select>
-          </div>
+    <div className="bg-white rounded-xl shadow-sm border border-gray-100">
+      {/* Calendar Header - Mobile Optimized */}
+      <div className="px-4 sm:px-6 py-4 border-b border-gray-200">
+        <div className="flex items-center justify-between">
+          <h2 className="text-lg sm:text-xl font-semibold text-gray-900">Календар</h2>
           
+          {/* Mobile: Touch-friendly navigation */}
           <div className="flex items-center space-x-2">
             <button
-              onClick={() => setCurrentDate(new Date(currentDate.getFullYear(), currentDate.getMonth() - 1))}
-              className="p-2 rounded-lg hover:bg-gray-100"
+              onClick={() => handleMonthChange('prev')}
+              className="p-2 sm:p-3 rounded-lg hover:bg-gray-100 transition-colors touch-manipulation"
             >
-              <ChevronLeft className="w-5 h-5" />
+              <ChevronLeft className="w-5 h-5 sm:w-6 sm:h-6 text-gray-600" />
             </button>
+            
+            <div className="text-center min-w-[140px] sm:min-w-[180px]">
+              <h3 className="text-base sm:text-lg font-medium text-gray-900">
+                {monthNames[currentDate.getMonth()]} {currentDate.getFullYear()}
+              </h3>
+            </div>
+            
             <button
-              onClick={() => setCurrentDate(new Date())}
-              className="px-3 py-1 text-sm bg-blue-600 text-white rounded-lg hover:bg-blue-700"
+              onClick={() => handleMonthChange('next')}
+              className="p-2 sm:p-3 rounded-lg hover:bg-gray-100 transition-colors touch-manipulation"
             >
-              Днес
+              <ChevronRight className="w-5 h-5 sm:w-6 sm:h-6 text-gray-600" />
             </button>
-            <button
-              onClick={() => setCurrentDate(new Date(currentDate.getFullYear(), currentDate.getMonth() + 1))}
-              className="p-2 rounded-lg hover:bg-gray-100"
-            >
-              <ChevronRight className="w-5 h-5" />
-            </button>
+          </div>
+        </div>
+        
+        {/* Status Filter - Mobile Optimized */}
+        <div className="mt-4">
+          <div className="flex space-x-2 overflow-x-auto scrollbar-hide">
+            {['all', 'pending', 'confirmed', 'cancelled'].map((status) => (
+              <button
+                key={status}
+                onClick={() => setStatusFilter(status)}
+                className={`flex-shrink-0 px-3 py-2 text-sm font-medium rounded-lg transition-colors ${
+                  statusFilter === status
+                    ? 'bg-blue-600 text-white'
+                    : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
+                }`}
+              >
+                {status === 'all' ? 'Всички' : 
+                 status === 'pending' ? 'Чакащи' :
+                 status === 'confirmed' ? 'Потвърдени' : 'Отменени'}
+              </button>
+            ))}
           </div>
         </div>
       </div>
 
-      {/* Calendar Stats */}
-      <div className="mb-6 grid grid-cols-4 gap-4">
-        <div className="bg-blue-50 p-3 rounded-lg">
-          <div className="text-sm text-blue-600 font-medium">Общо резервации</div>
-          <div className="text-2xl font-bold text-blue-900">{filteredBookings.length}</div>
-        </div>
-        <div className="bg-yellow-50 p-3 rounded-lg">
-          <div className="text-sm text-yellow-600 font-medium">Чакащи</div>
-          <div className="text-2xl font-bold text-yellow-900">
-            {filteredBookings.filter(b => b.status === 'pending').length}
-          </div>
-        </div>
-        <div className="bg-green-50 p-3 rounded-lg">
-          <div className="text-sm text-green-600 font-medium">Потвърдени</div>
-          <div className="text-2xl font-bold text-green-900">
-            {filteredBookings.filter(b => b.status === 'confirmed').length}
-          </div>
-        </div>
-        <div className="bg-red-50 p-3 rounded-lg">
-          <div className="text-sm text-red-600 font-medium">Отменени</div>
-          <div className="text-2xl font-bold text-red-900">
-            {filteredBookings.filter(b => b.status === 'cancelled').length}
-          </div>
-        </div>
-      </div>
-
-      {/* Calendar Grid */}
-      <div className="grid grid-cols-7 gap-1">
-        {/* Day headers */}
-        {dayNames.map(day => (
-          <div key={day} className="p-2 text-center text-sm font-medium text-gray-500">
-            {day}
-          </div>
-        ))}
-
-        {/* Calendar days */}
-        {calendarDays.map((date, index) => {
-          const dayBookings = getBookingsForDate(date)
-          const isSelected = selectedDate && date.toDateString() === selectedDate.toDateString()
-          
-          return (
-            <div
-              key={index}
-              className={`
-                min-h-[120px] p-2 border border-gray-200 cursor-pointer hover:bg-gray-50
-                ${isToday(date) ? 'bg-blue-50 border-blue-300' : ''}
-                ${!isCurrentMonth(date) ? 'text-gray-400' : ''}
-                ${isSelected ? 'bg-blue-100 border-blue-400' : ''}
-              `}
-              onClick={() => setSelectedDate(date)}
-            >
-              <div className="flex justify-between items-start mb-1">
-                <div className="text-sm font-medium">
-                  {date.getDate()}
-                </div>
-                {onNewBooking && (
-                  <button
-                    onClick={(e) => {
-                      e.stopPropagation()
-                      onNewBooking(date.toISOString().split('T')[0])
-                    }}
-                    className="text-gray-400 hover:text-primary-600 hover:bg-primary-50 rounded-full p-1 transition-colors"
-                    title="Добави резервация"
-                  >
-                    <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
-                    </svg>
-                  </button>
-                )}
-              </div>
-              
-              {/* Bookings for this day */}
-              <div className="space-y-1">
-                {dayBookings.slice(0, 3).map((booking) => (
-                  <div
-                    key={booking.id}
-                    className={`
-                      text-xs p-1 rounded border cursor-pointer hover:opacity-80
-                      ${getStatusColor(booking.status)}
-                    `}
-                    onClick={(e) => {
-                      e.stopPropagation()
-                      onBookingClick(booking)
-                    }}
-                  >
-                    <div className="flex items-center space-x-1">
-                      <Clock className="w-3 h-3" />
-                      <span className="font-medium">{booking.time}</span>
-                    </div>
-                    <div className="flex items-center space-x-1">
-                      <User className="w-3 h-3" />
-                      <span className="truncate">{booking.name}</span>
-                    </div>
-                    <div className="text-xs opacity-75">
-                      {getStatusText(booking.status)}
-                    </div>
-                  </div>
-                ))}
-                
-                {dayBookings.length > 3 && (
-                  <div className="text-xs text-gray-500 text-center">
-                    +{dayBookings.length - 3} още
-                  </div>
-                )}
+      {/* Calendar Grid - Touch Optimized */}
+      <div 
+        className="p-4 sm:p-6"
+        onTouchStart={onTouchStart}
+        onTouchMove={onTouchMove}
+        onTouchEnd={onTouchEnd}
+      >
+        {/* Day Headers */}
+        <div className="grid grid-cols-7 gap-1 mb-2">
+          {dayNames.map((day) => (
+            <div key={day} className="text-center">
+              <div className="text-xs sm:text-sm font-medium text-gray-500 py-2">
+                {day}
               </div>
             </div>
-          )
-        })}
+          ))}
+        </div>
+
+        {/* Calendar Days */}
+        <div className="grid grid-cols-7 gap-1">
+          {calendarDays.map((date, index) => {
+            const bookings = getBookingsForDate(date)
+            const isSelected = selectedDate && selectedDate.toDateString() === date.toDateString()
+            
+            return (
+              <div
+                key={index}
+                onClick={() => handleDateClick(date)}
+                className={`
+                  relative min-h-[60px] sm:min-h-[80px] p-1 sm:p-2 rounded-lg cursor-pointer transition-all duration-200
+                  ${isToday(date) ? 'bg-blue-50 border-2 border-blue-200' : ''}
+                  ${isSelected ? 'bg-blue-100 border-2 border-blue-300' : ''}
+                  ${!isCurrentMonth(date) ? 'text-gray-400' : 'text-gray-900'}
+                  ${isCurrentMonth(date) && !isToday(date) && !isSelected ? 'hover:bg-gray-50' : ''}
+                  touch-manipulation
+                `}
+              >
+                {/* Date Number */}
+                <div className="text-xs sm:text-sm font-medium mb-1">
+                  {date.getDate()}
+                </div>
+                
+                {/* Bookings Indicators */}
+                {bookings.length > 0 && (
+                  <div className="space-y-1">
+                    {bookings.slice(0, 2).map((booking, bookingIndex) => (
+                      <div
+                        key={bookingIndex}
+                        onClick={(e) => {
+                          e.stopPropagation()
+                          onBookingClick(booking)
+                        }}
+                        className={`
+                          text-xs px-1 py-0.5 rounded border truncate
+                          ${getStatusColor(booking.status)}
+                          touch-manipulation
+                        `}
+                        title={`${booking.name} - ${booking.time} - ${getStatusText(booking.status)}`}
+                      >
+                        {booking.time} - {booking.name}
+                      </div>
+                    ))}
+                    
+                    {bookings.length > 2 && (
+                      <div className="text-xs text-gray-500 text-center">
+                        +{bookings.length - 2} още
+                      </div>
+                    )}
+                  </div>
+                )}
+              </div>
+            )
+          })}
+        </div>
       </div>
 
-      {/* Selected Date Details */}
+      {/* Selected Date Details - Mobile Optimized */}
       {selectedDate && (
-        <div className="mt-6 p-4 bg-gray-50 rounded-lg">
-          <div className="flex justify-between items-center mb-3">
-            <h3 className="text-lg font-semibold">
-              Резервации за {selectedDate.toLocaleDateString('bg-BG', { 
+        <div className="px-4 sm:px-6 py-4 border-t border-gray-200">
+          <div className="flex items-center justify-between mb-3">
+            <h3 className="text-lg font-semibold text-gray-900">
+              {selectedDate.toLocaleDateString('bg-BG', { 
                 weekday: 'long', 
                 year: 'numeric', 
                 month: 'long', 
                 day: 'numeric' 
               })}
             </h3>
-            {onNewBooking && (
-              <button
-                onClick={() => onNewBooking(selectedDate.toISOString().split('T')[0])}
-                className="bg-primary-600 text-white px-3 py-1 rounded-md text-sm hover:bg-primary-700"
-              >
-                + Нова резервация
-              </button>
-            )}
+            <button
+              onClick={() => setSelectedDate(null)}
+              className="p-1 rounded-lg hover:bg-gray-100 transition-colors"
+            >
+              <span className="text-gray-500">✕</span>
+            </button>
           </div>
           
-          {getBookingsForDate(selectedDate).length === 0 ? (
-            <p className="text-gray-500">Няма резервации за този ден</p>
-          ) : (
-            <div className="space-y-2">
-              {getBookingsForDate(selectedDate).map((booking) => (
-                <div
-                  key={booking.id}
-                  className={`
-                    p-3 rounded-lg border cursor-pointer hover:shadow-md transition-shadow
-                    ${getStatusColor(booking.status)}
-                  `}
-                  onClick={() => onBookingClick(booking)}
-                >
-                  <div className="flex items-center justify-between">
-                    <div className="flex items-center space-x-3">
-                      <Clock className="w-4 h-4" />
-                      <span className="font-medium">{booking.time}</span>
-                    </div>
-                    <span className={`text-xs px-2 py-1 rounded ${getStatusColor(booking.status)}`}>
-                      {getStatusText(booking.status)}
-                    </span>
+          <div className="space-y-2 max-h-60 overflow-y-auto">
+            {getBookingsForDate(selectedDate).map((booking) => (
+              <div
+                key={booking.id}
+                onClick={() => onBookingClick(booking)}
+                className={`
+                  p-3 rounded-lg border cursor-pointer transition-colors
+                  ${getStatusColor(booking.status)}
+                  hover:shadow-sm touch-manipulation
+                `}
+              >
+                <div className="flex items-center justify-between mb-2">
+                  <div className="flex items-center space-x-2">
+                    <Clock className="w-4 h-4" />
+                    <span className="font-medium">{booking.time}</span>
+                  </div>
+                  <span className="text-xs font-medium">
+                    {getStatusText(booking.status)}
+                  </span>
+                </div>
+                
+                <div className="space-y-1">
+                  <div className="flex items-center space-x-2">
+                    <User className="w-4 h-4" />
+                    <span className="text-sm">{booking.name}</span>
                   </div>
                   
-                  <div className="mt-2 space-y-1">
-                    <div className="flex items-center space-x-2">
-                      <User className="w-4 h-4" />
-                      <span>{booking.name}</span>
-                    </div>
-                    <div className="flex items-center space-x-2">
-                      <Phone className="w-4 h-4" />
-                      <span>{booking.phone}</span>
-                    </div>
-                    <div className="text-sm opacity-75">
-                      {booking.serviceName || booking.service}
-                    </div>
+                  <div className="flex items-center space-x-2">
+                    <Phone className="w-4 h-4" />
+                    <span className="text-sm">{booking.phone}</span>
                   </div>
+                  
+                  {booking.serviceName && (
+                    <div className="text-sm text-gray-600">
+                      Услуга: {booking.serviceName}
+                    </div>
+                  )}
                 </div>
-              ))}
-            </div>
-          )}
+              </div>
+            ))}
+            
+            {getBookingsForDate(selectedDate).length === 0 && (
+              <div className="text-center py-8 text-gray-500">
+                <CalendarIcon className="w-12 h-12 mx-auto mb-2 text-gray-300" />
+                <p>Няма резервации за този ден</p>
+              </div>
+            )}
+          </div>
         </div>
       )}
     </div>
