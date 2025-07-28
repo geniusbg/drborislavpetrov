@@ -2,13 +2,14 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
 'use client'
 
-import { useState, useEffect } from 'react'
-import { Calendar, Users, Clock, TrendingUp, LogOut, Plus, Edit, Trash2, Mic, MicOff, Smartphone, ArrowLeft } from 'lucide-react'
-import ServiceForm from '@/components/admin/ServiceForm'
-import BookingForm from '@/components/admin/BookingForm'
-import UserForm from '@/components/admin/UserForm'
+import React, { useState, useEffect } from 'react'
+import { Calendar, Users, Clock, TrendingUp, ArrowLeft, Smartphone, LogOut, Plus, Edit, Trash2 } from 'lucide-react'
 import CalendarComponent from '@/components/admin/Calendar'
 import UserHistory from '@/components/admin/UserHistory'
+import VoiceAssistant from '@/components/admin/VoiceAssistant'
+import UserForm from '@/components/admin/UserForm'
+import BookingForm from '@/components/admin/BookingForm'
+import ServiceForm from '@/components/admin/ServiceForm'
 
 interface Booking {
   id: string
@@ -44,33 +45,29 @@ interface User {
   updatedAt: string
 }
 
-const AdminDashboard = () => {
+export default function AdminPage() {
   const [activeTab, setActiveTab] = useState(() => {
     // Load active tab from localStorage on mount
     if (typeof window !== 'undefined') {
-      return localStorage.getItem('adminActiveTab') || 'bookings'
+      return localStorage.getItem('adminActiveTab') || 'calendar'
     }
-    return 'bookings'
+    return 'calendar'
   })
-  const [isLoading, setIsLoading] = useState(true)
   const [bookings, setBookings] = useState<Booking[]>([])
-  const [services, setServices] = useState<Service[]>([])
   const [users, setUsers] = useState<User[]>([])
-  const [editingBooking, setEditingBooking] = useState<Booking | null>(null)
-  const [editingService, setEditingService] = useState<Service | null>(null)
-  const [editingUser, setEditingUser] = useState<User | null>(null)
+  const [services, setServices] = useState<Service[]>([])
+  const [isLoading, setIsLoading] = useState(true)
+  const [showUserModal, setShowUserModal] = useState(false)
   const [showBookingModal, setShowBookingModal] = useState(false)
   const [showServiceModal, setShowServiceModal] = useState(false)
-  const [showUserModal, setShowUserModal] = useState(false)
-  const [isListening, setIsListening] = useState(false)
-  const [voiceMessage, setVoiceMessage] = useState('')
-  const [lastBookingCount, setLastBookingCount] = useState(0)
+  const [editingUser, setEditingUser] = useState<User | null>(null)
+  const [editingBooking, setEditingBooking] = useState<Booking | null>(null)
+  const [editingService, setEditingService] = useState<Service | null>(null)
   const [selectedUserForHistory, setSelectedUserForHistory] = useState<User | null>(null)
+  const [userFromHistory, setUserFromHistory] = useState<User | null>(null)
   const [userSearchTerm, setUserSearchTerm] = useState('')
   const [bookingSearchTerm, setBookingSearchTerm] = useState('')
-  const [userFromHistory, setUserFromHistory] = useState<User | null>(null)
-  const [availableSlots, setAvailableSlots] = useState<string[]>([])
-  const [availabilityDate, setAvailabilityDate] = useState<string>('')
+  const [isVoiceListening, setIsVoiceListening] = useState(false)
 
   // Check authentication on mount
   useEffect(() => {
@@ -129,10 +126,10 @@ const AdminDashboard = () => {
         setBookings(data.bookings)
         
         // Check for new bookings
-        if (data.bookings.length > lastBookingCount && lastBookingCount > 0) {
-          alert(`Нова резервация! Общо: ${data.bookings.length}`)
-        }
-        setLastBookingCount(data.bookings.length)
+        // if (data.bookings.length > lastBookingCount && lastBookingCount > 0) {
+        //   alert(`Нова резервация! Общо: ${data.bookings.length}`)
+        // }
+        // setLastBookingCount(data.bookings.length)
       }
     } catch (error) {
       console.error('Error loading bookings:', error)
@@ -325,23 +322,6 @@ const AdminDashboard = () => {
     setUserFromHistory(selectedUserForHistory)
   }
 
-  const handleCreateBookingFromSlot = (time: string) => {
-    setEditingBooking({
-      id: '',
-      name: '',
-      phone: '',
-      service: '',
-      date: availabilityDate,
-      time: time,
-      status: 'pending',
-      createdAt: new Date().toISOString()
-    })
-    setShowBookingModal(true)
-    // Clear availability data after selecting a slot
-    setAvailableSlots([])
-    setAvailabilityDate('')
-  }
-
   // Filter users based on search term
   const filteredUsers = users.filter(user => {
     const searchTerm = userSearchTerm.toLowerCase()
@@ -365,106 +345,12 @@ const AdminDashboard = () => {
     )
   })
 
-  const startVoiceRecognition = () => {
-    // Check if running on iOS
-    const isIOS = /iPad|iPhone|iPod/.test(navigator.userAgent)
-    
-    if (isIOS) {
-      alert('Гласовото разпознаване не се поддържа на iOS устройства. Моля, използвайте компютър или Android устройство.')
-      return
-    }
-
-    const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition
-
-    if (!SpeechRecognition) {
-      alert('Гласовото разпознаване не се поддържа в този браузър. Моля, използвайте Chrome или Edge.')
-      return
-    }
-
-    try {
-      const recognition = new SpeechRecognition()
-      recognition.continuous = false
-      recognition.interimResults = false
-      recognition.lang = 'bg-BG'
-
-      recognition.onstart = () => {
-        setIsListening(true)
-        setVoiceMessage('Говорете сега...')
-      }
-
-      recognition.onresult = async (event: any) => {
-        const transcript = event.results[0][0].transcript
-        console.log('Voice transcript:', transcript)
-        setVoiceMessage(`Разбрах: "${transcript}"`)
-
-        try {
-          const adminToken = localStorage.getItem('adminToken')
-          const response = await fetch('/api/admin/voice-commands', {
-            method: 'POST',
-            headers: {
-              'Content-Type': 'application/json',
-              'x-admin-token': adminToken || ''
-            },
-            body: JSON.stringify({ voiceCommand: transcript })
-          })
-
-          const result = await response.json()
-          console.log('API response:', result)
-
-          if (result.success) {
-            setVoiceMessage(result.message)
-            
-            // Check if this is an availability check result
-            if (result.result && result.result.availableSlots) {
-              setAvailableSlots(result.result.availableSlots)
-              setAvailabilityDate(result.result.targetDate)
-            } else {
-              // Clear availability data for other commands
-              setAvailableSlots([])
-              setAvailabilityDate('')
-            }
-            
-            // Refresh all sections after voice command
-            loadBookings()
-            loadUsers()
-            loadServices()
-          } else {
-            setVoiceMessage(`Грешка: ${result.message}`)
-            // Clear availability data on error
-            setAvailableSlots([])
-            setAvailabilityDate('')
-          }
-        } catch (error) {
-          console.error('Voice command error:', error)
-          setVoiceMessage('Грешка при обработка на командата')
-        }
-      }
-
-      recognition.onerror = (event: any) => {
-        setIsListening(false)
-        console.error('Speech recognition error:', event.error)
-
-        let errorMessage = 'Грешка при разпознаване на гласа'
-        if (event.error === 'not-allowed') {
-          errorMessage = 'Няма разрешение за достъп до микрофона. Моля, разрешете достъпа.'
-        } else if (event.error === 'no-speech') {
-          errorMessage = 'Не се разпозна глас. Моля, опитайте отново.'
-        } else if (event.error === 'network') {
-          errorMessage = 'Грешка в мрежата. Моля, проверете интернет връзката.'
-        }
-
-        setVoiceMessage(errorMessage)
-      }
-
-      recognition.onend = () => {
-        setIsListening(false)
-      }
-
-      recognition.start()
-    } catch (error) {
-      console.error('Error starting speech recognition:', error)
-      setVoiceMessage('Грешка при стартиране на гласовото разпознаване')
-    }
+  const handleVoiceCommand = (command: string) => {
+    console.log('Voice command executed:', command)
+    // Refresh data after voice command
+    loadBookings()
+    loadUsers()
+    loadServices()
   }
 
   return (
@@ -490,18 +376,6 @@ const AdminDashboard = () => {
               {/* Mobile Actions */}
               <div className="flex items-center space-x-2 sm:hidden">
                 <button
-                  onClick={startVoiceRecognition}
-                  disabled={isListening}
-                  className={`p-2 rounded-lg transition-all duration-200 ${
-                    isListening 
-                      ? 'bg-red-500 text-white animate-pulse' 
-                      : 'bg-white/20 text-white hover:bg-white/30'
-                  }`}
-                >
-                  {isListening ? <MicOff className="w-4 h-4" /> : <Mic className="w-4 h-4" />}
-                </button>
-                
-                <button
                   onClick={() => {
                     localStorage.removeItem('adminToken')
                     window.location.href = '/admin/login'
@@ -515,18 +389,6 @@ const AdminDashboard = () => {
             
             {/* Desktop Voice Command Section */}
             <div className="hidden sm:flex flex-col items-center space-y-3">
-              <button
-                onClick={startVoiceRecognition}
-                disabled={isListening}
-                className={`flex items-center space-x-3 px-6 py-3 rounded-xl text-sm font-semibold transition-all duration-200 shadow-lg ${
-                  isListening 
-                    ? 'bg-red-500 text-white shadow-red-500/25 animate-pulse' 
-                    : 'bg-white/20 text-white hover:bg-white/30 backdrop-blur-sm hover:scale-105'
-                }`}
-              >
-                {isListening ? <MicOff className="w-5 h-5" /> : <Mic className="w-5 h-5" />}
-                <span>{isListening ? 'Спиране...' : 'Гласова команда'}</span>
-              </button>
               
               {/* Voice Command Examples - Collapsible */}
               <div className="relative group">
@@ -599,37 +461,6 @@ const AdminDashboard = () => {
       {/* Content */}
       {!isLoading && (
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4 sm:py-8">
-          {/* Voice Command Message */}
-          {voiceMessage && (
-            <div className="mb-6 p-4 bg-gradient-to-r from-blue-50 to-indigo-50 border border-blue-200 rounded-xl shadow-sm">
-              <div className="flex items-center space-x-3 mb-3">
-                <div className="p-2 bg-blue-100 rounded-lg">
-                  <Mic className="w-5 h-5 text-blue-600" />
-                </div>
-                <p className="text-blue-800 font-medium">{voiceMessage}</p>
-              </div>
-              
-              {/* Available Slots - Clickable Options */}
-              {availableSlots.length > 0 && (
-                <div className="mt-4">
-                  <p className="text-sm font-medium text-gray-700 mb-3">
-                    Кликнете на час за създаване на резервация:
-                  </p>
-                  <div className="grid grid-cols-4 sm:grid-cols-6 md:grid-cols-8 gap-2">
-                    {availableSlots.map((time, index) => (
-                      <button
-                        key={index}
-                        onClick={() => handleCreateBookingFromSlot(time)}
-                        className="px-3 py-2 text-sm font-medium text-blue-700 bg-blue-50 border border-blue-200 rounded-lg hover:bg-blue-100 hover:border-blue-300 transition-colors duration-200"
-                      >
-                        {time}
-                      </button>
-                    ))}
-                  </div>
-                </div>
-              )}
-            </div>
-          )}
           
           {/* Statistics Cards - Modern Design */}
           <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 mb-8">
@@ -1484,8 +1315,13 @@ const AdminDashboard = () => {
           onEditBooking={handleEditBookingFromHistory}
         />
       )}
+
+      {/* Voice Assistant */}
+      <VoiceAssistant 
+        onCommand={handleVoiceCommand}
+        isListening={isVoiceListening}
+        setIsListening={setIsVoiceListening}
+      />
     </div>
   )
-}
-
-export default AdminDashboard 
+} 
