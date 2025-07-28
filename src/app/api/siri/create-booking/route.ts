@@ -35,8 +35,8 @@ export async function POST(request: NextRequest) {
       console.log('Created new user via Siri:', user)
     } else {
       // Update phone and email if provided and different
-      let updateFields = []
-      let updateValues = []
+      const updateFields = []
+      const updateValues = []
       
       if (phone && phone !== user.phone) {
         updateFields.push('phone = ?')

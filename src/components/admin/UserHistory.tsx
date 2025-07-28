@@ -1,6 +1,7 @@
+/* eslint-disable react/no-unescaped-entities */
 'use client'
 
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { Calendar, Clock, User, Phone, Mail, FileText, Edit, X } from 'lucide-react'
 
 interface Booking {

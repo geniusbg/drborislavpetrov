@@ -1,4 +1,4 @@
-import { NextRequest, NextResponse } from 'next/server'
+import { NextResponse } from 'next/server'
 import { getDatabase } from '@/lib/database'
 
 export async function GET() {
@@ -15,7 +15,7 @@ export async function GET() {
       LIMIT 10
     `)
 
-    const formattedBookings = bookings.map((b: any) => ({
+    const formattedBookings = bookings.map((b: Record<string, unknown>) => ({
       id: b.id,
       patientName: b.name,
       service: b.serviceName,

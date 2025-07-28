@@ -36,7 +36,7 @@ export async function POST(request: NextRequest) {
   }
 }
 
-async function handleCreateBooking(data: any, db: any) {
+async function handleCreateBooking(data: Record<string, unknown>, db: any) {
   const { patientName, date, time, service } = data
 
   if (!patientName || !date || !time) {
@@ -87,7 +87,7 @@ async function handleCreateBooking(data: any, db: any) {
   })
 }
 
-async function handleConfirmBooking(data: any, db: any) {
+async function handleConfirmBooking(data: Record<string, unknown>, db: any) {
   const { bookingId } = data
 
   if (!bookingId) {
@@ -105,7 +105,7 @@ async function handleConfirmBooking(data: any, db: any) {
   })
 }
 
-async function handleCancelBooking(data: any, db: any) {
+async function handleCancelBooking(data: Record<string, unknown>, db: any) {
   const { bookingId } = data
 
   if (!bookingId) {
@@ -136,7 +136,7 @@ async function handleGetBookings(db: any) {
 
   return NextResponse.json({
     success: true,
-    bookings: bookings.map((b: any) => ({
+    bookings: bookings.map((b: Record<string, unknown>) => ({
       id: b.id,
       patientName: b.name,
       service: b.serviceName,
