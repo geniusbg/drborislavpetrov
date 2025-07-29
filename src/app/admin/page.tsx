@@ -6,10 +6,10 @@ import React, { useState, useEffect } from 'react'
 import { Calendar, Users, Clock, TrendingUp, ArrowLeft, Smartphone, LogOut, Plus, Edit, Trash2 } from 'lucide-react'
 import CalendarComponent from '@/components/admin/Calendar'
 import UserHistory from '@/components/admin/UserHistory'
-import VoiceAssistant from '@/components/admin/VoiceAssistant'
 import UserForm from '@/components/admin/UserForm'
 import BookingForm from '@/components/admin/BookingForm'
 import ServiceForm from '@/components/admin/ServiceForm'
+import VoiceInterface from '@/components/admin/VoiceInterface'
 
 interface Booking {
   id: string
@@ -46,13 +46,7 @@ interface User {
 }
 
 export default function AdminPage() {
-  const [activeTab, setActiveTab] = useState(() => {
-    // Load active tab from localStorage on mount
-    if (typeof window !== 'undefined') {
-      return localStorage.getItem('adminActiveTab') || 'calendar'
-    }
-    return 'calendar'
-  })
+  const [activeTab, setActiveTab] = useState('bookings')
   const [bookings, setBookings] = useState<Booking[]>([])
   const [users, setUsers] = useState<User[]>([])
   const [services, setServices] = useState<Service[]>([])
@@ -67,7 +61,6 @@ export default function AdminPage() {
   const [userFromHistory, setUserFromHistory] = useState<User | null>(null)
   const [userSearchTerm, setUserSearchTerm] = useState('')
   const [bookingSearchTerm, setBookingSearchTerm] = useState('')
-  const [isVoiceListening, setIsVoiceListening] = useState(false)
 
   // Check authentication on mount
   useEffect(() => {
@@ -1316,11 +1309,9 @@ export default function AdminPage() {
         />
       )}
 
-      {/* Voice Assistant */}
-      <VoiceAssistant 
+      {/* Voice Interface */}
+      <VoiceInterface 
         onCommand={handleVoiceCommand}
-        isListening={isVoiceListening}
-        setIsListening={setIsVoiceListening}
       />
     </div>
   )
