@@ -1,6 +1,6 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
 import React, { useState, useEffect, useRef, useCallback } from 'react'
-import { Mic, MicOff, Volume2, X, Check, AlertCircle, Smartphone, Type } from 'lucide-react'
+import { Mic, MicOff, Volume2, X, Check, AlertCircle, Type, Zap } from 'lucide-react'
 
 // Type declarations for Web Speech API
 declare global {
@@ -36,21 +36,81 @@ const VoiceAssistant: React.FC<VoiceAssistantProps> = ({ onCommand, isListening,
   const [showTextInput, setShowTextInput] = useState(false)
   const [manualCommand, setManualCommand] = useState('')
   const [voiceSupported, setVoiceSupported] = useState(false)
+  const [showSuggestions, setShowSuggestions] = useState(false)
+  const [selectedSuggestion, setSelectedSuggestion] = useState(0)
   const recognitionRef = useRef<any>(null)
 
-  // Check if running on iOS
-  const isIOS = typeof window !== 'undefined' && /iPad|iPhone|iPod/.test(navigator.userAgent)
+  // Simple device detection
+  const isMobile = typeof window !== 'undefined' && /Android|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent)
   
-  // Check if voice recognition is supported
+  // Command templates for quick access
+  const commandTemplates = [
+    {
+      category: 'Потребители',
+      commands: [
+        { text: 'добави потребител [име] телефон [номер]', example: 'добави потребител Иван Иванов телефон 0888123456' },
+        { text: 'промени потребител [име] телефон [номер]', example: 'промени потребител Мария телефон 0888765432' },
+        { text: 'изтрий потребител [име]', example: 'изтрий потребител Петър' }
+      ]
+    },
+    {
+      category: 'Резервации',
+      commands: [
+        { text: 'добави резервация [име] [дата] [час]', example: 'добави резервация Петър 15.12.2024 14:00' },
+        { text: 'промени резервация [име] [дата] [час]', example: 'промени резервация Иван 20.12.2024 10:00' },
+        { text: 'отмени резервация [име] [дата]', example: 'отмени резервация Мария 25.12.2024' }
+      ]
+    },
+    {
+      category: 'Услуги',
+      commands: [
+        { text: 'провери свободни часове [дата]', example: 'провери свободни часове за утре' },
+        { text: 'покажи резервации [дата]', example: 'покажи резервации за днес' }
+      ]
+    }
+  ]
+
+  // Smart suggestions based on input
+  const getSuggestions = (input: string) => {
+    if (!input.trim()) return []
+    
+    const suggestions: string[] = []
+    const lowerInput = input.toLowerCase()
+    
+    commandTemplates.forEach(category => {
+      category.commands.forEach(cmd => {
+        if (cmd.text.toLowerCase().includes(lowerInput) || 
+            cmd.example.toLowerCase().includes(lowerInput)) {
+          suggestions.push(cmd.example)
+        }
+      })
+    })
+    
+    return suggestions.slice(0, 5) // Limit to 5 suggestions
+  }
+
+  const suggestions = getSuggestions(manualCommand)
+
+  // Check if voice recognition is supported (desktop only)
   const checkVoiceSupport = useCallback(() => {
     if (typeof window !== 'undefined') {
       const hasSpeechRecognition = 'webkitSpeechRecognition' in window || 'SpeechRecognition' in window
-      setVoiceSupported(hasSpeechRecognition && !isIOS) // iOS Safari has issues with Web Speech API
-      if (!hasSpeechRecognition || isIOS) {
+      
+      // Only enable voice on desktop browsers
+      if (isMobile) {
+        setVoiceSupported(false)
         setShowTextInput(true)
+        setError('Мобилните устройства използват текстово въвеждане за по-добро изживяване.')
+        return
+      }
+      
+      setVoiceSupported(hasSpeechRecognition)
+      if (!hasSpeechRecognition) {
+        setShowTextInput(true)
+        setError('Гласовото разпознаване не се поддържа в този браузър')
       }
     }
-  }, [isIOS])
+  }, [isMobile])
 
   // Check microphone permissions
   const checkMicrophonePermission = useCallback(async () => {
@@ -103,6 +163,11 @@ const VoiceAssistant: React.FC<VoiceAssistantProps> = ({ onCommand, isListening,
   useEffect(() => {
     // Check voice support on mount
     checkVoiceSupport()
+
+    // Don't initialize voice recognition on mobile
+    if (isMobile) {
+      return
+    }
 
     if (voiceSupported && typeof window !== 'undefined' && 'webkitSpeechRecognition' in window) {
       const SpeechRecognition = window.webkitSpeechRecognition || window.SpeechRecognition
@@ -158,22 +223,21 @@ const VoiceAssistant: React.FC<VoiceAssistantProps> = ({ onCommand, isListening,
 
       recognition.onend = () => {
         setIsListening(false)
-        if (transcript.trim()) {
+        if (transcript.trim() && !showTextInput) {
           processCommand(transcript.trim())
         }
       }
-    } else {
-      // Voice not supported, show text input
-      setShowTextInput(true)
-      if (isIOS) {
-        setError('iOS Safari не поддържа гласово разпознаване. Моля, използвайте текстово въвеждане.')
-      } else {
-        setError('Гласовото разпознаване не се поддържа в този браузър')
-      }
     }
-  }, [processCommand, transcript, setIsListening, voiceSupported, isIOS, checkVoiceSupport])
+  }, [processCommand, transcript, setIsListening, voiceSupported, isMobile, checkVoiceSupport, showTextInput])
 
   const startListening = async () => {
+    // Prevent voice recognition on mobile
+    if (isMobile) {
+      setShowTextInput(true)
+      setError('Мобилните устройства използват текстово въвеждане за по-добро изживяване.')
+      return
+    }
+
     if (!voiceSupported) {
       setShowTextInput(true)
       return
@@ -286,13 +350,42 @@ const VoiceAssistant: React.FC<VoiceAssistantProps> = ({ onCommand, isListening,
   }
 
   const handleManualCommandChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    setManualCommand(e.target.value)
+    const value = e.target.value
+    setManualCommand(value)
+    setShowSuggestions(value.length > 0)
+    setSelectedSuggestion(0)
   }
 
   const handleManualCommandKeyPress = (e: React.KeyboardEvent) => {
     if (e.key === 'Enter') {
-      handleManualSubmit()
+      if (showSuggestions && suggestions.length > 0) {
+        // Use selected suggestion
+        setManualCommand(suggestions[selectedSuggestion])
+        setShowSuggestions(false)
+      } else {
+        handleManualSubmit()
+      }
+    } else if (e.key === 'ArrowDown') {
+      e.preventDefault()
+      setSelectedSuggestion(prev => 
+        prev < suggestions.length - 1 ? prev + 1 : prev
+      )
+    } else if (e.key === 'ArrowUp') {
+      e.preventDefault()
+      setSelectedSuggestion(prev => prev > 0 ? prev - 1 : 0)
+    } else if (e.key === 'Escape') {
+      setShowSuggestions(false)
     }
+  }
+
+  const handleSuggestionClick = (suggestion: string) => {
+    setManualCommand(suggestion)
+    setShowSuggestions(false)
+  }
+
+  const handleTemplateClick = (template: string) => {
+    setManualCommand(template)
+    setShowSuggestions(false)
   }
 
   return (
@@ -305,8 +398,8 @@ const VoiceAssistant: React.FC<VoiceAssistantProps> = ({ onCommand, isListening,
             <h3 className="font-semibold text-gray-900">
               {showTextInput ? 'Текстов Асистент' : 'Гласов Асистент'}
             </h3>
-            {isIOS && (
-              <Smartphone className="w-4 h-4 text-gray-500" />
+            {isMobile && (
+              <Zap className="w-4 h-4 text-gray-500" />
             )}
           </div>
           <button
@@ -373,33 +466,78 @@ const VoiceAssistant: React.FC<VoiceAssistantProps> = ({ onCommand, isListening,
         {/* Status */}
         <div className="text-center mb-3">
           <p className="text-sm text-gray-600">
-            {showTextInput 
-              ? 'Въведете команда ръчно' 
-              : isListening 
-                ? 'Говорете сега...' 
-                : 'Натиснете за да говорите'
+            {isMobile 
+              ? '📱 Мобилно устройство: Използвайте текстово въвеждане' 
+              : showTextInput 
+                ? 'Въведете команда ръчно' 
+                : isListening 
+                  ? 'Говорете сега...' 
+                  : 'Натиснете за да говорите'
             }
           </p>
-          {isIOS && !showTextInput && (
-            <p className="text-xs text-gray-500 mt-1">
-              iOS: Преминете на текстово въвеждане
+          {isMobile && (
+            <p className="text-xs text-blue-600 mt-1">
+              💡 Оптимизирано за мобилни устройства
             </p>
           )}
         </div>
 
-        {/* Text Input for iOS/Manual Entry */}
-        {showTextInput && (
-          <div className="mb-3">
-            <input
-              type="text"
-              value={manualCommand}
-              onChange={handleManualCommandChange}
-              onKeyPress={handleManualCommandKeyPress}
-              placeholder="Въведете команда ръчно..."
-              className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-            />
-          </div>
-        )}
+                {/* Text Input for iOS/Manual Entry */}
+                {showTextInput && (
+                  <div className="mb-3">
+                    <div className="relative">
+                      <input
+                        type="text"
+                        value={manualCommand}
+                        onChange={handleManualCommandChange}
+                        onKeyPress={handleManualCommandKeyPress}
+                        onFocus={() => setShowSuggestions(manualCommand.length > 0)}
+                        onBlur={() => setTimeout(() => setShowSuggestions(false), 200)}
+                        placeholder="Въведете команда ръчно..."
+                        className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                      />
+                      
+                      {/* Smart Suggestions */}
+                      {showSuggestions && suggestions.length > 0 && (
+                        <div className="absolute z-10 w-full mt-1 bg-white border border-gray-300 rounded-lg shadow-lg max-h-60 overflow-y-auto">
+                          {suggestions.map((suggestion, index) => (
+                            <div
+                              key={index}
+                              onClick={() => handleSuggestionClick(suggestion)}
+                              className={`px-3 py-2 cursor-pointer hover:bg-gray-100 ${
+                                index === selectedSuggestion ? 'bg-blue-50 text-blue-700' : ''
+                              }`}
+                            >
+                              {suggestion}
+                            </div>
+                          ))}
+                        </div>
+                      )}
+                    </div>
+                    
+                    {/* Quick Templates */}
+                    <div className="mt-3">
+                      <p className="text-xs text-gray-600 mb-2">Бързи команди:</p>
+                      <div className="flex flex-wrap gap-2">
+                        {commandTemplates.slice(0, 3).map((category, catIndex) => (
+                          <div key={catIndex} className="flex-1 min-w-0">
+                            <p className="text-xs font-medium text-gray-700 mb-1">{category.category}:</p>
+                            {category.commands.slice(0, 2).map((cmd, cmdIndex) => (
+                              <button
+                                key={cmdIndex}
+                                onClick={() => handleTemplateClick(cmd.example)}
+                                className="block w-full text-left text-xs text-blue-600 hover:text-blue-800 p-1 rounded hover:bg-blue-50 truncate"
+                                title={cmd.example}
+                              >
+                                {cmd.text}
+                              </button>
+                            ))}
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                  </div>
+                )}
 
         {/* Transcript */}
         {transcript && !showTextInput && (
@@ -466,10 +604,27 @@ const VoiceAssistant: React.FC<VoiceAssistantProps> = ({ onCommand, isListening,
             <li>• &quot;добави резервация Петър 15.12.2024 14:00&quot;</li>
             <li>• &quot;провери свободни часове за утре&quot;</li>
           </ul>
-          {isIOS && (
-            <p className="mt-2 text-blue-600">
-              💡 iOS: Използвайте текстово въвеждане за най-добро изживяване
-            </p>
+          {isMobile && (
+            <div className="mt-2 p-2 bg-blue-50 border border-blue-200 rounded-lg">
+              <p className="text-blue-800 font-medium">📱 Мобилно Решение:</p>
+              <ul className="text-blue-700 mt-1 space-y-1">
+                <li>• Използвайте текстово въвеждане</li>
+                <li>• Бързи команди са налични</li>
+                <li>• Smart suggestions се появяват автоматично</li>
+                <li>• Натиснете &quot;Изпълни&quot; за обработка</li>
+              </ul>
+            </div>
+          )}
+          {!isMobile && (
+            <div className="mt-2 p-2 bg-green-50 border border-green-200 rounded-lg">
+              <p className="text-green-800 font-medium">🎤 Voice + Text:</p>
+              <ul className="text-green-700 mt-1 space-y-1">
+                <li>• Гласово разпознаване е достъпно</li>
+                <li>• Текстово въвеждане като алтернатива</li>
+                <li>• Smart suggestions за бързо въвеждане</li>
+                <li>• Преминете между режими с бутоните</li>
+              </ul>
+            </div>
           )}
         </div>
       </div>

@@ -1,0 +1,377 @@
+<!DOCTYPE html>
+<html lang="bg">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Smart Command Interface Demo</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            margin: 20px;
+            background-color: #f5f5f5;
+        }
+        .demo-container {
+            max-width: 800px;
+            margin: 0 auto;
+            background: white;
+            padding: 20px;
+            border-radius: 10px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+        }
+        .feature-section {
+            margin: 20px 0;
+            padding: 15px;
+            border: 1px solid #ddd;
+            border-radius: 5px;
+        }
+        .demo-button {
+            background: #007bff;
+            color: white;
+            border: none;
+            padding: 10px 20px;
+            border-radius: 5px;
+            cursor: pointer;
+            margin: 5px;
+        }
+        .demo-button:hover {
+            background: #0056b3;
+        }
+        .result {
+            margin: 10px 0;
+            padding: 10px;
+            border-radius: 5px;
+        }
+        .success {
+            background: #d4edda;
+            color: #155724;
+            border: 1px solid #c3e6cb;
+        }
+        .info {
+            background: #d1ecf1;
+            color: #0c5460;
+            border: 1px solid #bee5eb;
+        }
+        .warning {
+            background: #fff3cd;
+            color: #856404;
+            border: 1px solid #ffeaa7;
+        }
+        .input-group {
+            margin: 15px 0;
+        }
+        .suggestions {
+            border: 1px solid #ddd;
+            border-radius: 5px;
+            max-height: 200px;
+            overflow-y: auto;
+        }
+        .suggestion-item {
+            padding: 8px 12px;
+            cursor: pointer;
+            border-bottom: 1px solid #eee;
+        }
+        .suggestion-item:hover {
+            background: #f8f9fa;
+        }
+        .suggestion-item.selected {
+            background: #e3f2fd;
+            color: #1976d2;
+        }
+        .templates {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+            gap: 10px;
+            margin: 15px 0;
+        }
+        .template-card {
+            border: 1px solid #ddd;
+            border-radius: 5px;
+            padding: 10px;
+            background: #f8f9fa;
+        }
+        .template-category {
+            font-weight: bold;
+            color: #495057;
+            margin-bottom: 5px;
+        }
+        .template-command {
+            font-size: 12px;
+            color: #6c757d;
+            margin: 2px 0;
+            cursor: pointer;
+            padding: 2px 4px;
+            border-radius: 3px;
+        }
+        .template-command:hover {
+            background: #e9ecef;
+        }
+        .mobile-demo {
+            border: 2px solid #007bff;
+            border-radius: 10px;
+            padding: 20px;
+            margin: 20px 0;
+            background: #f8f9fa;
+        }
+    </style>
+</head>
+<body>
+    <div class="demo-container">
+        <h1>🚀 Smart Command Interface Demo</h1>
+        
+        <div class="feature-section">
+            <h3>📱 Mobile-First Design</h3>
+            <div class="mobile-demo">
+                <h4>📱 Mobile Experience</h4>
+                <p>Новото Smart Command Interface е оптимизирано за мобилни устройства:</p>
+                <ul>
+                    <li>✅ Touch-friendly интерфейс</li>
+                    <li>✅ Smart suggestions</li>
+                    <li>✅ Quick command templates</li>
+                    <li>✅ Voice-like UX без гласово разпознаване</li>
+                </ul>
+            </div>
+        </div>
+
+        <div class="feature-section">
+            <h3>🧠 Smart Suggestions Demo</h3>
+            <div class="input-group">
+                <input type="text" id="smartInput" placeholder="Въведете команда..." style="width: 100%; padding: 10px; border: 1px solid #ddd; border-radius: 5px;">
+                <div id="suggestions" class="suggestions" style="display: none;"></div>
+            </div>
+            <button class="demo-button" onclick="testSmartSuggestions()">Test Smart Suggestions</button>
+            <div id="suggestionResult"></div>
+        </div>
+
+        <div class="feature-section">
+            <h3>📋 Command Templates Demo</h3>
+            <div class="templates">
+                <div class="template-card">
+                    <div class="template-category">👥 Потребители</div>
+                    <div class="template-command" onclick="useTemplate('добави потребител Иван Иванов телефон 0888123456')">
+                        👤 добави потребител [име] телефон [номер]
+                    </div>
+                    <div class="template-command" onclick="useTemplate('промени потребител Мария телефон 0888765432')">
+                        ✏️ промени потребител [име] телефон [номер]
+                    </div>
+                    <div class="template-command" onclick="useTemplate('изтрий потребител Петър')">
+                        🗑️ изтрий потребител [име]
+                    </div>
+                </div>
+                <div class="template-card">
+                    <div class="template-category">📅 Резервации</div>
+                    <div class="template-command" onclick="useTemplate('добави резервация Петър 15.12.2024 14:00')">
+                        ➕ добави резервация [име] [дата] [час]
+                    </div>
+                    <div class="template-command" onclick="useTemplate('промени резервация Иван 20.12.2024 10:00')">
+                        ✏️ промени резервация [име] [дата] [час]
+                    </div>
+                    <div class="template-command" onclick="useTemplate('отмени резервация Мария 25.12.2024')">
+                        ❌ отмени резервация [име] [дата]
+                    </div>
+                </div>
+                <div class="template-card">
+                    <div class="template-category">🔧 Услуги</div>
+                    <div class="template-command" onclick="useTemplate('провери свободни часове за утре')">
+                        🔍 провери свободни часове [дата]
+                    </div>
+                    <div class="template-command" onclick="useTemplate('покажи резервации за днес')">
+                        📋 покажи резервации [дата]
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="feature-section">
+            <h3>🎯 Key Features</h3>
+            <div class="result info">
+                <h4>✅ Smart Command Interface Features:</h4>
+                <ul>
+                    <li><strong>Auto-complete:</strong> Автоматично попълване на командите</li>
+                    <li><strong>Smart Suggestions:</strong> Предложения базирани на контекста</li>
+                    <li><strong>Quick Templates:</strong> Бързи команди за често използвани операции</li>
+                    <li><strong>Mobile Optimization:</strong> Touch-friendly интерфейс</li>
+                    <li><strong>Voice-like UX:</strong> Интерфейс наподобяващ гласово разпознаване</li>
+                    <li><strong>Keyboard Navigation:</strong> Стрелки за навигация между предложенията</li>
+                </ul>
+            </div>
+        </div>
+
+        <div class="feature-section">
+            <h3>🧪 API Testing</h3>
+            <button class="demo-button" onclick="testAPI()">Test API Connection</button>
+            <button class="demo-button" onclick="testCommand()">Test Command Processing</button>
+            <div id="apiResult"></div>
+        </div>
+
+        <div class="feature-section">
+            <h3>📊 Performance Metrics</h3>
+            <div class="result success">
+                <h4>🎯 Target Success Metrics:</h4>
+                <ul>
+                    <li><strong>User Adoption:</strong> >90% мобилни потребители</li>
+                    <li><strong>Command Accuracy:</strong> >95% успешно разпознаване</li>
+                    <li><strong>Response Time:</strong> <1 секунда за обработка</li>
+                    <li><strong>User Satisfaction:</strong> >4.5/5 рейтинг</li>
+                </ul>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // Command templates (same as in SmartCommandInterface)
+        const commandTemplates = [
+            {
+                category: '👥 Потребители',
+                commands: [
+                    { text: 'добави потребител [име] телефон [номер]', example: 'добави потребител Иван Иванов телефон 0888123456', icon: '👤' },
+                    { text: 'промени потребител [име] телефон [номер]', example: 'промени потребител Мария телефон 0888765432', icon: '✏️' },
+                    { text: 'изтрий потребител [име]', example: 'изтрий потребител Петър', icon: '🗑️' }
+                ]
+            },
+            {
+                category: '📅 Резервации',
+                commands: [
+                    { text: 'добави резервация [име] [дата] [час]', example: 'добави резервация Петър 15.12.2024 14:00', icon: '➕' },
+                    { text: 'промени резервация [име] [дата] [час]', example: 'промени резервация Иван 20.12.2024 10:00', icon: '✏️' },
+                    { text: 'отмени резервация [име] [дата]', example: 'отмени резервация Мария 25.12.2024', icon: '❌' }
+                ]
+            },
+            {
+                category: '🔧 Услуги',
+                commands: [
+                    { text: 'провери свободни часове [дата]', example: 'провери свободни часове за утре', icon: '🔍' },
+                    { text: 'покажи резервации [дата]', example: 'покажи резервации за днес', icon: '📋' }
+                ]
+            }
+        ];
+
+        // Smart suggestions function
+        function getSuggestions(input) {
+            if (!input.trim()) return [];
+            
+            const suggestions = [];
+            const lowerInput = input.toLowerCase();
+            
+            commandTemplates.forEach(category => {
+                category.commands.forEach(cmd => {
+                    if (cmd.text.toLowerCase().includes(lowerInput) || 
+                        cmd.example.toLowerCase().includes(lowerInput)) {
+                        suggestions.push(cmd.example);
+                    }
+                });
+            });
+            
+            return suggestions.slice(0, 5);
+        }
+
+        // Mobile detection
+        const isMobile = /Android|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent);
+
+        // Smart input functionality
+        const smartInput = document.getElementById('smartInput');
+        const suggestionsDiv = document.getElementById('suggestions');
+
+        smartInput.addEventListener('input', function() {
+            const suggestions = getSuggestions(this.value);
+            if (suggestions.length > 0 && this.value.length > 0) {
+                suggestionsDiv.innerHTML = suggestions.map(s => 
+                    `<div class="suggestion-item" onclick="useSuggestion('${s}')">${s}</div>`
+                ).join('');
+                suggestionsDiv.style.display = 'block';
+            } else {
+                suggestionsDiv.style.display = 'none';
+            }
+        });
+
+        function useSuggestion(suggestion) {
+            smartInput.value = suggestion;
+            suggestionsDiv.style.display = 'none';
+        }
+
+        function useTemplate(template) {
+            smartInput.value = template;
+            suggestionsDiv.style.display = 'none';
+        }
+
+        // Test functions
+        function testSmartSuggestions() {
+            const resultDiv = document.getElementById('suggestionResult');
+            const testInputs = ['добави', 'потребител', 'резервация', 'провери'];
+            
+            resultDiv.innerHTML = '<div class="result info">Testing smart suggestions...</div>';
+            
+            setTimeout(() => {
+                let results = '';
+                testInputs.forEach(input => {
+                    const suggestions = getSuggestions(input);
+                    results += `<div><strong>Input:</strong> "${input}" → <strong>Suggestions:</strong> ${suggestions.length}</div>`;
+                });
+                resultDiv.innerHTML = `<div class="result success">Smart suggestions working: ${results}</div>`;
+            }, 1000);
+        }
+
+        async function testAPI() {
+            const resultDiv = document.getElementById('apiResult');
+            resultDiv.innerHTML = '<div class="result info">Testing API connection...</div>';
+            
+            try {
+                const response = await fetch('/api/admin/voice-commands', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({
+                        action: 'test',
+                        originalCommand: 'test command'
+                    }),
+                });
+                
+                if (response.ok) {
+                    resultDiv.innerHTML = '<div class="result success">✅ API connection successful</div>';
+                } else {
+                    resultDiv.innerHTML = '<div class="result warning">⚠️ API connection failed</div>';
+                }
+            } catch (error) {
+                resultDiv.innerHTML = `<div class="result warning">❌ API error: ${error.message}</div>`;
+            }
+        }
+
+        async function testCommand() {
+            const resultDiv = document.getElementById('apiResult');
+            const command = smartInput.value || 'добави потребител Иван телефон 0888123456';
+            
+            resultDiv.innerHTML = '<div class="result info">Processing command...</div>';
+            
+            try {
+                const response = await fetch('/api/admin/voice-commands', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({
+                        action: 'smart_command',
+                        originalCommand: command
+                    }),
+                });
+                
+                const result = await response.json();
+                
+                if (response.ok) {
+                    resultDiv.innerHTML = `<div class="result success">✅ Command processed: ${result.message}</div>`;
+                } else {
+                    resultDiv.innerHTML = `<div class="result warning">⚠️ Command failed: ${result.error}</div>`;
+                }
+            } catch (error) {
+                resultDiv.innerHTML = `<div class="result warning">❌ Error: ${error.message}</div>`;
+            }
+        }
+
+        // Initialize
+        document.addEventListener('DOMContentLoaded', function() {
+            console.log('Smart Command Interface Demo Loaded');
+            console.log('Mobile Device:', isMobile);
+            console.log('Command Templates:', commandTemplates.length, 'categories');
+        });
+    </script>
+</body>
+</html> 
