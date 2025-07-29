@@ -1,6 +1,6 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
 import React, { useState, useEffect, useRef, useCallback } from 'react'
-import { Mic, MicOff, Volume2, X, Check, AlertCircle } from 'lucide-react'
+import { Mic, MicOff, Volume2, X, Check, AlertCircle, Smartphone } from 'lucide-react'
 
 // Type declarations for Web Speech API
 declare global {
@@ -33,7 +33,27 @@ const VoiceAssistant: React.FC<VoiceAssistantProps> = ({ onCommand, isListening,
   const [isProcessing, setIsProcessing] = useState(false)
   const [error, setError] = useState('')
   const [success, setSuccess] = useState('')
+  const [showTextInput, setShowTextInput] = useState(false)
+  const [manualCommand, setManualCommand] = useState('')
+  const [permissionGranted, setPermissionGranted] = useState(false)
   const recognitionRef = useRef<any>(null)
+
+  // Check if running on iOS
+  const isIOS = typeof window !== 'undefined' && /iPad|iPhone|iPod/.test(navigator.userAgent)
+
+  // Check microphone permissions
+  const checkMicrophonePermission = useCallback(async () => {
+    try {
+      const stream = await navigator.mediaDevices.getUserMedia({ audio: true })
+      stream.getTracks().forEach(track => track.stop())
+      setPermissionGranted(true)
+      return true
+    } catch (error) {
+      console.error('Microphone permission denied:', error)
+      setPermissionGranted(false)
+      return false
+    }
+  }, [])
 
   const processCommand = useCallback(async (command: string) => {
     setIsProcessing(true)
@@ -72,6 +92,9 @@ const VoiceAssistant: React.FC<VoiceAssistantProps> = ({ onCommand, isListening,
   }, [onCommand])
 
   useEffect(() => {
+    // Check permissions on mount
+    checkMicrophonePermission()
+
     if (typeof window !== 'undefined' && 'webkitSpeechRecognition' in window) {
       const SpeechRecognition = window.webkitSpeechRecognition || window.SpeechRecognition
       recognitionRef.current = new SpeechRecognition()
@@ -106,7 +129,21 @@ const VoiceAssistant: React.FC<VoiceAssistantProps> = ({ onCommand, isListening,
 
       recognition.onerror = (event: any) => {
         console.error('Speech recognition error:', event.error)
-        setError(`Грешка при разпознаване: ${event.error}`)
+        
+        let errorMessage = 'Грешка при разпознаване'
+        
+        if (event.error === 'not-allowed') {
+          errorMessage = 'Няма разрешение за достъп до микрофона. Моля, разрешете достъпа в настройките на браузъра.'
+        } else if (event.error === 'service-not-allowed') {
+          errorMessage = 'Гласовото разпознаване не е достъпно. Моля, използвайте текстово въвеждане.'
+          setShowTextInput(true)
+        } else if (event.error === 'no-speech') {
+          errorMessage = 'Не се разпозна глас. Моля, опитайте отново.'
+        } else if (event.error === 'network') {
+          errorMessage = 'Грешка в мрежата. Моля, проверете интернет връзката.'
+        }
+        
+        setError(errorMessage)
         setIsListening(false)
       }
 
@@ -118,10 +155,20 @@ const VoiceAssistant: React.FC<VoiceAssistantProps> = ({ onCommand, isListening,
       }
     } else {
       setError('Гласовото разпознаване не се поддържа в този браузър')
+      setShowTextInput(true)
     }
-  }, [processCommand, transcript, setIsListening])
+  }, [processCommand, transcript, setIsListening, checkMicrophonePermission])
 
-  const startListening = () => {
+  const startListening = async () => {
+    // Check permissions first
+    const hasPermission = await checkMicrophonePermission()
+    
+    if (!hasPermission) {
+      setError('Няма разрешение за достъп до микрофона. Моля, разрешете достъпа.')
+      setShowTextInput(true)
+      return
+    }
+
     if (recognitionRef.current) {
       setTranscript('')
       setError('')
@@ -205,15 +252,28 @@ const VoiceAssistant: React.FC<VoiceAssistantProps> = ({ onCommand, isListening,
   }
 
   const handleManualSubmit = () => {
-    if (transcript.trim()) {
-      processCommand(transcript.trim())
+    const command = showTextInput ? manualCommand : transcript
+    if (command.trim()) {
+      processCommand(command.trim())
     }
   }
 
   const clearTranscript = () => {
     setTranscript('')
+    setManualCommand('')
     setError('')
     setSuccess('')
+    setShowTextInput(false)
+  }
+
+  const handleManualCommandChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    setManualCommand(e.target.value)
+  }
+
+  const handleManualCommandKeyPress = (e: React.KeyboardEvent) => {
+    if (e.key === 'Enter') {
+      handleManualSubmit()
+    }
   }
 
   return (
@@ -224,6 +284,9 @@ const VoiceAssistant: React.FC<VoiceAssistantProps> = ({ onCommand, isListening,
           <div className="flex items-center space-x-2">
             <Volume2 className="w-5 h-5 text-blue-600" />
             <h3 className="font-semibold text-gray-900">Гласов Асистент</h3>
+            {isIOS && (
+              <Smartphone className="w-4 h-4 text-gray-500" />
+            )}
           </div>
           <button
             onClick={clearTranscript}
@@ -260,10 +323,29 @@ const VoiceAssistant: React.FC<VoiceAssistantProps> = ({ onCommand, isListening,
           <p className="text-sm text-gray-600">
             {isListening ? 'Говорете сега...' : 'Натиснете за да говорите'}
           </p>
+          {isIOS && (
+            <p className="text-xs text-gray-500 mt-1">
+              iOS: Може да се наложи текстово въвеждане
+            </p>
+          )}
         </div>
 
+        {/* Text Input for iOS/Manual Entry */}
+        {showTextInput && (
+          <div className="mb-3">
+            <input
+              type="text"
+              value={manualCommand}
+              onChange={handleManualCommandChange}
+              onKeyPress={handleManualCommandKeyPress}
+              placeholder="Въведете команда ръчно..."
+              className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+            />
+          </div>
+        )}
+
         {/* Transcript */}
-        {transcript && (
+        {transcript && !showTextInput && (
           <div className="mb-3">
             <div className="bg-gray-50 rounded-lg p-3">
               <p className="text-sm text-gray-700">{transcript}</p>
@@ -278,6 +360,20 @@ const VoiceAssistant: React.FC<VoiceAssistantProps> = ({ onCommand, isListening,
                 Изпълни
               </button>
             </div>
+          </div>
+        )}
+
+        {/* Manual Command Submit */}
+        {showTextInput && manualCommand && (
+          <div className="flex space-x-2 mb-3">
+            <button
+              onClick={handleManualSubmit}
+              disabled={isProcessing}
+              className="flex-1 bg-green-600 text-white px-3 py-2 rounded-lg text-sm hover:bg-green-700 transition-colors disabled:opacity-50"
+            >
+              <Check className="w-4 h-4 mr-1" />
+              Изпълни
+            </button>
           </div>
         )}
 
@@ -313,6 +409,11 @@ const VoiceAssistant: React.FC<VoiceAssistantProps> = ({ onCommand, isListening,
             <li>• &quot;добави резервация Петър 15.12.2024 14:00&quot;</li>
             <li>• &quot;провери свободни часове за утре&quot;</li>
           </ul>
+          {isIOS && (
+            <p className="mt-2 text-blue-600">
+              💡 iOS: Използвайте текстово въвеждане ако гласовото не работи
+            </p>
+          )}
         </div>
       </div>
     </div>
