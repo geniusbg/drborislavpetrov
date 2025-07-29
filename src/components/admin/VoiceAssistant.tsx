@@ -35,7 +35,6 @@ const VoiceAssistant: React.FC<VoiceAssistantProps> = ({ onCommand, isListening,
   const [success, setSuccess] = useState('')
   const [showTextInput, setShowTextInput] = useState(false)
   const [manualCommand, setManualCommand] = useState('')
-  const [permissionGranted, setPermissionGranted] = useState(false)
   const recognitionRef = useRef<any>(null)
 
   // Check if running on iOS
@@ -46,11 +45,9 @@ const VoiceAssistant: React.FC<VoiceAssistantProps> = ({ onCommand, isListening,
     try {
       const stream = await navigator.mediaDevices.getUserMedia({ audio: true })
       stream.getTracks().forEach(track => track.stop())
-      setPermissionGranted(true)
       return true
     } catch (error) {
       console.error('Microphone permission denied:', error)
-      setPermissionGranted(false)
       return false
     }
   }, [])
