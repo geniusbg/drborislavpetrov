@@ -1,6 +1,6 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
 import React, { useState, useEffect, useRef, useCallback } from 'react'
-import { Mic, MicOff, Volume2, X, Check, AlertCircle, Smartphone } from 'lucide-react'
+import { Mic, MicOff, Volume2, X, Check, AlertCircle, Smartphone, Type } from 'lucide-react'
 
 // Type declarations for Web Speech API
 declare global {
@@ -35,10 +35,22 @@ const VoiceAssistant: React.FC<VoiceAssistantProps> = ({ onCommand, isListening,
   const [success, setSuccess] = useState('')
   const [showTextInput, setShowTextInput] = useState(false)
   const [manualCommand, setManualCommand] = useState('')
+  const [voiceSupported, setVoiceSupported] = useState(false)
   const recognitionRef = useRef<any>(null)
 
   // Check if running on iOS
   const isIOS = typeof window !== 'undefined' && /iPad|iPhone|iPod/.test(navigator.userAgent)
+  
+  // Check if voice recognition is supported
+  const checkVoiceSupport = useCallback(() => {
+    if (typeof window !== 'undefined') {
+      const hasSpeechRecognition = 'webkitSpeechRecognition' in window || 'SpeechRecognition' in window
+      setVoiceSupported(hasSpeechRecognition && !isIOS) // iOS Safari has issues with Web Speech API
+      if (!hasSpeechRecognition || isIOS) {
+        setShowTextInput(true)
+      }
+    }
+  }, [isIOS])
 
   // Check microphone permissions
   const checkMicrophonePermission = useCallback(async () => {
@@ -89,10 +101,10 @@ const VoiceAssistant: React.FC<VoiceAssistantProps> = ({ onCommand, isListening,
   }, [onCommand])
 
   useEffect(() => {
-    // Check permissions on mount
-    checkMicrophonePermission()
+    // Check voice support on mount
+    checkVoiceSupport()
 
-    if (typeof window !== 'undefined' && 'webkitSpeechRecognition' in window) {
+    if (voiceSupported && typeof window !== 'undefined' && 'webkitSpeechRecognition' in window) {
       const SpeechRecognition = window.webkitSpeechRecognition || window.SpeechRecognition
       recognitionRef.current = new SpeechRecognition()
       
@@ -151,12 +163,22 @@ const VoiceAssistant: React.FC<VoiceAssistantProps> = ({ onCommand, isListening,
         }
       }
     } else {
-      setError('Гласовото разпознаване не се поддържа в този браузър')
+      // Voice not supported, show text input
       setShowTextInput(true)
+      if (isIOS) {
+        setError('iOS Safari не поддържа гласово разпознаване. Моля, използвайте текстово въвеждане.')
+      } else {
+        setError('Гласовото разпознаване не се поддържа в този браузър')
+      }
     }
-  }, [processCommand, transcript, setIsListening, checkMicrophonePermission])
+  }, [processCommand, transcript, setIsListening, voiceSupported, isIOS, checkVoiceSupport])
 
   const startListening = async () => {
+    if (!voiceSupported) {
+      setShowTextInput(true)
+      return
+    }
+
     // Check permissions first
     const hasPermission = await checkMicrophonePermission()
     
@@ -273,14 +295,22 @@ const VoiceAssistant: React.FC<VoiceAssistantProps> = ({ onCommand, isListening,
     }
   }
 
+  const toggleInputMode = () => {
+    setShowTextInput(!showTextInput)
+    setError('')
+    setSuccess('')
+  }
+
   return (
     <div className="fixed bottom-4 right-4 z-50">
       <div className="bg-white rounded-xl shadow-2xl border border-gray-200 p-4 w-80 max-w-sm">
         {/* Header */}
         <div className="flex items-center justify-between mb-3">
           <div className="flex items-center space-x-2">
-            <Volume2 className="w-5 h-5 text-blue-600" />
-            <h3 className="font-semibold text-gray-900">Гласов Асистент</h3>
+            {showTextInput ? <Type className="w-5 h-5 text-blue-600" /> : <Volume2 className="w-5 h-5 text-blue-600" />}
+            <h3 className="font-semibold text-gray-900">
+              {showTextInput ? 'Текстов Асистент' : 'Гласов Асистент'}
+            </h3>
             {isIOS && (
               <Smartphone className="w-4 h-4 text-gray-500" />
             )}
@@ -293,36 +323,72 @@ const VoiceAssistant: React.FC<VoiceAssistantProps> = ({ onCommand, isListening,
           </button>
         </div>
 
-        {/* Voice Button */}
+        {/* Mode Toggle */}
         <div className="flex justify-center mb-3">
-          <button
-            onClick={isListening ? stopListening : startListening}
-            disabled={isProcessing}
-            className={`
-              p-4 rounded-full transition-all duration-200 transform hover:scale-105
-              ${isListening 
-                ? 'bg-red-500 text-white animate-pulse' 
-                : 'bg-blue-600 text-white hover:bg-blue-700'
-              }
-              ${isProcessing ? 'opacity-50 cursor-not-allowed' : ''}
-            `}
-          >
-            {isListening ? (
-              <MicOff className="w-6 h-6" />
-            ) : (
-              <Mic className="w-6 h-6" />
-            )}
-          </button>
+          <div className="flex bg-gray-100 rounded-lg p-1">
+            <button
+              onClick={() => setShowTextInput(false)}
+              disabled={!voiceSupported}
+              className={`px-3 py-1 rounded-md text-sm font-medium transition-colors ${
+                !showTextInput 
+                  ? 'bg-blue-600 text-white' 
+                  : 'text-gray-600 hover:text-gray-900'
+              } ${!voiceSupported ? 'opacity-50 cursor-not-allowed' : ''}`}
+            >
+              <Mic className="w-4 h-4 inline mr-1" />
+              Глас
+            </button>
+            <button
+              onClick={() => setShowTextInput(true)}
+              className={`px-3 py-1 rounded-md text-sm font-medium transition-colors ${
+                showTextInput 
+                  ? 'bg-blue-600 text-white' 
+                  : 'text-gray-600 hover:text-gray-900'
+              }`}
+            >
+              <Type className="w-4 h-4 inline mr-1" />
+              Текст
+            </button>
+          </div>
         </div>
+
+        {/* Voice Button */}
+        {!showTextInput && voiceSupported && (
+          <div className="flex justify-center mb-3">
+            <button
+              onClick={isListening ? stopListening : startListening}
+              disabled={isProcessing}
+              className={`
+                p-4 rounded-full transition-all duration-200 transform hover:scale-105
+                ${isListening 
+                  ? 'bg-red-500 text-white animate-pulse' 
+                  : 'bg-blue-600 text-white hover:bg-blue-700'
+                }
+                ${isProcessing ? 'opacity-50 cursor-not-allowed' : ''}
+              `}
+            >
+              {isListening ? (
+                <MicOff className="w-6 h-6" />
+              ) : (
+                <Mic className="w-6 h-6" />
+              )}
+            </button>
+          </div>
+        )}
 
         {/* Status */}
         <div className="text-center mb-3">
           <p className="text-sm text-gray-600">
-            {isListening ? 'Говорете сега...' : 'Натиснете за да говорите'}
+            {showTextInput 
+              ? 'Въведете команда ръчно' 
+              : isListening 
+                ? 'Говорете сега...' 
+                : 'Натиснете за да говорите'
+            }
           </p>
-          {isIOS && (
+          {isIOS && !showTextInput && (
             <p className="text-xs text-gray-500 mt-1">
-              iOS: Може да се наложи текстово въвеждане
+              iOS: Преминете на текстово въвеждане
             </p>
           )}
         </div>
@@ -408,7 +474,7 @@ const VoiceAssistant: React.FC<VoiceAssistantProps> = ({ onCommand, isListening,
           </ul>
           {isIOS && (
             <p className="mt-2 text-blue-600">
-              💡 iOS: Използвайте текстово въвеждане ако гласовото не работи
+              💡 iOS: Използвайте текстово въвеждане за най-добро изживяване
             </p>
           )}
         </div>
