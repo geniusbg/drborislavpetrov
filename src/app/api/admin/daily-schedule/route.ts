@@ -70,7 +70,7 @@ export async function GET(request: NextRequest) {
     // Deduplicate bookings by id to avoid inflated counts
     const uniqueBookingsMap = new Map<string, (typeof mappedBookings)[number]>()
     for (const b of mappedBookings) {
-      const key = String((b as any).id)
+      const key = String((b as unknown as { id?: string | number }).id)
       if (!uniqueBookingsMap.has(key)) {
         uniqueBookingsMap.set(key, b)
       }
