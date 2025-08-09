@@ -266,9 +266,9 @@ export async function GET(request: NextRequest) {
       })
 
       // Deduplicate by booking id to avoid inflated counts due to JOINs
-      const uniqueById = new Map<string, typeof mappedBookings[number]>()
+      const uniqueById = new Map<string, (typeof mappedBookings)[number]>()
       for (const b of mappedBookings) {
-        const key = b && (b as any).id ? String((b as any).id) : JSON.stringify(b)
+        const key = b && (b as unknown as { id?: string | number }).id ? String((b as unknown as { id?: string | number }).id) : JSON.stringify(b)
         if (!uniqueById.has(key)) {
           uniqueById.set(key, b)
         }
