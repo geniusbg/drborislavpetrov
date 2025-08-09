@@ -76,7 +76,7 @@ const DailySchedule = ({ date, onClose, onEditWorkingHours, onEditBooking, onDel
     } finally {
       setLoading(false)
     }
-  }, [])
+  }, [date, showBookingForm])
 
   // Add debouncing to prevent excessive API calls
   const [lastLoadTime, setLastLoadTime] = useState(0)
@@ -91,7 +91,7 @@ const DailySchedule = ({ date, onClose, onEditWorkingHours, onEditBooking, onDel
         loadDailySchedule()
       }
     }
-  }, [date, showBookingForm, isModalClosing]) // Remove loadDailySchedule from dependencies
+  }, [date, showBookingForm, isModalClosing, lastLoadTime, loadDailySchedule])
 
   // Update current time every second
   useEffect(() => {
@@ -181,7 +181,7 @@ const DailySchedule = ({ date, onClose, onEditWorkingHours, onEditBooking, onDel
         } : null)
       }
 
-      const handleWorkingHoursUpdated = (updatedWorkingHours: any) => {
+      const handleWorkingHoursUpdated = () => {
         // Reload the schedule when working hours are updated
         loadDailySchedule()
       }
@@ -198,7 +198,7 @@ const DailySchedule = ({ date, onClose, onEditWorkingHours, onEditBooking, onDel
         socket.off('working-hours-updated', handleWorkingHoursUpdated)
       }
     }
-  }, [socket, isConnected, isSupported, date, joinAdmin])
+  }, [socket, isConnected, isSupported, date, joinAdmin, loadDailySchedule])
 
   const getTimeSlots = () => {
     if (!schedule?.workingHours) return []
@@ -660,10 +660,7 @@ const DailySchedule = ({ date, onClose, onEditWorkingHours, onEditBooking, onDel
     return service?.name || 'Услуга'
   }
 
-  const getServiceIdByName = (serviceName: string) => {
-    const service = services.find(s => s.name === serviceName)
-    return service ? service.id.toString() : '1'
-  }
+  // Removed unused helper getServiceIdByName
 
   // Функция за проверка дали часът е свободен
   const isTimeSlotAvailable = (time: string, duration: number = 30, excludeBookingId?: string) => {
@@ -951,7 +948,7 @@ const DailySchedule = ({ date, onClose, onEditWorkingHours, onEditBooking, onDel
                   title="Кликнете за добавяне на резервация в този час"
                 >
                   {/* Available Time Slots - Show as light green background */}
-                  {getAvailableTimeSlots().map((timeSlot, index) => {
+                    {getAvailableTimeSlots().map((timeSlot) => {
                     const slotStartPercentage = getSlotStartPercentage(timeSlot)
                     const slotEndTime = new Date(`2000-01-01T${timeSlot}`)
                     slotEndTime.setMinutes(slotEndTime.getMinutes() + 30)
@@ -960,7 +957,7 @@ const DailySchedule = ({ date, onClose, onEditWorkingHours, onEditBooking, onDel
                     
                     return (
                       <div
-                        key={`available-${index}`}
+                        key={`available-${timeSlot}`}
                         className="absolute bg-green-100 border border-green-200 h-full rounded opacity-60 hover:opacity-80 transition-opacity cursor-pointer z-5"
                         style={{
                           left: `${slotStartPercentage}%`,
@@ -1086,7 +1083,7 @@ const DailySchedule = ({ date, onClose, onEditWorkingHours, onEditBooking, onDel
                     // Get all bookings including cancelled ones to show as markers
                     const allBookings = schedule.bookings
                     
-                    return allBookings.map((booking, index) => {
+                    return allBookings.map((booking) => {
                       const slotStart = getSlotStartPercentage(booking.time)
                       
                       // Calculate end time based on service duration
@@ -1215,14 +1212,14 @@ const DailySchedule = ({ date, onClose, onEditWorkingHours, onEditBooking, onDel
                  })()}
                   
                                      {/* Available Time Slots - Show clickable areas */}
-                   {timeSlots.map((slot, index) => {
+                   {timeSlots.map((slot) => {
                      if (!slot.booking && !slot.isBreak) {
                        const slotStart = getSlotStartPercentage(slot.time)
                        const slotEnd = getSlotEndPercentage(slot.time)
                        
                        return (
                          <div
-                           key={`available-${index}`}
+                            key={`available-${slot.time}`}
                            className="absolute bg-green-100 border-2 border-dashed border-green-300 h-full opacity-60 hover:opacity-100 transition-opacity cursor-pointer"
                            style={{
                              left: `${slotStart}%`,
@@ -1270,9 +1267,9 @@ const DailySchedule = ({ date, onClose, onEditWorkingHours, onEditBooking, onDel
                 </div>
                 <div className="space-y-2">
                   {schedule.bookings.length > 0 ? (
-                    schedule.bookings.map((booking, index) => (
+                    schedule.bookings.map((booking) => (
                       <div
-                        key={index}
+                        key={booking.id}
                         className={`p-3 rounded-lg border ${
                           booking.status === 'cancelled' 
                             ? 'bg-red-50 border-red-200' 

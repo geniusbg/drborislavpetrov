@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { getDatabase } from '@/lib/database'
+import type { PoolClient } from 'pg'
 import { emitBookingAdded, emitBookingDeleted, emitBookingUpdate } from '@/lib/socket'
 
 // Global request counter for debugging
@@ -8,7 +9,7 @@ let apiRequestCounter = 0
 // Cache for optional column detection
 let hasUserIdColumnCache: boolean | null = null
 
-async function ensureHasUserIdColumn(db: any): Promise<boolean> {
+async function ensureHasUserIdColumn(db: PoolClient): Promise<boolean> {
   if (hasUserIdColumnCache !== null) return hasUserIdColumnCache
   try {
     const res = await db.query(
@@ -23,7 +24,7 @@ async function ensureHasUserIdColumn(db: any): Promise<boolean> {
 }
 
 // Функция за проверка на свободни часове
-async function checkTimeSlotAvailability(db: any, date: string, time: string, serviceId: number, duration: number, excludeBookingId?: number) {
+async function checkTimeSlotAvailability(db: PoolClient, date: string, time: string, serviceId: number, duration: number, excludeBookingId?: number) {
   try {
     // Първо вземи информация за услугата
     const serviceResult = await db.query('SELECT duration FROM services WHERE id = $1', [serviceId])
@@ -138,7 +139,7 @@ export async function GET(request: NextRequest) {
     
     // Ако има date параметър, връщай свободните часове за тази дата
     if (date) {
-      let db: any = null
+      let db: PoolClient | null = null
       
       try {
         db = await getDatabase()
@@ -173,7 +174,7 @@ export async function GET(request: NextRequest) {
         `, [date])
         
         // Map serviceduration to serviceDuration for frontend compatibility  
-        const mappedBookedSlots = bookingsResult.rows.map((slot: any) => {
+        const mappedBookedSlots = bookingsResult.rows.map((slot: { serviceduration?: number; serviceDuration?: number }) => {
           const { serviceduration, ...rest } = slot
           return {
             ...rest,
@@ -203,7 +204,7 @@ export async function GET(request: NextRequest) {
     }
     
     // Ако няма date параметър, връщай всички резервации
-    let db: any = null
+    let db: PoolClient | null = null
     
     try {
       db = await getDatabase()
@@ -255,7 +256,7 @@ export async function GET(request: NextRequest) {
       )
       
       // Map serviceduration to serviceDuration for frontend compatibility
-      const mappedBookings = result.rows.map((booking: any) => {
+      const mappedBookings = result.rows.map((booking: { id?: string | number; serviceduration?: number; serviceDuration?: number; createdat?: string; createdAt?: string }) => {
         const { serviceduration, createdat, ...rest } = booking
         return {
           ...rest,
@@ -263,8 +264,18 @@ export async function GET(request: NextRequest) {
           serviceDuration: serviceduration || booking.serviceDuration || 30
         }
       })
+
+      // Deduplicate by booking id to avoid inflated counts due to JOINs
+      const uniqueById = new Map<string, typeof mappedBookings[number]>()
+      for (const b of mappedBookings) {
+        const key = b && (b as any).id ? String((b as any).id) : JSON.stringify(b)
+        if (!uniqueById.has(key)) {
+          uniqueById.set(key, b)
+        }
+      }
+      const uniqueBookings = Array.from(uniqueById.values())
       
-      return NextResponse.json({ bookings: mappedBookings })
+      return NextResponse.json({ bookings: uniqueBookings })
     } catch (error) {
       console.error('Error fetching bookings:', error)
       return NextResponse.json(
@@ -330,7 +341,7 @@ export async function POST(request: NextRequest) {
     // Автоматично създаване на потребител ако phone е предоставен
     if (phone && phone.trim()) {
       // Check if user exists by phone number
-      let user = await db.query('SELECT * FROM users WHERE phone = $1', [phone.trim()])
+      const user = await db.query('SELECT * FROM users WHERE phone = $1', [phone.trim()])
       
       if (user.rows.length === 0) {
         // Create new user
@@ -431,7 +442,7 @@ export async function POST(request: NextRequest) {
       // Enrich with serviceName for immediate UI display
       const svc = await db.query('SELECT name FROM services WHERE id::text = $1 OR name = $1', [String(service)])
       const enriched = { ...newBooking, serviceName: svc.rows[0]?.name || String(service) }
-      emitBookingAdded(enriched as any)
+      emitBookingAdded(enriched as unknown)
     } catch (error) {
       console.error('WebSocket emit error:', error)
     }
@@ -524,10 +535,14 @@ export async function PUT(request: NextRequest) {
     `, [id])
 
     const mapped = (() => {
-      const row: any = updatedBooking.rows[0]
+      const row = updatedBooking.rows[0] as { serviceduration?: number; createdat?: string; createdAt?: string } | undefined
       if (!row) return null
-      const { serviceduration, createdat, ...rest } = row
-      return { ...rest, createdAt: createdat || row.createdAt, serviceDuration: serviceduration || row.serviceDuration || 30 }
+      const { serviceduration, createdat, ...rest } = row as Record<string, unknown>
+      return { 
+        ...(rest as Record<string, unknown>), 
+        createdAt: createdat || row.createdAt, 
+        serviceDuration: serviceduration || (row as unknown as { serviceDuration?: number }).serviceDuration || 30 
+      }
     })()
 
     try {

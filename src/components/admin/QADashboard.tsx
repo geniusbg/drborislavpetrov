@@ -17,7 +17,7 @@ interface QAReport {
   totalTests: number
   passedTests: number
   failedTests: number
-  details: any[]
+  details: unknown[]
 }
 
 export default function QADashboard() {

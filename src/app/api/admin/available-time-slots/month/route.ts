@@ -22,7 +22,6 @@ export async function GET(req: NextRequest) {
 
     // Parse month
     const [year, monthNum] = month.split('-').map(Number)
-    const startDate = new Date(year, monthNum - 1, 1)
     const endDate = new Date(year, monthNum, 0) // Last day of the month
 
     const allSlots: Array<{ time: string; date: string }> = []

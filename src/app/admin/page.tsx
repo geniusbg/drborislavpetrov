@@ -10,7 +10,6 @@ import UserHistory from '@/components/admin/UserHistory'
 import UserForm from '@/components/admin/UserForm'
 import BookingForm from '@/components/admin/BookingForm'
 import ServiceForm from '@/components/admin/ServiceForm'
-import ClockWidget from '@/components/admin/ClockWidget'
 import NextBookingNotification from '@/components/admin/NextBookingNotification'
 
 import AnalyticsDashboard from '@/components/admin/AnalyticsDashboard'
@@ -40,7 +39,7 @@ export default function AdminPage() {
   
   // Get active tab from URL or default to 'bookings'
   const [activeTab, setActiveTab] = useState(() => {
-    const tab = searchParams.get('tab')
+    const tab = searchParams?.get?.('tab')
     return tab || 'bookings'
   })
   
@@ -52,6 +51,7 @@ export default function AdminPage() {
   const [showBookingModal, setShowBookingModal] = useState(false)
   const [showServiceModal, setShowServiceModal] = useState(false)
   const [isUserModalClosing, setIsUserModalClosing] = useState(false)
+  const [isBookingModalClosing, setIsBookingModalClosing] = useState(false)
   const userModalOpenCount = useRef(0)
   const [editingUser, setEditingUser] = useState<UserType | null>(null)
   const [editingBooking, setEditingBooking] = useState<Booking | null>(null)
@@ -73,6 +73,7 @@ export default function AdminPage() {
   const [overlayProgress, setOverlayProgress] = useState(0)
   const initLoadStartedRef = useRef(false)
   const overlayFinalizedRef = useRef(false)
+  const [reopenQuickResponse, setReopenQuickResponse] = useState(false)
 
   // Sort state
   const [sortState, setSortState] = useState<SortState>(() => {
@@ -171,7 +172,7 @@ export default function AdminPage() {
   const changeTab = (tab: string) => {
     setActiveTab(tab)
     // Update URL with new tab
-    const params = new URLSearchParams(searchParams.toString())
+    const params = new URLSearchParams(searchParams?.toString?.() || '')
     params.set('tab', tab)
     // Clear modal states when changing tabs
     params.delete('modal')
@@ -215,7 +216,7 @@ export default function AdminPage() {
       return
     }
     
-    const params = new URLSearchParams(searchParams.toString())
+    const params = new URLSearchParams(searchParams?.toString?.() || '')
     params.set('modal', modalType)
     if (id) {
       if (modalType === 'userHistory') {
@@ -264,7 +265,7 @@ export default function AdminPage() {
     // setModalFromUserHistory(false) // REMOVED: не се използва
     
     // Изчистване на URL параметри
-    const params = new URLSearchParams(searchParams.toString())
+    const params = new URLSearchParams(searchParams?.toString?.() || '')
     params.delete('modal')
     params.delete('bookingId')
     params.delete('userId')
@@ -284,12 +285,12 @@ export default function AdminPage() {
 
   // Sync state with URL parameters
   useEffect(() => {
-    const tab = searchParams.get('tab') || 'bookings'
-    const modal = searchParams.get('modal')
-    const bookingId = searchParams.get('bookingId')
-    const userId = searchParams.get('userId')
-    const serviceId = searchParams.get('serviceId')
-    const date = searchParams.get('date')
+    const tab = searchParams?.get?.('tab') || 'bookings'
+    const modal = searchParams?.get?.('modal')
+    const bookingId = searchParams?.get?.('bookingId')
+    const userId = searchParams?.get?.('userId')
+    const serviceId = searchParams?.get?.('serviceId')
+    const date = searchParams?.get?.('date')
 
     // Update active tab
     setActiveTab(tab)
@@ -298,6 +299,10 @@ export default function AdminPage() {
     if (modal === 'booking') {
       // Изчакай дати да се заредят
       if (isLoading) {
+        return
+      }
+      // Ако модалът е в процес на затваряне, не го отваряй отново
+      if (isBookingModalClosing) {
         return
       }
       
@@ -371,7 +376,7 @@ export default function AdminPage() {
         setEditingService(null)
       }
     }
-  }, [searchParams, bookings, users, services])
+  }, [searchParams, bookings, users, services, isLoading, isBookingModalClosing])
 
   // Update current date and time every second
   useEffect(() => {
@@ -756,8 +761,18 @@ export default function AdminPage() {
       
       if (response.ok) {
         await loadBookings()
+        setIsBookingModalClosing(true)
+        // Clear modal state and URL params to prevent re-opening after save
+        const params = new URLSearchParams(searchParams?.toString?.() || '')
+        params.delete('modal')
+        params.delete('bookingId')
+        params.delete('date')
+        router.push(`/admin?${params.toString()}`, { scroll: false })
+        // Small delay to ensure URL state is applied before closing
+        await new Promise(resolve => setTimeout(resolve, 300))
         setShowBookingModal(false)
         setEditingBooking(null)
+        setIsBookingModalClosing(false)
       } else {
         const errorData = await response.json().catch(() => ({}))
         throw new Error(errorData.message || 'Грешка при запазване на резервацията')
@@ -1648,7 +1663,7 @@ export default function AdminPage() {
                   }}
                   onAddBooking={handleAddBooking}
                   onNavigateToDailySchedule={(date) => openModal('dailySchedule', undefined, date)}
-                  selectedDateFromURL={searchParams.get('date') || undefined}
+                  selectedDateFromURL={searchParams?.get?.('date') || undefined}
                   onCloseDailySchedule={() => closeModal()}
                 />
               </div>
@@ -2060,14 +2075,32 @@ export default function AdminPage() {
               <BookingForm
                 booking={editingBooking}
                 onSubmit={handleBookingSubmit}
-                onCancel={() => {
+                onCancel={async () => {
+                  setIsBookingModalClosing(true)
+                  // Clear URL params first to prevent re-open from effects
+                  const params = new URLSearchParams(searchParams?.toString?.() || '')
+                  params.delete('modal')
+                  params.delete('bookingId')
+                  params.delete('date')
+                  router.push(`/admin?${params.toString()}`, { scroll: false })
+                  await new Promise(resolve => setTimeout(resolve, 100))
                   setShowBookingModal(false)
                   setEditingBooking(null)
+                  setIsBookingModalClosing(false)
                   
                   // Return to user history if we came from there
                   if (userFromHistory) {
                     setUserFromHistory(null)
                     setSelectedUserForHistory(null)
+                  }
+
+                  // Re-open Quick Response only after booking modal closes
+                  if (reopenQuickResponse) {
+                    setTimeout(() => {
+                      const ev = new CustomEvent('quick-response-open')
+                      window.dispatchEvent(ev)
+                      setReopenQuickResponse(false)
+                    }, 0)
                   }
                 }}
                 onDelete={editingBooking?.id ? deleteBooking : undefined}
@@ -2130,7 +2163,7 @@ export default function AdminPage() {
                     console.log('🔍 [AdminPage] Closing user modal, count:', userModalOpenCount.current)
                     
                     // Изчистваме URL параметрите преди да затворим модала
-                    const params = new URLSearchParams(searchParams.toString())
+                    const params = new URLSearchParams(searchParams?.toString?.() || '')
                     params.delete('modal')
                     params.delete('userId')
                     router.push(`/admin?${params.toString()}`, { scroll: false })
@@ -2202,20 +2235,30 @@ export default function AdminPage() {
       {/* Quick Response Widget */}
       <QuickResponseWidget 
         onCreateBooking={(date, time) => {
-          // Open booking modal with pre-filled date and time
-          const bookingData = {
-            date: date,
+          // Open booking modal with pre-filled date and time and default service
+          const newBooking = {
+            id: '',
+            name: '',
+            phone: '',
+            email: '',
+            service: '1',
+            serviceName: '',
+            serviceDuration: 30,
             time: time,
-            service: '1', // Default service (Преглед и консултация)
-            status: 'confirmed' as const
+            status: 'pending' as const,
+            date: date
           }
-          setEditingBooking(bookingData as any)
+          setEditingBooking(newBooking as any)
           setShowBookingModal(true)
-          // Re-open Quick Response after close of modal
-          setTimeout(() => {
-            const ev = new CustomEvent('quick-response-open')
-            window.dispatchEvent(ev)
-          }, 0)
+          // Sync URL so effects that depend on it won't accidentally close the modal
+          try {
+            const params = new URLSearchParams(searchParams?.toString?.() || '')
+            params.set('modal', 'booking')
+            params.set('date', date)
+            router.push(`/admin?${params.toString()}`, { scroll: false })
+          } catch {}
+          // Flag to re-open Quick Response after the booking modal is closed
+          setReopenQuickResponse(true)
         }}
       />
     </div>

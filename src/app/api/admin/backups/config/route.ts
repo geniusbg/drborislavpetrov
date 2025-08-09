@@ -34,7 +34,17 @@ function loadConfig() {
 }
 
 // Запазване на конфигурацията
-function saveConfig(config: any) {
+type BackupFormat = 'json' | 'sql'
+interface BackupConfigSchema {
+  retentionDays: number
+  backupInterval: number
+  backupFormat: BackupFormat
+  backupLocation: string
+  autoBackup: boolean
+  compression: boolean
+}
+
+function saveConfig(config: BackupConfigSchema) {
   try {
     fs.writeFileSync(CONFIG_FILE, JSON.stringify(config, null, 2))
     return true
@@ -75,11 +85,11 @@ export async function POST(request: NextRequest) {
     const body = await request.json()
     
     // Валидация на конфигурацията
-    const config = {
+    const config: BackupConfigSchema = {
       retentionDays: Math.max(1, Math.min(365, body.retentionDays || 5)),
       backupInterval: Math.max(1, Math.min(24, body.backupInterval || 1)),
-      backupFormat: body.backupFormat === 'sql' ? 'sql' : 'json',
-      backupLocation: body.backupLocation || './backups/',
+      backupFormat: (body.backupFormat === 'sql' ? 'sql' : 'json') as BackupFormat,
+      backupLocation: String(body.backupLocation || './backups/'),
       autoBackup: Boolean(body.autoBackup),
       compression: Boolean(body.compression)
     }

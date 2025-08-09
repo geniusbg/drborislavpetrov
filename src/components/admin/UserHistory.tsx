@@ -36,13 +36,13 @@ const UserHistory = ({ user, bookings, onClose, onUpdateTreatmentNotes, onEditBo
       return userPhone9 === bookingPhone9
     }
     // Next fallback: match by userId if API provided it
-    const bUserId = (booking as any).userId
+    const bUserId = (booking as unknown as { userId?: string | number }).userId
     if (user.id && bUserId) {
       return String(user.id) === String(bUserId)
     }
     // Fallback: match by email if available
     const userEmail = (user.email || '').toLowerCase()
-    const bookingEmail = ((booking as any).userEmail || (booking as any).email || '').toLowerCase()
+    const bookingEmail = (((booking as unknown as { userEmail?: string; email?: string }).userEmail) || (booking as unknown as { email?: string }).email || '').toLowerCase()
     if (userEmail && bookingEmail) {
       return userEmail === bookingEmail
     }
@@ -51,7 +51,7 @@ const UserHistory = ({ user, bookings, onClose, onUpdateTreatmentNotes, onEditBo
     const bookingHasNoContacts = !bookingPhone9 && !bookingEmail
     if (userHasNoContacts && bookingHasNoContacts) {
       const normalizeNameText = (n: string | undefined) => (n || '').trim().replace(/\s+/g, ' ').toLowerCase()
-      return normalizeNameText(user.name) === normalizeNameText((booking as any).name)
+      return normalizeNameText(user.name) === normalizeNameText((booking as unknown as { name?: string }).name)
     }
     return false
   })

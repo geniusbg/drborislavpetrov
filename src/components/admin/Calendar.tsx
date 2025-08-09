@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useEffect, useCallback } from 'react'
+import { useState, useEffect, useCallback, useMemo } from 'react'
 import { ChevronLeft, ChevronRight, Plus, Settings, Calendar as CalendarIcon } from 'lucide-react'
 import WorkingHoursForm from './WorkingHoursForm'
 import DailySchedule from './DailySchedule'
@@ -129,8 +129,21 @@ const Calendar = ({ bookings, onBookingClick, onAddBooking, onNavigateToDailySch
     }
   }, [socket, isConnected, isSupported, joinAdmin])
 
+  // Deduplicate bookings by id (fallback to date+time+name if no id)
+  const uniqueBookings = useMemo(() => {
+    const seen = new Set<string>()
+    const result: Booking[] = []
+    for (const b of bookings) {
+      const key = b.id ? String(b.id) : `${b.date}|${b.time}|${b.name || ''}`
+      if (seen.has(key)) continue
+      seen.add(key)
+      result.push(b)
+    }
+    return result
+  }, [bookings])
+
   // Filter bookings based on status
-  const filteredBookings = bookings.filter(booking => {
+  const filteredBookings = uniqueBookings.filter(booking => {
     if (statusFilter === 'all') return true
     return booking.status === statusFilter
   })

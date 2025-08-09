@@ -47,8 +47,7 @@ const ClockWidget = ({ className = '' }: ClockWidgetProps) => {
     )
   }
 
-  const formatDateTime = (date: Date) => {
-    const bulgariaTime = getBulgariaTime()
+  const formatDateTime = () => {
     
     return {
       date: getBulgariaDateString(),
