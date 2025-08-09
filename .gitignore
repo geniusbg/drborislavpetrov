@@ -124,3 +124,59 @@ secrets/
 # Backup files
 *.bak
 *.backup
+backups/
+backup-*.json
+
+# QA and test files
+qa_report*.json
+qa_report.json
+*.tsbuildinfo
+
+# Temporary scripts and test files
+test-*.js
+test-*.bat
+test-*.ps1
+test-*.cmd
+test-*.html
+test-*.txt
+TEST_*.js
+QA_*.js
+ADD_*.js
+CLEANUP_*.js
+add-*.js
+add-*.bat
+check-*.js
+check-*.bat
+clean-*.bat
+remove-*.js
+remove-*.bat
+remove-*.ps1
+create-*.js
+create-*.sql
+create-*.ps1
+deploy-*.sh
+deploy-*.ps1
+grant-*.js
+monitor-*.js
+restore-*.js
+backup-*.js
+setup-*.ps1
+start-*.bat
+run-*.ps1
+manual-*.bat
+auto-*.ps1
+simple-*.js
+simple-*.ps1
+
+# Database migration files (keep in repo but ignore user-specific ones)
+drop-and-recreate-tables.js
+bookings.db
+
+# Documentation files (optional - remove if you want to track them)
+*.md
+!README.md
+!SETUP.md
+!REQUIREMENTS.md
+
+# Tool directories
+tools/
