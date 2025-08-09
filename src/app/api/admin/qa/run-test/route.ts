@@ -228,10 +228,11 @@ async function runBreaksTest() {
     }
 
   } catch (error) {
+    const msg = (error as Error)?.message || String(error)
     return {
       success: false,
       message: 'Грешка при изпълнение на теста на почивки',
-      details: { error: error.message }
+      details: { error: msg }
     }
   }
 }
@@ -273,7 +274,8 @@ async function runCalendarTest() {
         testResults.push({ test: 'Зареждане на работно време', status: 'FAILED', details: 'Календарът не зарежда работното време - няма данни в базата' })
       }
     } catch (dbError) {
-      testResults.push({ test: 'Зареждане на работно време', status: 'FAILED', details: `Database грешка: ${dbError.message}` })
+      const msg = (dbError as Error)?.message || String(dbError)
+      testResults.push({ test: 'Зареждане на работно време', status: 'FAILED', details: `Database грешка: ${msg}` })
     } finally {
       db.release()
     }
@@ -297,7 +299,8 @@ async function runCalendarTest() {
         testResults.push({ test: 'Зареждане на резервации', status: 'FAILED', details: 'Календарът не зарежда резервациите - няма данни в базата' })
       }
     } catch (dbError) {
-      testResults.push({ test: 'Зареждане на резервации', status: 'FAILED', details: `Database грешка: ${dbError.message}` })
+      const msg = (dbError as Error)?.message || String(dbError)
+      testResults.push({ test: 'Зареждане на резервации', status: 'FAILED', details: `Database грешка: ${msg}` })
     } finally {
       db2.release()
     }
@@ -322,7 +325,8 @@ async function runCalendarTest() {
         testResults.push({ test: 'Показване на почивки', status: 'FAILED', details: 'Календарът не показва почивките - няма почивки в базата' })
       }
     } catch (dbError) {
-      testResults.push({ test: 'Показване на почивки', status: 'FAILED', details: `Database грешка: ${dbError.message}` })
+      const msg = (dbError as Error)?.message || String(dbError)
+      testResults.push({ test: 'Показване на почивки', status: 'FAILED', details: `Database грешка: ${msg}` })
     } finally {
       db3.release()
     }
@@ -346,7 +350,8 @@ async function runCalendarTest() {
         testResults.push({ test: 'Навигация по дати', status: 'FAILED', details: 'Календарът не позволява навигация по дати' })
       }
     } catch (dbError) {
-      testResults.push({ test: 'Навигация по дати', status: 'FAILED', details: `Database грешка: ${dbError.message}` })
+      const msg = (dbError as Error)?.message || String(dbError)
+      testResults.push({ test: 'Навигация по дати', status: 'FAILED', details: `Database грешка: ${msg}` })
     } finally {
       db4.release()
     }
@@ -369,7 +374,8 @@ async function runCalendarTest() {
         testResults.push({ test: 'Показване на услуги', status: 'FAILED', details: 'Календарът не показва имената на услугите - няма услуги в базата' })
       }
     } catch (dbError) {
-      testResults.push({ test: 'Показване на услуги', status: 'FAILED', details: `Database грешка: ${dbError.message}` })
+      const msg = (dbError as Error)?.message || String(dbError)
+      testResults.push({ test: 'Показване на услуги', status: 'FAILED', details: `Database грешка: ${msg}` })
     } finally {
       db5.release()
     }
@@ -424,9 +430,10 @@ async function runCalendarTest() {
            testResults.push({ test: 'Достъпност на таблица потребители', status: 'FAILED', details: 'Таблицата users не е достъпна' })
            console.log('Test 1 FAILED - no rows returned')
          }
-       } catch (dbError) {
-         testResults.push({ test: 'Достъпност на таблица потребители', status: 'FAILED', details: `Database грешка: ${dbError.message}` })
-         console.log('Test 1 FAILED - database error:', dbError.message)
+      } catch (dbError) {
+        const msg = (dbError as Error)?.message || String(dbError)
+        testResults.push({ test: 'Достъпност на таблица потребители', status: 'FAILED', details: `Database грешка: ${msg}` })
+        console.log('Test 1 FAILED - database error:', msg)
        } finally {
          db.release()
        }
@@ -461,9 +468,10 @@ async function runCalendarTest() {
            testResults.push({ test: 'Създаване на админ без телефон', status: 'FAILED', details: 'Админ потребител не може да се създаде без телефон' })
            console.log('Test 2 FAILED - no rows returned')
          }
-       } catch (dbError) {
-         testResults.push({ test: 'Създаване на админ без телефон', status: 'FAILED', details: `Database грешка: ${dbError.message}` })
-         console.log('Test 2 FAILED - database error:', dbError.message)
+        } catch (dbError) {
+          const msg = (dbError as Error)?.message || String(dbError)
+          testResults.push({ test: 'Създаване на админ без телефон', status: 'FAILED', details: `Database грешка: ${msg}` })
+          console.log('Test 2 FAILED - database error:', msg)
        } finally {
          db2.release()
        }
@@ -491,8 +499,9 @@ async function runCalendarTest() {
            testResults.push({ test: 'Създаване на потребител без телефон', status: 'PASSED', details: 'Редовен потребител не може да се създаде без телефон (правилно)' })
            passedTests++
          }
-       } catch (dbError) {
-         testResults.push({ test: 'Създаване на потребител без телефон', status: 'FAILED', details: `Database грешка: ${dbError.message}` })
+        } catch (dbError) {
+          const msg = (dbError as Error)?.message || String(dbError)
+          testResults.push({ test: 'Създаване на потребител без телефон', status: 'FAILED', details: `Database грешка: ${msg}` })
        } finally {
          db3.release()
        }
@@ -534,8 +543,9 @@ async function runCalendarTest() {
          } else {
            testResults.push({ test: 'Обновяване на потребители', status: 'FAILED', details: 'Не може да се създаде тестов потребител' })
          }
-       } catch (dbError) {
-         testResults.push({ test: 'Обновяване на потребители', status: 'FAILED', details: `Database грешка: ${dbError.message}` })
+        } catch (dbError) {
+          const msg = (dbError as Error)?.message || String(dbError)
+          testResults.push({ test: 'Обновяване на потребители', status: 'FAILED', details: `Database грешка: ${msg}` })
        } finally {
          db4.release()
        }
@@ -574,8 +584,9 @@ async function runCalendarTest() {
          } else {
            testResults.push({ test: 'Изтриване на потребители', status: 'FAILED', details: 'Не може да се създаде тестов потребител' })
          }
-       } catch (dbError) {
-         testResults.push({ test: 'Изтриване на потребители', status: 'FAILED', details: `Database грешка: ${dbError.message}` })
+        } catch (dbError) {
+          const msg = (dbError as Error)?.message || String(dbError)
+          testResults.push({ test: 'Изтриване на потребители', status: 'FAILED', details: `Database грешка: ${msg}` })
        } finally {
          db5.release()
        }
