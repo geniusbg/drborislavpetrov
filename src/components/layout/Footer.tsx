@@ -1,8 +1,9 @@
 import Link from 'next/link'
 import { Heart, Phone, Mail, MapPin } from 'lucide-react'
+import { getBulgariaTime } from '@/lib/bulgaria-time'
 
 const Footer = () => {
-  const currentYear = new Date().getFullYear()
+  const currentYear = getBulgariaTime().getFullYear()
 
   return (
     <footer className="bg-secondary-900 text-white">

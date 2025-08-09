@@ -8,36 +8,36 @@ export async function POST(request: NextRequest) {
 
     if (!patientName) {
       return NextResponse.json(
-        { error: 'Липсва име на потребителя' },
+        { error: 'Името на пациента е задължително' },
         { status: 400 }
       )
     }
 
     const db = await getDatabase()
 
-    // Use provided phone or default
-    const userPhone = phone || '+359888000000'
-
     // Check if user already exists
-    const existingUser = await db.get('SELECT * FROM users WHERE name = ? OR phone = ?', [patientName, userPhone])
-    
-    if (existingUser) {
+    const existingUser = await db.query('SELECT * FROM users WHERE name = $1 OR phone = $2', [patientName, phone])
+    if (existingUser.rows.length > 0) {
+      db.release()
       return NextResponse.json(
-        { error: `Потребителят ${patientName} вече съществува` },
+        { error: 'Потребител с това име или телефон вече съществува' },
         { status: 409 }
       )
     }
 
     // Create new user
-    const result = await db.run(`
+    const result = await db.query(`
       INSERT INTO users (name, phone, email)
-      VALUES (?, ?, ?)
-    `, [patientName, userPhone, email || null])
+      VALUES ($1, $2, $3)
+      RETURNING id
+    `, [patientName, phone || null, email || null])
+
+    db.release()
 
     return NextResponse.json({
       success: true,
-      message: `Потребителят ${patientName} е създаден успешно. Телефон: ${userPhone}`,
-      userId: result.lastID
+      message: `Потребителят ${patientName} е създаден успешно`,
+      userId: result.rows[0].id
     })
   } catch (error) {
     console.error('Siri create user error:', error)

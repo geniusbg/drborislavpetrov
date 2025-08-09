@@ -4,9 +4,10 @@ import { getDatabase } from '@/lib/database'
 export async function GET() {
   try {
     const db = await getDatabase()
-    const services = await db.all('SELECT * FROM services WHERE isActive = 1 ORDER BY name')
+    const result = await db.query('SELECT * FROM services WHERE isActive = true ORDER BY name')
     
-    return NextResponse.json({ services })
+    db.release()
+    return NextResponse.json({ services: result.rows })
   } catch (error) {
     return NextResponse.json(
       { error: 'Internal server error' },

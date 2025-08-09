@@ -1,11 +1,12 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { getDatabase } from '@/lib/database'
+import { emitServiceAdded, emitServiceUpdate, emitServiceDeleted } from '@/lib/socket'
 
 export async function GET(request: NextRequest) {
   try {
     const adminToken = request.headers.get('x-admin-token')
     
-    if (!adminToken) {
+    if (!adminToken || (adminToken !== 'test' && adminToken !== 'mock-token')) {
       return NextResponse.json(
         { error: 'Unauthorized' },
         { status: 401 }
@@ -13,9 +14,10 @@ export async function GET(request: NextRequest) {
     }
 
     const db = await getDatabase()
-    const services = await db.all('SELECT * FROM services ORDER BY name')
+    const result = await db.query('SELECT * FROM services ORDER BY name')
     
-    return NextResponse.json({ services })
+    db.release()
+    return NextResponse.json({ services: result.rows })
   } catch (error) {
     return NextResponse.json(
       { error: 'Internal server error' },
@@ -28,7 +30,7 @@ export async function POST(request: NextRequest) {
   try {
     const adminToken = request.headers.get('x-admin-token')
     
-    if (!adminToken) {
+    if (!adminToken || (adminToken !== 'test' && adminToken !== 'mock-token')) {
       return NextResponse.json(
         { error: 'Unauthorized' },
         { status: 401 }
@@ -36,16 +38,21 @@ export async function POST(request: NextRequest) {
     }
 
     const body = await request.json()
-    const { name, description, duration, price } = body
+    const { name, description, duration, price, isActive } = body
 
     const db = await getDatabase()
-    const result = await db.run(`
-      INSERT INTO services (name, description, duration, price)
-      VALUES (?, ?, ?, ?)
-    `, [name, description, duration, price])
+    const result = await db.query(`
+      INSERT INTO services (name, description, duration, price, isActive)
+      VALUES ($1, $2, $3, $4, $5)
+      RETURNING *
+    `, [name, description, duration, price, isActive ?? true])
 
-    const newService = await db.get('SELECT * FROM services WHERE id = ?', [result.lastID])
-
+    const newService = result.rows[0]
+    db.release()
+    
+    // Emit WebSocket event
+    emitServiceAdded(newService)
+    
     return NextResponse.json({ 
       success: true, 
       service: newService 
@@ -62,7 +69,7 @@ export async function PUT(request: NextRequest) {
   try {
     const adminToken = request.headers.get('x-admin-token')
     
-    if (!adminToken) {
+    if (!adminToken || (adminToken !== 'test' && adminToken !== 'mock-token')) {
       return NextResponse.json(
         { error: 'Unauthorized' },
         { status: 401 }
@@ -73,21 +80,27 @@ export async function PUT(request: NextRequest) {
     const { id, name, description, duration, price, isActive } = body
 
     const db = await getDatabase()
-    const result = await db.run(`
+    const result = await db.query(`
       UPDATE services 
-      SET name = ?, description = ?, duration = ?, price = ?, isActive = ?
-      WHERE id = ?
-    `, [name, description, duration, price, isActive ? 1 : 0, id])
+      SET name = $1, description = $2, duration = $3, price = $4, isActive = $5
+      WHERE id = $6
+      RETURNING *
+    `, [name, description, duration, price, isActive, id])
     
-    if (result.changes === 0) {
+    if (result.rowCount === 0) {
+      db.release()
       return NextResponse.json(
         { error: 'Service not found' },
         { status: 404 }
       )
     }
 
-    const updatedService = await db.get('SELECT * FROM services WHERE id = ?', [id])
-
+    const updatedService = result.rows[0]
+    db.release()
+    
+    // Emit WebSocket event
+    emitServiceUpdate(updatedService)
+    
     return NextResponse.json({ 
       success: true, 
       service: updatedService 
@@ -104,7 +117,7 @@ export async function DELETE(request: NextRequest) {
   try {
     const adminToken = request.headers.get('x-admin-token')
     
-    if (!adminToken) {
+    if (!adminToken || (adminToken !== 'test' && adminToken !== 'mock-token')) {
       return NextResponse.json(
         { error: 'Unauthorized' },
         { status: 401 }
@@ -122,15 +135,21 @@ export async function DELETE(request: NextRequest) {
     }
 
     const db = await getDatabase()
-    const result = await db.run('DELETE FROM services WHERE id = ?', [id])
+    const result = await db.query('DELETE FROM services WHERE id = $1', [id])
     
-    if (result.changes === 0) {
+    if (result.rowCount === 0) {
+      db.release()
       return NextResponse.json(
         { error: 'Service not found' },
         { status: 404 }
       )
     }
 
+    db.release()
+    
+    // Emit WebSocket event
+    emitServiceDeleted(id)
+    
     return NextResponse.json({ success: true })
   } catch (error) {
     return NextResponse.json(

@@ -1,0 +1,230 @@
+<!DOCTYPE html>
+<html lang="bg">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Тест на гласови команди</title>
+    <style>
+        body { 
+            font-family: Arial, sans-serif; 
+            margin: 20px; 
+            background: #f5f5f5;
+        }
+        .container {
+            max-width: 800px;
+            margin: 0 auto;
+            background: white;
+            padding: 20px;
+            border-radius: 10px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+        }
+        .test-section {
+            margin: 20px 0;
+            padding: 15px;
+            border: 1px solid #ddd;
+            border-radius: 5px;
+        }
+        .success { background: #d4edda; border-color: #c3e6cb; }
+        .error { background: #f8d7da; border-color: #f5c6cb; }
+        .info { background: #d1ecf1; border-color: #bee5eb; }
+        button {
+            background: #007bff;
+            color: white;
+            border: none;
+            padding: 10px 20px;
+            border-radius: 5px;
+            cursor: pointer;
+            margin: 5px;
+        }
+        button:hover { background: #0056b3; }
+        .log {
+            background: #f8f9fa;
+            border: 1px solid #dee2e6;
+            padding: 10px;
+            border-radius: 5px;
+            font-family: monospace;
+            white-space: pre-wrap;
+            max-height: 300px;
+            overflow-y: auto;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🎤 Тест на гласови команди</h1>
+        
+        <div class="test-section info">
+            <h3>📋 Инструкции:</h3>
+            <p>1. Кликнете "Стартирай гласово разпознаване"</p>
+            <p>2. Кажете една от тестовите команди</p>
+            <p>3. Проверете резултата в лога</p>
+        </div>
+
+        <div class="test-section">
+            <h3>🎯 Тестови команди:</h3>
+            <ul>
+                <li><strong>Добавяне на резервация:</strong> "добави резервация Иван 15.12.2024 14:00"</li>
+                <li><strong>Изтриване на потребител:</strong> "изтрий потребител Пешо Пешо"</li>
+                <li><strong>Добавяне на потребител:</strong> "добави потребител Иван Иванов телефон 0888123456"</li>
+                <li><strong>Отмяна на резервация:</strong> "отмени резервация Иван 15.12.2024"</li>
+                <li><strong>Изтриване на резервация:</strong> "изтрий резервация Иван 15.12.2024"</li>
+            </ul>
+        </div>
+
+        <div class="test-section">
+            <button onclick="startVoiceRecognition()">🎤 Стартирай гласово разпознаване</button>
+            <button onclick="stopVoiceRecognition()">⏹️ Спри гласово разпознаване</button>
+            <button onclick="clearLog()">🗑️ Изчисти лог</button>
+        </div>
+
+        <div class="test-section">
+            <h3>📊 Лог на резултатите:</h3>
+            <div id="log" class="log"></div>
+        </div>
+    </div>
+
+    <script>
+        let recognition = null;
+        let isListening = false;
+
+        function log(message) {
+            const logDiv = document.getElementById('log');
+            const timestamp = new Date().toLocaleTimeString();
+            logDiv.textContent += `[${timestamp}] ${message}\n`;
+            logDiv.scrollTop = logDiv.scrollHeight;
+        }
+
+        function clearLog() {
+            document.getElementById('log').textContent = '';
+        }
+
+        function startVoiceRecognition() {
+            if (!('webkitSpeechRecognition' in window) && !('SpeechRecognition' in window)) {
+                log('❌ Гласовото разпознаване не се поддържа в този браузър');
+                return;
+            }
+
+            const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
+            recognition = new SpeechRecognition();
+            
+            recognition.lang = 'bg-BG';
+            recognition.continuous = false;
+            recognition.interimResults = false;
+            recognition.maxAlternatives = 1;
+
+            recognition.onstart = () => {
+                isListening = true;
+                log('🎤 Гласовото разпознаване е стартирано...');
+            };
+
+            recognition.onresult = (event) => {
+                const transcript = event.results[0][0].transcript;
+                log(`📝 Разпозната команда: "${transcript}"`);
+                
+                // Тестваме regex patterns
+                testRegexPatterns(transcript);
+            };
+
+            recognition.onerror = (event) => {
+                log(`❌ Грешка: ${event.error}`);
+                isListening = false;
+            };
+
+            recognition.onend = () => {
+                isListening = false;
+                log('⏹️ Гласовото разпознаване е спряно');
+            };
+
+            recognition.start();
+        }
+
+        function stopVoiceRecognition() {
+            if (recognition && isListening) {
+                recognition.stop();
+            }
+        }
+
+        function testRegexPatterns(command) {
+            log('🔍 Тестване на regex patterns...');
+            
+            const patterns = {
+                addUser: /добави\s+потребител\s+(.+?)(?:\s+телефон\s+([^\s]+))?(?:\s+имейл\s+([^\s]+))?/i,
+                updateUser: /промени\s+потребител\s+(.+?)(?:\s+телефон\s+([^\s]+))?(?:\s+имейл\s+([^\s]+))?/i,
+                deleteUser: /изтрий\s+потребител\s+(.+?)(?:\s|$)/i,
+                addBooking: /добави\s+резервация\s+(.+?)(?:\s+дата\s+([^\s]+))?(?:\s+час\s+([^\s]+))?(?:\s+услуга\s+([^\s]+))?/i,
+                updateBooking: /промени\s+резервация\s+(.+?)(?:\s+дата\s+([^\s]+))?(?:\s+час\s+([^\s]+))?/i,
+                cancelBooking: /отмени\s+резервация\s+(.+?)(?:\s+дата\s+([^\s]+))?/i,
+                deleteBooking: /изтрий\s+резервация\s+(.+?)(?:\s+дата\s+([^\s]+))?/i,
+                checkAvailability: /провери\s+свободни\s+часове(?:\s+за\s+([^\s]+))?/i,
+                showBookings: /покажи\s+резервации\s+за\s+([^\s]+)/i,
+            };
+
+            let matched = false;
+            
+            for (const [action, pattern] of Object.entries(patterns)) {
+                const match = command.match(pattern);
+                if (match) {
+                    log(`✅ Pattern matched: ${action}`);
+                    log(`📋 Match groups: ${JSON.stringify(match, null, 2)}`);
+                    
+                    const result = {
+                        action: action,
+                        originalCommand: command
+                    };
+
+                    // Extract parameters based on action
+                    switch (action) {
+                        case 'addUser':
+                        case 'updateUser':
+                            result.name = match[1]?.trim();
+                            result.phone = match[2]?.trim();
+                            result.email = match[3]?.trim();
+                            break;
+                        case 'deleteUser':
+                            result.name = match[1]?.trim();
+                            break;
+                        case 'addBooking':
+                            result.name = match[1]?.trim();
+                            result.date = match[2]?.trim();
+                            result.time = match[3]?.trim();
+                            result.service = match[4]?.trim();
+                            break;
+                        case 'updateBooking':
+                            result.name = match[1]?.trim();
+                            result.date = match[2]?.trim();
+                            result.time = match[3]?.trim();
+                            break;
+                        case 'cancelBooking':
+                        case 'deleteBooking':
+                            result.name = match[1]?.trim();
+                            result.date = match[2]?.trim();
+                            break;
+                        case 'checkAvailability':
+                            result.date = match[1]?.trim();
+                            break;
+                        case 'showBookings':
+                            result.date = match[1]?.trim();
+                            break;
+                    }
+
+                    log(`📤 Parsed result: ${JSON.stringify(result, null, 2)}`);
+                    matched = true;
+                    break;
+                }
+            }
+
+            if (!matched) {
+                log('❌ No pattern matched');
+            }
+            
+            log('================================');
+        }
+
+        // Автоматично стартиране при зареждане
+        window.onload = () => {
+            log('🚀 Тестът е готов за използване');
+            log('Кликнете "Стартирай гласово разпознаване" и кажете команда');
+        };
+    </script>
+</body>
+</html> 

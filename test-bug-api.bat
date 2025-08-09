@@ -1,0 +1,9 @@
+@echo off
+echo Testing bug API...
+echo.
+echo Testing GET...
+curl -H "x-admin-token: admin-token" "http://localhost:3000/api/admin/bugs"
+echo.
+echo Testing POST...
+curl -X POST -H "x-admin-token: admin-token" -H "Content-Type: application/json" -d "{\"title\":\"Test Bug\",\"description\":\"Test\",\"severity\":\"low\",\"category\":\"test\"}" "http://localhost:3000/api/admin/bugs"
+pause 

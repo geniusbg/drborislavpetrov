@@ -17,8 +17,9 @@ export async function GET(request: NextRequest) {
     const db = await getDatabase()
     
     // Get service duration
-    const service = await db.get('SELECT duration FROM services WHERE id = ?', [serviceId])
-    if (!service) {
+    const service = await db.query('SELECT duration FROM services WHERE id = $1', [serviceId])
+    if (service.rows.length === 0) {
+      db.release()
       return NextResponse.json(
         { error: 'Service not found' },
         { status: 404 }
@@ -26,12 +27,14 @@ export async function GET(request: NextRequest) {
     }
 
     // Get all bookings for the date
-    const bookings = await db.all(`
+    const bookings = await db.query(`
       SELECT time, duration 
       FROM bookings b
-      JOIN services s ON b.service = s.id
-      WHERE b.date = ? AND b.status != 'cancelled'
+      JOIN services s ON b.service = s.name
+      WHERE b.date = $1 AND b.status != 'cancelled'
     `, [date])
+
+    db.release()
 
     // Define working hours
     const workingHours = {
@@ -53,7 +56,7 @@ export async function GET(request: NextRequest) {
 
     // Calculate occupied slots
     const occupiedSlots = new Set()
-    bookings.forEach(booking => {
+    bookings.rows.forEach(booking => {
       const startTime = booking.time
       const duration = booking.duration || 30
       const startMinutes = parseInt(startTime.split(':')[0]) * 60 + parseInt(startTime.split(':')[1])
@@ -73,7 +76,7 @@ export async function GET(request: NextRequest) {
 
     return NextResponse.json({ 
       availableSlots,
-      serviceDuration: service.duration
+      serviceDuration: service.rows[0].duration
     })
   } catch (error) {
     console.error('Error getting available slots:', error)

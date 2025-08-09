@@ -1,0 +1,4 @@
+=== Terminal Test ===
+Current time: 2025-08-04 10:00:00
+Current directory: C:\Users\genius\Downloads\drborislavpetrov
+=== Test Complete === 

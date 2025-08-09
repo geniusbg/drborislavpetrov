@@ -51,8 +51,9 @@ export const sendBookingConfirmation = async (booking: {
 
   // Get service name from database
   const db = await getDatabase()
-  const service = await db.get('SELECT name FROM services WHERE id = ?', [booking.service])
-  const serviceName = service ? service.name : 'Неизвестна услуга'
+  const service = await db.query('SELECT name FROM services WHERE id = $1', [booking.service])
+  const serviceName = service.rows.length > 0 ? service.rows[0].name : 'Неизвестна услуга'
+  db.release()
 
   const html = `
     <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
@@ -92,8 +93,9 @@ export const sendAdminNotification = async (booking: {
 }) => {
   // Get service name from database
   const db = await getDatabase()
-  const service = await db.get('SELECT name FROM services WHERE id = ?', [booking.service])
-  const serviceName = service ? service.name : 'Неизвестна услуга'
+  const service = await db.query('SELECT name FROM services WHERE id = $1', [booking.service])
+  const serviceName = service.rows.length > 0 ? service.rows[0].name : 'Неизвестна услуга'
+  db.release()
 
   const html = `
     <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">

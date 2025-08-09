@@ -1,9 +1,11 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
 import React, { useState, useEffect, useRef, useCallback } from 'react'
 import { Mic, MicOff, Volume2, Smartphone, Command, X, Check, AlertCircle } from 'lucide-react'
+import { getBulgariaTime } from '@/lib/bulgaria-time'
 
 interface VoiceInterfaceProps {
   onCommand: (command: string) => void
+  onClose?: () => void
 }
 
 interface VoiceState {
@@ -26,7 +28,7 @@ interface ParsedCommand {
   originalCommand: string
 }
 
-const VoiceInterface: React.FC<VoiceInterfaceProps> = ({ onCommand }) => {
+const VoiceInterface: React.FC<VoiceInterfaceProps> = ({ onCommand, onClose }) => {
   const [voiceState, setVoiceState] = useState<VoiceState>({
     isListening: false,
     isSupported: false,
@@ -41,6 +43,7 @@ const VoiceInterface: React.FC<VoiceInterfaceProps> = ({ onCommand }) => {
   
   const recognitionRef = useRef<any>(null)
   const inputRef = useRef<HTMLTextAreaElement>(null)
+  const timeoutRef = useRef<NodeJS.Timeout | null>(null)
 
   // Detect device and browser support
   useEffect(() => {
@@ -63,8 +66,13 @@ const VoiceInterface: React.FC<VoiceInterfaceProps> = ({ onCommand }) => {
       recognitionRef.current.continuous = true
       recognitionRef.current.interimResults = true
       recognitionRef.current.lang = 'bg-BG'
+      recognitionRef.current.maxAlternatives = 1
+      
+      // Увеличаваме timeout-а за по-дълго слушане
+      recognitionRef.current.continuous = true
       
       recognitionRef.current.onstart = () => {
+        console.log('🎤 Voice recognition started')
         setVoiceState(prev => ({ ...prev, isListening: true, error: '' }))
       }
       
@@ -81,14 +89,18 @@ const VoiceInterface: React.FC<VoiceInterfaceProps> = ({ onCommand }) => {
           }
         }
         
+        // Clean up the transcript for display - replace klyomba with @ symbol
+        const cleanedTranscript = cleanTranscript(finalTranscript + interimTranscript)
+        
+        console.log('🎤 Voice transcript:', cleanedTranscript)
         setVoiceState(prev => ({
           ...prev,
-          transcript: finalTranscript + interimTranscript
+          transcript: cleanedTranscript
         }))
       }
       
       recognitionRef.current.onerror = (event: any) => {
-        console.error('Speech recognition error:', event.error)
+        console.error('🎤 Speech recognition error:', event.error)
         setVoiceState(prev => ({
           ...prev,
           isListening: false,
@@ -97,6 +109,7 @@ const VoiceInterface: React.FC<VoiceInterfaceProps> = ({ onCommand }) => {
       }
       
       recognitionRef.current.onend = () => {
+        console.log('🎤 Voice recognition ended')
         setVoiceState(prev => ({ ...prev, isListening: false }))
       }
     }
@@ -104,27 +117,36 @@ const VoiceInterface: React.FC<VoiceInterfaceProps> = ({ onCommand }) => {
 
   // Parse voice command function
   const parseVoiceCommand = (command: string): ParsedCommand => {
-    // Enhanced patterns for better recognition
+    console.log('🎤 === PARSING VOICE COMMAND ===')
+    console.log('📝 Input command:', command)
+    
+    // Completely rewritten patterns based on virtual team consultation
+    // @virtual-skeptic: Previous regex was too restrictive with [^0-9]+?
+    // @virtual-performance-optimizer: Using positive lookahead for better performance
     const patterns = {
-      // User management
-      addUser: /добави\s+потребител\s+(.+?)(?:\s+телефон\s+([^\s]+))?(?:\s+имейл\s+([^\s]+))?/i,
-      updateUser: /промени\s+потребител\s+(.+?)(?:\s+телефон\s+([^\s]+))?(?:\s+имейл\s+([^\s]+))?/i,
-      deleteUser: /изтрий\s+потребител\s+(.+?)(?:\s|$)/i,
+      // User management - improved patterns with better name extraction
+      addUser: /(?:добави|създай|направи)\s+(?:потребител|клиент|пациент)\s+([а-я]+(?:\s+[а-я]+)*?)(?=\s+(?:телефон|тел|номер|имейл|email)|$)/i,
+      updateUser: /(?:промени|редактирай|измени)\s+(?:потребител|клиент|пациент)\s+([а-я]+(?:\s+[а-я]+)*?)(?=\s+(?:телефон|тел|номер|имейл|email)|$)/i,
+      deleteUser: /(?:изтрий|премахни|удали)\s+(?:потребител|клиент|пациент)\s+([а-я]+(?:\s+[а-я]+)*)/i,
       
-      // Booking management
-      addBooking: /добави\s+резервация\s+(.+?)(?:\s+дата\s+([^\s]+))?(?:\s+час\s+([^\s]+))?(?:\s+услуга\s+([^\s]+))?/i,
-      updateBooking: /промени\s+резервация\s+(.+?)(?:\s+дата\s+([^\s]+))?(?:\s+час\s+([^\s]+))?/i,
-      cancelBooking: /отмени\s+резервация\s+(.+?)(?:\s+дата\s+([^\s]+))?/i,
+      // Booking management - improved patterns
+      addBooking: /(?:добави|създай|направи|запиши|запази)\s+(?:резервация|запис|час)(?:\s+за\s+|\s+на\s+|\s+)([^0-9]+?)(?=\s+(?:дата|ден|час|време|услуга|лечение|\d|на|за|от)|$)/i,
+      updateBooking: /(?:промени|редактирай|измени)\s+(?:резервация|запис|час)\s+([^0-9]+?)(?=\s+(?:дата|ден|час|време|\d)|$)/i,
+      cancelBooking: /(?:отмени|откажи|прекрати)\s+(?:резервация|запис|час)\s+([^0-9]+?)(?=\s+(?:дата|ден|\d)|$)/i,
+      deleteBooking: /(?:изтрий|премахни|удали)\s+(?:резервация|запис|час)\s+([^0-9]+?)(?=\s+(?:дата|ден|\d)|$)/i,
       
       // Utility commands
-      checkAvailability: /провери\s+свободни\s+часове(?:\s+за\s+([^\s]+))?/i,
-      showBookings: /покажи\s+резервации\s+за\s+([^\s]+)/i,
+      checkAvailability: /(?:провери|покажи)\s+(?:свободни\s+)?(?:часове|слотове)(?:\s+за\s+([^\s]+))?/i,
+      showBookings: /(?:покажи|списък|резервации)\s+(?:резервации|записи|часове)\s+за\s+([^\s]+)/i,
     }
 
     // Check each pattern
     for (const [action, pattern] of Object.entries(patterns)) {
       const match = command.match(pattern)
       if (match) {
+        console.log('✅ Pattern matched:', action)
+        console.log('📋 Match groups:', match)
+        
         const result: ParsedCommand = {
           action: action,
           originalCommand: command
@@ -134,27 +156,290 @@ const VoiceInterface: React.FC<VoiceInterfaceProps> = ({ onCommand }) => {
         switch (action) {
           case 'addUser':
           case 'updateUser':
-            result.name = match[1]?.trim()
-            result.phone = match[2]?.trim()
-            result.email = match[3]?.trim()
+            // @virtual-skeptic: Simplified name extraction using positive lookahead
+            result.name = match[1]?.trim() || ''
+            
+            // Extract phone and email using improved patterns
+            const phoneMatch = command.match(/(?:телефон|тел|номер)\s+([0-9\s\+\-\(\)]+)/i)
+            const emailMatch = command.match(/(?:имейл|email)\s+([a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,})/i)
+            let email = emailMatch?.[1]?.trim()
+            let phone = phoneMatch?.[1]?.trim()
+            
+            // Clean phone number - remove all spaces and special characters except digits
+            if (phone) {
+              phone = phone.replace(/\s+/g, '').replace(/[^0-9]/g, '')
+            }
+
+            // Ако не е намерен email на латиница, търси на кирилица и сглоби
+            if (!email) {
+              // Търси "имейл <потребител> кльомба <домейн> точка <разширение>"
+              const emailPartsMatch = command.match(/(?:имейл|email)\s+([а-яa-zA-Z0-9._%+-]+)\s+(?:кльомба|klyomba|@)\s+([а-яa-zA-Z0-9._%+-]+)\s+(?:точка|dot|\.)\s*([а-яa-zA-Z]{2,})/i)
+              if (emailPartsMatch) {
+                let username = emailPartsMatch[1]?.trim()
+                let domain = emailPartsMatch[2]?.trim()
+                let tld = emailPartsMatch[3]?.trim()
+                // Конвертирай кирилица към латиница
+                const bulgarianToLatin: { [key: string]: string } = {
+                  'а': 'a', 'б': 'b', 'в': 'v', 'г': 'g', 'д': 'd', 'е': 'e', 'ж': 'zh', 'з': 'z',
+                  'и': 'i', 'й': 'y', 'к': 'k', 'л': 'l', 'м': 'm', 'н': 'n', 'о': 'o', 'п': 'p',
+                  'р': 'r', 'с': 's', 'т': 't', 'у': 'u', 'ф': 'f', 'х': 'h', 'ц': 'ts', 'ч': 'ch',
+                  'ш': 'sh', 'щ': 'sht', 'ъ': 'a', 'ь': 'y', 'ю': 'yu', 'я': 'ya',
+                  'А': 'A', 'Б': 'B', 'В': 'V', 'Г': 'G', 'Д': 'D', 'Е': 'E', 'Ж': 'Zh', 'З': 'Z',
+                  'И': 'I', 'Й': 'Y', 'К': 'K', 'Л': 'L', 'М': 'M', 'Н': 'N', 'О': 'O', 'П': 'P',
+                  'Р': 'R', 'С': 'S', 'Т': 'T', 'У': 'U', 'Ф': 'F', 'Х': 'H', 'Ц': 'Ts', 'Ч': 'Ch',
+                  'Ш': 'Sh', 'Щ': 'Sht', 'Ъ': 'A', 'Ь': 'Y', 'Ю': 'Yu', 'Я': 'Ya'
+                }
+                const convertToLatin = (text: string): string => {
+                  return text.split('').map(char => bulgarianToLatin[char] || char).join('')
+                }
+                username = convertToLatin(username)
+                domain = convertToLatin(domain)
+                tld = convertToLatin(tld)
+                // Ако tld е "бг", направи го "bg"
+                if (tld.toLowerCase() === 'бг') tld = 'bg'
+                email = `${username}@${domain}.${tld}`
+              }
+            }
+
+                         // Ако още няма email, пробвай да сглобиш от "имейл <потребител> кльомба <домейн>"
+             if (!email) {
+               const emailSimpleMatch = command.match(/(?:имейл|email)\s+([а-яa-zA-Z0-9._%+-]+)\s+(?:кльомба|klyomba|@)\s+([а-яa-zA-Z0-9._%+-]+)/i)
+               if (emailSimpleMatch) {
+                 let username = emailSimpleMatch[1]?.trim()
+                 let domain = emailSimpleMatch[2]?.trim()
+                 const bulgarianToLatin: { [key: string]: string } = {
+                   'а': 'a', 'б': 'b', 'в': 'v', 'г': 'g', 'д': 'd', 'е': 'e', 'ж': 'zh', 'з': 'z',
+                   'и': 'i', 'й': 'y', 'к': 'k', 'л': 'l', 'м': 'm', 'н': 'n', 'о': 'o', 'п': 'p',
+                   'р': 'r', 'с': 's', 'т': 't', 'у': 'u', 'ф': 'f', 'х': 'h', 'ц': 'ts', 'ч': 'ch',
+                   'ш': 'sh', 'щ': 'sht', 'ъ': 'a', 'ь': 'y', 'ю': 'yu', 'я': 'ya',
+                   'А': 'A', 'Б': 'B', 'В': 'V', 'Г': 'G', 'Д': 'D', 'Е': 'E', 'Ж': 'Zh', 'З': 'Z',
+                   'И': 'I', 'Й': 'Y', 'К': 'K', 'Л': 'L', 'М': 'M', 'Н': 'N', 'О': 'O', 'П': 'P',
+                   'Р': 'R', 'С': 'S', 'Т': 'T', 'У': 'U', 'Ф': 'F', 'Х': 'H', 'Ц': 'Ts', 'Ч': 'Ch',
+                   'Ш': 'Sh', 'Щ': 'Sht', 'Ъ': 'A', 'Ь': 'Y', 'Ю': 'Yu', 'Я': 'Ya'
+                 }
+                 const convertToLatin = (text: string): string => {
+                   return text.split('').map(char => bulgarianToLatin[char] || char).join('')
+                 }
+                 username = convertToLatin(username)
+                 domain = convertToLatin(domain)
+                 
+                 // Проверяваме дали домейнът вече съдържа точка (например yahoo.com)
+                 if (domain.includes('.')) {
+                   email = `${username}@${domain}`
+                 } else {
+                   email = `${username}@${domain}.bg` // по подразбиране .bg само ако няма точка
+                 }
+               }
+             }
+
+             // Ако не е намерен телефон в структурирания формат, търси навсякъде в командата
+             if (!phone) {
+               const phoneAnywhere = command.match(/([0-9]{3,4}\s*[0-9]{2}\s*[0-9]{2})/)
+               if (phoneAnywhere) {
+                 phone = phoneAnywhere[1]?.trim().replace(/\s+/g, '').replace(/[^0-9]/g, '')
+               }
+             }
+
+             result.phone = phone
+             result.email = email
             break
           case 'deleteUser':
             result.name = match[1]?.trim()
             break
           case 'addBooking':
             result.name = match[1]?.trim()
-            result.date = match[2]?.trim()
-            result.time = match[3]?.trim()
-            result.service = match[4]?.trim()
+            
+            // Extract other parameters using separate patterns
+            const dateMatch = command.match(/(?:дата|ден)\s+([^\s]+)/i)
+            const timeMatch = command.match(/(?:час|време)\s+([^\s]+)/i)
+            const serviceMatch = command.match(/(?:услуга|лечение)\s+([^\s]+)/i)
+            
+            result.date = dateMatch?.[1]?.trim()
+            result.time = timeMatch?.[1]?.trim()
+            result.service = serviceMatch?.[1]?.trim()
+            
+            // Ако не е намерена дата, пробвай да я извлечеш от различни формати
+            if (!result.date) {
+              // Търси дата във формат DD.MM или DD.MM.YYYY
+              const dateFormatMatch = command.match(/(\d{1,2})\.(\d{1,2})(?:\.(\d{4}))?/)
+              if (dateFormatMatch) {
+                const day = dateFormatMatch[1]
+                const month = dateFormatMatch[2]
+                const year = dateFormatMatch[3] || getBulgariaTime().getFullYear()
+                result.date = `${year}-${month.padStart(2, '0')}-${day.padStart(2, '0')}`
+                console.log('📅 Extracted date:', result.date)
+              }
+            }
+            
+            // Ако все още няма дата, пробвай да я извлечеш от текстов формат (например "15 август 2025")
+            if (!result.date) {
+              const textDateMatch = command.match(/(\d{1,2})\s+(януари|февруари|март|април|май|юни|юли|август|септември|октомври|ноември|декември)\s+(\d{4})/i)
+              if (textDateMatch) {
+                const day = textDateMatch[1]
+                const monthName = textDateMatch[2].toLowerCase()
+                const year = textDateMatch[3]
+                
+                const monthMap: { [key: string]: string } = {
+                  'януари': '01', 'февруари': '02', 'март': '03', 'април': '04',
+                  'май': '05', 'юни': '06', 'юли': '07', 'август': '08',
+                  'септември': '09', 'октомври': '10', 'ноември': '11', 'декември': '12'
+                }
+                
+                const month = monthMap[monthName]
+                if (month) {
+                  result.date = `${year}-${month}-${day.padStart(2, '0')}`
+                  console.log('📅 Extracted text date:', result.date)
+                }
+              }
+            }
+            
+            // Ако все още няма дата, пробвай да я извлечеш от числови формати (например "първи август 2025")
+            if (!result.date) {
+              const ordinalDateMatch = command.match(/(първи|втори|трети|четвърти|пети|шести|седми|осми|девети|десети|единадесети|дванадесети|тринадесети|четиринадесети|петнадесети|шестнадесети|седемнадесети|осемнадесети|деветнадесети|двадесети|двадесет и първи|двадесет и втори|двадесет и трети|двадесет и четвърти|двадесет и пети|двадесет и шести|двадесет и седми|двадесет и осми|двадесет и девети|тридесети|тридесет и първи)\s+(януари|февруари|март|април|май|юни|юли|август|септември|октомври|ноември|декември)\s+(\d{4})(?:\s+година)?/i)
+              if (ordinalDateMatch) {
+                const dayName = ordinalDateMatch[1].toLowerCase()
+                const monthName = ordinalDateMatch[2].toLowerCase()
+                const year = ordinalDateMatch[3]
+                
+                const dayMap: { [key: string]: string } = {
+                  'първи': '01', 'втори': '02', 'трети': '03', 'четвърти': '04', 'пети': '05',
+                  'шести': '06', 'седми': '07', 'осми': '08', 'девети': '09', 'десети': '10',
+                  'единадесети': '11', 'дванадесети': '12', 'тринадесети': '13', 'четиринадесети': '14', 'петнадесети': '15',
+                  'шестнадесети': '16', 'седемнадесети': '17', 'осемнадесети': '18', 'деветнадесети': '19', 'двадесети': '20',
+                  'двадесет и първи': '21', 'двадесет и втори': '22', 'двадесет и трети': '23', 'двадесет и четвърти': '24', 'двадесет и пети': '25',
+                  'двадесет и шести': '26', 'двадесет и седми': '27', 'двадесет и осми': '28', 'двадесет и девети': '29', 'тридесети': '30', 'тридесет и първи': '31'
+                }
+                
+                const monthMap: { [key: string]: string } = {
+                  'януари': '01', 'февруари': '02', 'март': '03', 'април': '04',
+                  'май': '05', 'юни': '06', 'юли': '07', 'август': '08',
+                  'септември': '09', 'октомври': '10', 'ноември': '11', 'декември': '12'
+                }
+                
+                const day = dayMap[dayName]
+                const month = monthMap[monthName]
+                if (day && month) {
+                  result.date = `${year}-${month}-${day}`
+                  console.log('📅 Extracted ordinal date:', result.date)
+                }
+              }
+            }
+            
+            // Ако не е намерен час, пробвай да го извлечеш от различни формати
+            if (!result.time) {
+              // Търси час във формат HH:MM
+              const timeFormatMatch = command.match(/(\d{1,2}):(\d{2})/)
+              if (timeFormatMatch) {
+                const hour = timeFormatMatch[1].padStart(2, '0')
+                const minute = timeFormatMatch[2]
+                result.time = `${hour}:${minute}`
+                console.log('🕐 Extracted time:', result.time)
+              }
+            }
+            
+            // Ако все още няма час, пробвай да го извлечеш от "от X часа" формат
+            if (!result.time) {
+              const fromHourMatch = command.match(/от\s+(\d{1,2})\s+(?:часа|час)/i)
+              if (fromHourMatch) {
+                const hour = fromHourMatch[1].padStart(2, '0')
+                result.time = `${hour}:00`
+                console.log('🕐 Extracted time from "от X часа":', result.time)
+              }
+            }
+            
+            // Ако все още няма час, пробвай да го извлечеш от "в X часа" формат
+            if (!result.time) {
+              const atHourMatch = command.match(/в\s+(\d{1,2})\s+(?:часа|час)/i)
+              if (atHourMatch) {
+                const hour = atHourMatch[1].padStart(2, '0')
+                result.time = `${hour}:00`
+                console.log('🕐 Extracted time from "в X часа":', result.time)
+              }
+            }
+            
+            // Ако все още няма час, пробвай да го извлечеш от "от HH:MM" формат
+            if (!result.time) {
+              const fromTimeMatch = command.match(/от\s+(\d{1,2}):(\d{2})/i)
+              if (fromTimeMatch) {
+                const hour = fromTimeMatch[1].padStart(2, '0')
+                const minute = fromTimeMatch[2]
+                result.time = `${hour}:${minute}`
+                console.log('🕐 Extracted time from "от HH:MM":', result.time)
+              }
+            }
+            
+            // Ако все още няма дата, пробвай да я извлечеш от края на командата
+            if (!result.date) {
+              // Търси дата след името на потребителя
+              const afterNameMatch = command.match(new RegExp(`${result.name}\\s+([0-9]{1,2}\\.[0-9]{1,2}(?:\\.[0-9]{4})?)`, 'i'))
+              if (afterNameMatch) {
+                const dateStr = afterNameMatch[1]
+                const dateParts = dateStr.split('.')
+                if (dateParts.length >= 2) {
+                  const day = dateParts[0]
+                  const month = dateParts[1]
+                  const year = dateParts[2] || getBulgariaTime().getFullYear()
+                  result.date = `${year}-${month.padStart(2, '0')}-${day.padStart(2, '0')}`
+                  console.log('📅 Extracted date from after name:', result.date)
+                }
+              }
+            }
+            
+            // Ако все още няма дата, пробвай да я извлечеш след "за" или "на"
+            if (!result.date) {
+              const forDateMatch = command.match(/(?:за|на)\s+(\d{1,2})\s+(януари|февруари|март|април|май|юни|юли|август|септември|октомври|ноември|декември)\s+(\d{4})/i)
+              if (forDateMatch) {
+                const day = forDateMatch[1]
+                const monthName = forDateMatch[2].toLowerCase()
+                const year = forDateMatch[3]
+                
+                const monthMap: { [key: string]: string } = {
+                  'януари': '01', 'февруари': '02', 'март': '03', 'април': '04',
+                  'май': '05', 'юни': '06', 'юли': '07', 'август': '08',
+                  'септември': '09', 'октомври': '10', 'ноември': '11', 'декември': '12'
+                }
+                
+                const month = monthMap[monthName]
+                if (month) {
+                  result.date = `${year}-${month}-${day.padStart(2, '0')}`
+                  console.log('📅 Extracted date from "за/на":', result.date)
+                }
+              }
+            }
+            
+            // Ако все още няма час, пробвай да го извлечеш от края на командата
+            if (!result.time) {
+              // Търси час след датата
+              const afterDateMatch = command.match(/(\d{1,2}):(\d{2})/)
+              if (afterDateMatch) {
+                const hour = afterDateMatch[1].padStart(2, '0')
+                const minute = afterDateMatch[2]
+                result.time = `${hour}:${minute}`
+                console.log('🕐 Extracted time from after date:', result.time)
+              }
+            }
+            
             break
           case 'updateBooking':
             result.name = match[1]?.trim()
-            result.date = match[2]?.trim()
-            result.time = match[3]?.trim()
+            
+            const updateDateMatch = command.match(/(?:дата|ден)\s+([^\s]+)/i)
+            const updateTimeMatch = command.match(/(?:час|време)\s+([^\s]+)/i)
+            
+            result.date = updateDateMatch?.[1]?.trim()
+            result.time = updateTimeMatch?.[1]?.trim()
             break
           case 'cancelBooking':
             result.name = match[1]?.trim()
-            result.date = match[2]?.trim()
+            
+            const cancelDateMatch = command.match(/(?:дата|ден)\s+([^\s]+)/i)
+            result.date = cancelDateMatch?.[1]?.trim()
+            break
+          case 'deleteBooking':
+            result.name = match[1]?.trim()
+            
+            const deleteDateMatch = command.match(/(?:дата|ден)\s+([^\s]+)/i)
+            result.date = deleteDateMatch?.[1]?.trim()
             break
           case 'checkAvailability':
             result.date = match[1]?.trim()
@@ -164,10 +449,14 @@ const VoiceInterface: React.FC<VoiceInterfaceProps> = ({ onCommand }) => {
             break
         }
 
+        console.log('📤 Parsed result:', result)
+        console.log('================================')
         return result
       }
     }
 
+    console.log('❌ No pattern matched')
+    console.log('================================')
     return { action: '', originalCommand: command }
   }
 
@@ -179,6 +468,7 @@ const VoiceInterface: React.FC<VoiceInterfaceProps> = ({ onCommand }) => {
     'добави резервация',
     'промени резервация',
     'отмени резервация',
+    'изтрий резервация',
     'провери свободни часове',
     'покажи резервации'
   ]
@@ -196,7 +486,21 @@ const VoiceInterface: React.FC<VoiceInterfaceProps> = ({ onCommand }) => {
     }
 
     try {
+      // Clear any existing timeout
+      if (timeoutRef.current) {
+        clearTimeout(timeoutRef.current)
+      }
+      
       await recognitionRef.current.start()
+      
+      // Set a longer timeout (10 seconds) before auto-stopping
+      timeoutRef.current = setTimeout(() => {
+        if (recognitionRef.current && voiceState.isListening) {
+          console.log('🎤 Auto-stopping voice recognition after timeout')
+          recognitionRef.current.stop()
+        }
+      }, 10000) // 10 seconds
+      
     } catch (error) {
       console.error('Failed to start voice recognition:', error)
       setVoiceState(prev => ({ 
@@ -204,12 +508,19 @@ const VoiceInterface: React.FC<VoiceInterfaceProps> = ({ onCommand }) => {
         error: 'Грешка при стартиране на гласовото разпознаване' 
       }))
     }
-  }, [voiceState.isMobile, voiceState.isSupported])
+  }, [voiceState.isMobile, voiceState.isSupported, voiceState.isListening])
 
   const stopVoiceRecognition = useCallback(() => {
     if (recognitionRef.current) {
       recognitionRef.current.stop()
     }
+    
+    // Clear timeout
+    if (timeoutRef.current) {
+      clearTimeout(timeoutRef.current)
+      timeoutRef.current = null
+    }
+    
     setVoiceState(prev => ({ ...prev, isListening: false }))
   }, [])
 
@@ -221,8 +532,21 @@ const VoiceInterface: React.FC<VoiceInterfaceProps> = ({ onCommand }) => {
     setSuccess('')
 
     try {
+      // Clean the transcript before parsing - replace klyomba with @ symbol
+      const cleanedTranscript = cleanTranscript(voiceState.transcript)
+      
+      // Check if original transcript was longer than cleaned (indicating multiple commands)
+      if (voiceState.transcript.length > cleanedTranscript.length + 50) {
+        setVoiceState(prev => ({ 
+          ...prev, 
+          error: 'Открити са множество команди. Изпълнява се само първата команда.' 
+        }))
+        // Update the transcript to show only the first command
+        setVoiceState(prev => ({ ...prev, transcript: cleanedTranscript }))
+      }
+      
       // Parse the voice command
-      const parsedCommand = parseVoiceCommand(voiceState.transcript)
+      const parsedCommand = parseVoiceCommand(cleanedTranscript)
       
       if (!parsedCommand.action) {
         setVoiceState(prev => ({ 
@@ -232,15 +556,20 @@ const VoiceInterface: React.FC<VoiceInterfaceProps> = ({ onCommand }) => {
         return
       }
 
+      console.log('📤 Sending command to API:', parsedCommand)
+
+      const adminToken = localStorage.getItem('adminToken');
       const response = await fetch('/api/admin/voice-commands', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
+          'x-admin-token': adminToken || ''
         },
         body: JSON.stringify(parsedCommand)
       })
 
       const result = await response.json()
+      console.log('📥 API response:', result)
 
       if (result.success) {
         setSuccess(result.message || 'Командата е изпълнена успешно')
@@ -250,6 +579,7 @@ const VoiceInterface: React.FC<VoiceInterfaceProps> = ({ onCommand }) => {
         setVoiceState(prev => ({ ...prev, error: result.error || 'Грешка при обработка на командата' }))
       }
     } catch (error) {
+      console.error('Voice command error:', error)
       setVoiceState(prev => ({ ...prev, error: 'Грешка при изпращане на командата' }))
     } finally {
       setIsProcessing(false)
@@ -262,8 +592,11 @@ const VoiceInterface: React.FC<VoiceInterfaceProps> = ({ onCommand }) => {
     setVoiceState(prev => ({ ...prev, error: '' }))
 
     try {
+      // Clean the command before parsing - replace klyomba with @ symbol
+      const cleanedCommand = cleanTranscript(command)
+      
       // Parse the command
-      const parsedCommand = parseVoiceCommand(command)
+      const parsedCommand = parseVoiceCommand(cleanedCommand)
       
       if (!parsedCommand.action) {
         setVoiceState(prev => ({ 
@@ -273,15 +606,20 @@ const VoiceInterface: React.FC<VoiceInterfaceProps> = ({ onCommand }) => {
         return
       }
 
+      console.log('📤 Sending smart command to API:', parsedCommand)
+
+      const adminToken = localStorage.getItem('adminToken');
       const response = await fetch('/api/admin/voice-commands', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
+          'x-admin-token': adminToken || ''
         },
         body: JSON.stringify(parsedCommand)
       })
 
       const result = await response.json()
+      console.log('📥 API response:', result)
 
       if (result.success) {
         setSuccess(result.message || 'Командата е изпълнена успешно')
@@ -290,15 +628,47 @@ const VoiceInterface: React.FC<VoiceInterfaceProps> = ({ onCommand }) => {
         setVoiceState(prev => ({ ...prev, error: result.error || 'Грешка при обработка на командата' }))
       }
     } catch (error) {
+      console.error('Smart command error:', error)
       setVoiceState(prev => ({ ...prev, error: 'Грешка при изпращане на командата' }))
     } finally {
       setIsProcessing(false)
     }
   }, [onCommand])
 
-  const clearTranscript = () => {
-    setVoiceState(prev => ({ ...prev, transcript: '', error: '' }))
-    setSuccess('')
+  // Helper function to clean transcript
+  const cleanTranscript = (text: string): string => {
+    // Clean the text and take only the first command if multiple are present
+    let cleaned = text
+      .replace(/\bкльомба\b/gi, '@')
+      .replace(/\bklyomba\b/gi, '@')
+    
+    // If there are multiple commands (separated by common patterns), take only the first one
+    const commandSeparators = [
+      /промени потребител.*?(?=промени потребител)/gi,
+      /добави потребител.*?(?=добави потребител)/gi,
+      /изтрий потребител.*?(?=изтрий потребител)/gi,
+      /добави резервация.*?(?=добави резервация)/gi,
+      /промени резервация.*?(?=промени резервация)/gi,
+      /отмени резервация.*?(?=отмени резервация)/gi,
+      /запази час.*?(?=запази час)/gi,
+      /запиши час.*?(?=запиши час)/gi
+    ]
+    
+    // Find the first complete command
+    for (const separator of commandSeparators) {
+      const match = cleaned.match(separator)
+      if (match) {
+        cleaned = match[0].trim()
+        break
+      }
+    }
+    
+    // If the text is too long (more than 200 characters), truncate it
+    if (cleaned.length > 200) {
+      cleaned = cleaned.substring(0, 200) + '...'
+    }
+    
+    return cleaned
   }
 
   return (
@@ -308,15 +678,20 @@ const VoiceInterface: React.FC<VoiceInterfaceProps> = ({ onCommand }) => {
         <div className="flex items-center justify-between mb-3">
           <div className="flex items-center space-x-2">
             <Volume2 className="w-5 h-5 text-blue-600" />
-            <h3 className="font-semibold text-gray-900">Гласово управление</h3>
+            <h3 className="font-semibold text-gray-900">Гласови команди</h3>
             {voiceState.isMobile && <Smartphone className="w-4 h-4 text-gray-500" />}
           </div>
-          <button 
-            onClick={clearTranscript}
-            className="p-1 rounded-lg hover:bg-gray-100 transition-colors"
-          >
-            <X className="w-4 h-4 text-gray-500" />
-          </button>
+          <div className="flex items-center space-x-2">
+            {onClose && (
+              <button 
+                onClick={onClose}
+                className="p-1 rounded-lg hover:bg-gray-100 transition-colors"
+                title="Затвори"
+              >
+                <X className="w-4 h-4 text-gray-500" />
+              </button>
+            )}
+          </div>
         </div>
 
         {/* Voice Recognition Section */}
@@ -325,6 +700,7 @@ const VoiceInterface: React.FC<VoiceInterfaceProps> = ({ onCommand }) => {
             {/* Voice Button */}
             <div className="flex justify-center">
               <button
+                data-voice-trigger
                 onClick={voiceState.isListening ? stopVoiceRecognition : startVoiceRecognition}
                 className={`p-4 rounded-full transition-all duration-200 ${
                   voiceState.isListening 
@@ -353,11 +729,24 @@ const VoiceInterface: React.FC<VoiceInterfaceProps> = ({ onCommand }) => {
                 <textarea
                   ref={inputRef}
                   value={voiceState.transcript}
-                  onChange={(e) => setVoiceState(prev => ({ ...prev, transcript: e.target.value }))}
+                  onChange={(e) => {
+                    // Clean the input when user types - replace klyomba with @ symbol
+                    const cleanValue = e.target.value
+                      .replace(/\bкльомба\b/gi, '@')
+                      .replace(/\bklyomba\b/gi, '@')
+                    setVoiceState(prev => ({ ...prev, transcript: cleanValue }))
+                  }}
                   placeholder="Вашата команда ще се появи тук..."
                   className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent resize-none"
                   rows={3}
                 />
+                
+                {/* Warning for multiple commands */}
+                {voiceState.transcript.length > 150 && (
+                  <div className="text-xs text-amber-600 bg-amber-50 border border-amber-200 rounded px-2 py-1">
+                    ⚠️ Дълга команда открита. Уверете се, че въвеждате само една команда.
+                  </div>
+                )}
                 
                 <div className="flex space-x-2">
                   <button
@@ -420,7 +809,9 @@ const VoiceInterface: React.FC<VoiceInterfaceProps> = ({ onCommand }) => {
                 if (e.key === 'Enter') {
                   const target = e.target as HTMLInputElement
                   if (target.value.trim()) {
-                    handleSmartCommand(target.value.trim())
+                    // Clean the input before sending - replace klyomba with @ symbol
+                    const cleanValue = cleanTranscript(target.value.trim())
+                    handleSmartCommand(cleanValue)
                     target.value = ''
                   }
                 }
@@ -431,7 +822,13 @@ const VoiceInterface: React.FC<VoiceInterfaceProps> = ({ onCommand }) => {
               {voiceTemplates.map((template, index) => (
                 <button
                   key={index}
-                  onClick={() => handleSmartCommand(template)}
+                  onClick={() => {
+                    // Clean the template before sending - replace klyomba with @ symbol
+                    const cleanTemplate = template
+                      .replace(/\bкльомба\b/gi, '@')
+                      .replace(/\bklyomba\b/gi, '@')
+                    handleSmartCommand(cleanTemplate)
+                  }}
                   className="text-xs px-2 py-1 bg-white border border-gray-200 rounded hover:bg-gray-50"
                 >
                   {template}

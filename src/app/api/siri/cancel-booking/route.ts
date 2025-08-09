@@ -14,27 +14,29 @@ export async function POST(request: NextRequest) {
     }
 
     const db = await getDatabase()
-
+    
     // Check if booking exists
-    const booking = await db.get('SELECT * FROM bookings WHERE id = ?', [bookingId])
-    if (!booking) {
+    const booking = await db.query('SELECT * FROM bookings WHERE id = $1', [bookingId])
+    if (booking.rows.length === 0) {
+      db.release()
       return NextResponse.json(
         { error: 'Резервацията не е намерена' },
         { status: 404 }
       )
     }
 
-    // Cancel booking
-    await db.run('UPDATE bookings SET status = ? WHERE id = ?', ['cancelled', bookingId])
+    // Update booking status
+    await db.query('UPDATE bookings SET status = $1 WHERE id = $2', ['cancelled', bookingId])
+    db.release()
 
     return NextResponse.json({
       success: true,
-      message: `Резервацията за ${booking.name} на ${booking.date} в ${booking.time} е отменена успешно`
+      message: 'Резервацията е отменена успешно'
     })
   } catch (error) {
     console.error('Siri cancel booking error:', error)
     return NextResponse.json(
-      { error: 'Възникна грешка при отменяване на резервацията' },
+      { error: 'Възникна грешка при отменяне на резервацията' },
       { status: 500 }
     )
   }

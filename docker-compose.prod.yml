@@ -1,0 +1,68 @@
+version: '3.8'
+
+services:
+  app:
+    build: .
+    ports:
+      - "3000:3000"
+    environment:
+      - NODE_ENV=production
+      - DATABASE_URL=${DATABASE_URL}
+      - ADMIN_USERNAME=${ADMIN_USERNAME}
+      - ADMIN_PASSWORD=${ADMIN_PASSWORD}
+      - JWT_SECRET=${JWT_SECRET}
+    depends_on:
+      - postgres
+    restart: unless-stopped
+    # Security: Run as non-root user
+    user: "1000:1000"
+    # Security: Read-only filesystem where possible
+    read_only: true
+    # Security: No new privileges
+    security_opt:
+      - no-new-privileges:true
+
+  postgres:
+    image: postgres:15-alpine
+    environment:
+      - POSTGRES_DB=${POSTGRES_DB}
+      - POSTGRES_USER=${POSTGRES_USER}
+      - POSTGRES_PASSWORD=${POSTGRES_PASSWORD}
+    # Security: Don't expose database port in production
+    # ports:
+    #   - "5432:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    restart: unless-stopped
+    # Security: Run as non-root user
+    user: "999:999"
+    # Security: Read-only filesystem where possible
+    read_only: true
+    # Security: No new privileges
+    security_opt:
+      - no-new-privileges:true
+
+  # Optional: Redis for rate limiting in production
+  redis:
+    image: redis:7-alpine
+    command: redis-server --requirepass ${REDIS_PASSWORD}
+    volumes:
+      - redis_data:/data
+    restart: unless-stopped
+    # Security: Don't expose Redis port in production
+    # ports:
+    #   - "6379:6379"
+
+volumes:
+  postgres_data:
+    driver: local
+  redis_data:
+    driver: local
+
+# Security: Network isolation
+networks:
+  default:
+    driver: bridge
+    # Security: Enable network encryption
+    driver_opts:
+      com.docker.network.bridge.enable_icc: "false" 

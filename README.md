@@ -21,7 +21,7 @@
 
 - **Frontend**: Next.js 14, React 18, TypeScript
 - **Styling**: Tailwind CSS
-- **Database**: SQLite
+- **Database**: PostgreSQL (отдалечен сървър)
 - **Email**: Nodemailer
 - **Validation**: Zod
 - **Icons**: Lucide React
@@ -64,6 +64,15 @@ SMTP_PASS=your-app-password
 SMTP_FROM=dr.petrov@example.com
 ADMIN_EMAIL=admin@example.com
 ```
+
+### База данни
+Приложението използва PostgreSQL база данни на отдалечен сървър:
+- **Host**: 192.168.1.134
+- **Port**: 5432
+- **Database**: drborislavpetrov
+- **User**: drborislavpetrov
+
+За подробности вижте `DATABASE.md`.
 
 ### Администраторски достъп
 По подразбиране:

@@ -8,7 +8,7 @@ export async function POST(request: NextRequest) {
 
     if (!userId && !patientName) {
       return NextResponse.json(
-        { error: 'Липсва ID или име на потребителя' },
+        { error: 'ID на потребителя или име е задължително' },
         { status: 400 }
       )
     }
@@ -18,33 +18,38 @@ export async function POST(request: NextRequest) {
     // Find user by ID or name
     let user
     if (userId) {
-      user = await db.get('SELECT * FROM users WHERE id = ?', [userId])
+      user = await db.query('SELECT * FROM users WHERE id = $1', [userId])
     } else {
-      user = await db.get('SELECT * FROM users WHERE name = ?', [patientName])
+      user = await db.query('SELECT * FROM users WHERE name = $1', [patientName])
     }
 
-    if (!user) {
+    if (user.rows.length === 0) {
+      db.release()
       return NextResponse.json(
         { error: 'Потребителят не е намерен' },
         { status: 404 }
       )
     }
 
+    const existingUser = user.rows[0]
+
     // Check if user has active bookings
-    const activeBookings = await db.get('SELECT COUNT(*) as count FROM bookings WHERE phone = ? AND status != "cancelled"', [user.phone])
-    
-    if (activeBookings.count > 0) {
+    const activeBookings = await db.query('SELECT COUNT(*) as count FROM bookings WHERE phone = $1 AND status != $2', [existingUser.phone, 'cancelled'])
+    if (parseInt(activeBookings.rows[0].count) > 0) {
+      db.release()
       return NextResponse.json(
-        { error: `Потребителят ${user.name} има активни резервации и не може да бъде изтрит` },
-        { status: 409 }
+        { error: 'Не може да изтриете потребител с активни резервации' },
+        { status: 400 }
       )
     }
 
-    await db.run('DELETE FROM users WHERE id = ?', [user.id])
+    // Delete user
+    await db.query('DELETE FROM users WHERE id = $1', [existingUser.id])
+    db.release()
 
     return NextResponse.json({
       success: true,
-      message: `Потребителят ${user.name} е изтрит успешно`
+      message: `Потребителят ${existingUser.name} е изтрит успешно`
     })
   } catch (error) {
     console.error('Siri delete user error:', error)
