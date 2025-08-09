@@ -13,6 +13,7 @@ interface QATest {
 }
 
 interface QAReport {
+  id?: number
   timestamp: string
   totalTests: number
   passedTests: number
@@ -531,7 +532,7 @@ export default function QADashboard() {
                       <FileText className="w-5 h-5 text-blue-600" />
                     </div>
                     <div>
-                      <h4 className="font-medium text-gray-900">QA Отчет #{report.id || index + 1}</h4>
+                      <h4 className="font-medium text-gray-900">QA Отчет #{index + 1}</h4>
                       <p className="text-sm text-gray-600">
                         Генериран на: {new Date(report.timestamp).toLocaleString('bg-BG')}
                       </p>

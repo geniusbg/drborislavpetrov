@@ -83,9 +83,6 @@ const UserHistory = ({ user, bookings, onClose, onUpdateTreatmentNotes, onEditBo
   }
 
   const getServiceDisplayName = (booking: Booking) => {
-    if (booking.servicename) {
-      return booking.servicename
-    }
     if (booking.serviceName) {
       return booking.serviceName
     }

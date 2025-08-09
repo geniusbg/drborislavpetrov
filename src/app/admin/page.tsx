@@ -24,6 +24,8 @@ import QuickResponseWidget from '@/components/admin/QuickResponseWidget'
 
 import { getBulgariaTime, formatBulgariaDate } from '@/lib/bulgaria-time'
 
+export const dynamic = 'force-dynamic'
+
 // Sort types
 type SortField = 'date' | 'time' | 'name' | 'phone' | 'service' | 'status' | 'createdAt'
 type SortDirection = 'asc' | 'desc'
