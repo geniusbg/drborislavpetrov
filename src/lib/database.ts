@@ -21,7 +21,7 @@ export async function getDatabase(): Promise<PoolClient> {
       console.error('❌ Unexpected error on idle client', err)
     })
     
-    pool.on('connect', (client) => {
+    pool.on('connect', () => {
       console.log('✅ New database connection established')
     })
   }
@@ -218,14 +218,22 @@ export function getPoolStatus() {
 }
 
 // Enhanced error logging
-export function logDatabaseError(error: any, operation: string) {
+export function logDatabaseError(error: unknown, operation: string) {
+  const err = error as Partial<{
+    message: string
+    code: string | number
+    detail: string
+    hint: string
+    where: string
+    stack: string
+  }>
   console.error(`❌ Database error in ${operation}:`, {
-    message: error.message,
-    code: error.code,
-    detail: error.detail,
-    hint: error.hint,
-    where: error.where,
-    stack: error.stack
+    message: err?.message,
+    code: err?.code,
+    detail: err?.detail,
+    hint: err?.hint,
+    where: err?.where,
+    stack: err?.stack
   })
 }
 

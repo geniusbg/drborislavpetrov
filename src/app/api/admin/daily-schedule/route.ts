@@ -67,6 +67,16 @@ export async function GET(request: NextRequest) {
       }
     })
 
+    // Deduplicate bookings by id to avoid inflated counts
+    const uniqueBookingsMap = new Map<string, (typeof mappedBookings)[number]>()
+    for (const b of mappedBookings) {
+      const key = String((b as any).id)
+      if (!uniqueBookingsMap.has(key)) {
+        uniqueBookingsMap.set(key, b)
+      }
+    }
+    const uniqueBookings = Array.from(uniqueBookingsMap.values())
+
     // Default working hours if not set
     const defaultWorkingHours = {
       isWorkingDay: true,
@@ -87,8 +97,8 @@ export async function GET(request: NextRequest) {
     return NextResponse.json({
       date,
       workingHours: workingHoursData,
-      bookings: mappedBookings,
-      totalBookings: mappedBookings.length
+      bookings: uniqueBookings,
+      totalBookings: uniqueBookings.length
     })
   } catch (error) {
     console.error('Error fetching daily schedule:', error)

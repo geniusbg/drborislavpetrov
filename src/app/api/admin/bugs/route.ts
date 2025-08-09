@@ -2,7 +2,21 @@ import { NextRequest, NextResponse } from 'next/server'
 import { getDatabase, getPoolStatus, logDatabaseError } from '@/lib/database'
 
 // Validation function for bug data
-function validateBugData(data: any): { isValid: boolean; error?: string } {
+type Severity = 'low' | 'medium' | 'high' | 'critical'
+type Category = 'ui' | 'functionality' | 'performance' | 'security' | 'database'
+type Priority = 'low' | 'medium' | 'high' | 'urgent'
+interface BugInput {
+  title: string
+  description: string
+  reporter: string
+  severity?: Severity
+  category?: Category
+  priority?: Priority
+  steps_to_reproduce?: string[]
+  tags?: string[]
+}
+
+function validateBugData(data: BugInput): { isValid: boolean; error?: string } {
   const validSeverities = ['low', 'medium', 'high', 'critical']
   const validCategories = ['ui', 'functionality', 'performance', 'security', 'database']
   const validPriorities = ['low', 'medium', 'high', 'urgent']
@@ -104,7 +118,7 @@ export async function GET(request: NextRequest) {
 }
 
 export async function POST(request: NextRequest) {
-  let db: any = null
+  let db: import('pg').PoolClient | null = null
   try {
     console.log('🔍 POST /api/admin/bugs called')
     

@@ -40,12 +40,12 @@ export async function POST(request: NextRequest) {
         message: success ? 'Automated test completed successfully' : 'Automated test failed'
       })
       
-    } catch (execError: any) {
+    } catch (execError: unknown) {
       console.error('Automated test execution error:', execError)
       
       return NextResponse.json({
         success: false,
-        error: execError.message,
+        error: (execError as Error).message,
         message: 'Automated test failed to execute'
       })
     }

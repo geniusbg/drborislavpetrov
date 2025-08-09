@@ -13,7 +13,18 @@ export async function GET(request: NextRequest) {
       )
     }
 
-    const reports: any[] = []
+    const reports: Array<{ 
+      timestamp: string; 
+      summary?: { total?: number; passed?: number; failed?: number }; 
+      results?: unknown[]; 
+      id?: number; 
+      type?: string; 
+      fileName?: string;
+      totalTests?: number;
+      passedTests?: number;
+      failedTests?: number;
+      details?: unknown[];
+    }> = []
     
     // Read all QA report files (historical reports with timestamps)
     const reportFiles = fs.readdirSync(process.cwd())

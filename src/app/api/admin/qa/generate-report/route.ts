@@ -86,12 +86,12 @@ export async function POST(request: NextRequest) {
         message: 'QA report generated successfully'
       })
       
-    } catch (execError: any) {
+    } catch (execError: unknown) {
       console.error('QA report generation error:', execError)
       
       return NextResponse.json({
         success: false,
-        error: execError.message,
+        error: (execError as Error).message,
         message: 'Failed to generate QA report'
       })
     }

@@ -1,7 +1,7 @@
 'use client'
 
 import React, { useState, useEffect } from 'react'
-import { Phone, Clock, Copy, X, Calendar, ChevronLeft, ChevronRight } from 'lucide-react'
+import { Phone, Clock, Copy, X, ChevronLeft, ChevronRight } from 'lucide-react'
 import { getBulgariaTime, formatBulgariaDate } from '@/lib/bulgaria-time'
 
 interface TimeSlot {
@@ -120,7 +120,7 @@ const QuickResponseWidget: React.FC<QuickResponseWidgetProps> = ({ onClose, onCr
     const [year, month] = yearMonth.split('-').map(Number)
     console.log('🔍 Creating calendar for:', yearMonth, 'year:', year, 'month:', month)
     const firstDay = new Date(year, month - 1, 1)
-    const lastDay = new Date(year, month, 0)
+    // const lastDay = new Date(year, month, 0)
     const startDate = new Date(firstDay)
     startDate.setDate(startDate.getDate() - firstDay.getDay()) // Start from Sunday
     

@@ -11,7 +11,6 @@ import {
   AlertTriangle,
   CheckCircle,
   Play,
-  Stop,
   Settings
 } from 'lucide-react'
 import BackupConfig from './BackupConfig'
@@ -110,8 +109,8 @@ export default function BackupManager() {
       
       if (!response.ok) throw new Error('Backup failed')
       
-      const data = await response.json()
-              setLastBackup(getBulgariaTime().toLocaleString('bg-BG'))
+      await response.json()
+      setLastBackup(getBulgariaTime().toLocaleString('bg-BG'))
       
       // Reload backups after successful backup
       await loadBackups()

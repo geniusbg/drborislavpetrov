@@ -89,7 +89,7 @@ export default function BackupConfig({ onConfigChange, onClose }: BackupConfigPr
     }
   }
 
-  const handleInputChange = (field: keyof BackupConfig, value: any) => {
+  const handleInputChange = (field: keyof BackupConfig, value: string | number | boolean) => {
     setConfig(prev => ({
       ...prev,
       [field]: value

@@ -49,15 +49,26 @@ export async function GET(request: NextRequest) {
 
     // Get bookings for the period
     const bookingsResult = await db.query(`
-      SELECT b.*, s.name as serviceName, s.duration as serviceDuration, u.name as userName
+      SELECT b.*, s.name as serviceName, s.duration as serviceDuration
       FROM bookings b
       LEFT JOIN services s ON b.service = s.name
-      LEFT JOIN users u ON b.phone = u.phone
       WHERE b.date >= $1 AND b.date <= $2
       ORDER BY b.date, b.time
     `, [startDate, endDate])
 
-    const bookings = bookingsResult.rows
+    // Map booking rows to a normalized shape where id is reliable for dedupe
+    const bookingsRaw = bookingsResult.rows
+    const bookings = (() => {
+      const seen = new Set<string>()
+      const out: typeof bookingsRaw = []
+      for (const b of bookingsRaw) {
+        const key = b.id ? String(b.id) : `${b.date}|${b.time}|${b.name || ''}`
+        if (seen.has(key)) continue
+        seen.add(key)
+        out.push(b)
+      }
+      return out
+    })()
 
     // Get users for the period
     const usersResult = await db.query(`
@@ -84,14 +95,14 @@ export async function GET(request: NextRequest) {
     // Get user with most bookings
     const userBookingCounts: { [key: string]: number } = {}
     bookings.forEach(booking => {
-      const userName = booking.userName || booking.name
+      const userName = booking.name
       userBookingCounts[userName] = (userBookingCounts[userName] || 0) + 1
     })
     
     // Get user with most cancelled bookings
     const cancelledBookingsByUser: { [key: string]: number } = {}
     bookings.filter(b => b.status === 'cancelled').forEach(booking => {
-      const userName = booking.userName || booking.name
+      const userName = booking.name
       cancelledBookingsByUser[userName] = (cancelledBookingsByUser[userName] || 0) + 1
     })
 

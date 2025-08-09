@@ -40,12 +40,12 @@ export async function POST(request: NextRequest) {
         message: success ? 'Test data cleaned up successfully' : 'Cleanup failed'
       })
       
-    } catch (execError: any) {
+    } catch (execError: unknown) {
       console.error('Cleanup execution error:', execError)
       
       return NextResponse.json({
         success: false,
-        error: execError.message,
+        error: (execError as Error).message,
         message: 'Cleanup failed to execute'
       })
     }

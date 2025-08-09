@@ -22,7 +22,7 @@ export async function POST(request: NextRequest) {
       )
     }
 
-    let result: { success: boolean; message: string; details?: any } = { success: false, message: 'Unknown test' }
+    let result: { success: boolean; message: string; details?: unknown } = { success: false, message: 'Unknown test' }
 
          switch (testName) {
        case 'Тест на почивки':
@@ -157,7 +157,8 @@ async function runBreaksTest() {
         testResults.push({ test: 'Резервация извън почивка (успешна)', status: 'FAILED', details: `API не създава резервация извън почивка. Грешка: ${errorText}` })
       }
     } catch (error) {
-      testResults.push({ test: 'Резервация извън почивка (успешна)', status: 'FAILED', details: `Грешка при тестване: ${error.message}` })
+      const msg = (error as Error)?.message || String(error)
+      testResults.push({ test: 'Резервация извън почивка (успешна)', status: 'FAILED', details: `Грешка при тестване: ${msg}` })
     }
 
     // Test 5: Test Siri API with break time
