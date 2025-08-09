@@ -56,7 +56,7 @@ const ClockWidget = ({ className = '' }: ClockWidgetProps) => {
     }
   }
 
-  const { time, date, weekday } = formatDateTime(currentDateTime)
+  const { time, date, weekday } = formatDateTime()
   const currentTime = getBulgariaTime()
   
   // Calculate hand angles
