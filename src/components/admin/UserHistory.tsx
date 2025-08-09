@@ -1,47 +1,60 @@
 /* eslint-disable react/no-unescaped-entities */
 'use client'
 
-import { useState } from 'react'
-import { Calendar, Clock, User, Phone, Mail, FileText, Edit, X } from 'lucide-react'
-
-interface Booking {
-  id: string
-  name: string
-  phone: string
-  service: string
-  date: string
-  time: string
-  status: 'pending' | 'confirmed' | 'cancelled'
-  treatment_notes?: string
-  message?: string
-  createdAt: string
-  serviceName?: string
-}
-
-interface User {
-  id: number
-  name: string
-  email?: string
-  phone: string
-  address?: string
-  notes?: string
-  createdAt: string
-  updatedAt: string
-}
+import { useState, useEffect } from 'react'
+import { Calendar, Clock, User, Phone, Mail, FileText, Edit, X, Trash2, Plus } from 'lucide-react'
+import type { Booking, User as UserType } from '@/types/global'
+import { formatBulgariaDate, formatBulgariaTime } from '@/lib/bulgaria-time'
 
 interface UserHistoryProps {
-  user: User
+  user: UserType
   bookings: Booking[]
   onClose: () => void
   onUpdateTreatmentNotes: (bookingId: string, notes: string) => Promise<void>
   onEditBooking?: (booking: Booking) => void
+  onDeleteBooking?: (bookingId: string) => void
+  onCreateBooking?: (user: UserType) => void
 }
 
-const UserHistory = ({ user, bookings, onClose, onUpdateTreatmentNotes, onEditBooking }: UserHistoryProps) => {
+const UserHistory = ({ user, bookings, onClose, onUpdateTreatmentNotes, onEditBooking, onDeleteBooking, onCreateBooking }: UserHistoryProps) => {
   const [editingNotes, setEditingNotes] = useState<string | null>(null)
   const [notesText, setNotesText] = useState('')
 
-  const userBookings = bookings.filter(booking => booking.phone === user.phone)
+  // Normalize phone numbers for comparison (BG): compare by last 9 digits
+  const normalizePhone = (phone: string | undefined) => {
+    if (!phone) return ''
+    const digitsOnly = phone.replace(/\D/g, '')
+    // Take last 9 digits for Bulgarian numbers
+    return digitsOnly.slice(-9)
+  }
+  
+  const userBookings = bookings.filter(booking => {
+    const userPhone9 = normalizePhone(user.phone)
+    const bookingPhone9 = normalizePhone(booking.phone)
+    // Match by phone only if BOTH phones are present
+    if (userPhone9 && bookingPhone9) {
+      return userPhone9 === bookingPhone9
+    }
+    // Next fallback: match by userId if API provided it
+    const bUserId = (booking as any).userId
+    if (user.id && bUserId) {
+      return String(user.id) === String(bUserId)
+    }
+    // Fallback: match by email if available
+    const userEmail = (user.email || '').toLowerCase()
+    const bookingEmail = ((booking as any).userEmail || (booking as any).email || '').toLowerCase()
+    if (userEmail && bookingEmail) {
+      return userEmail === bookingEmail
+    }
+    // Last resort: if both phone and email are empty on both sides, compare normalized names (case/space-insensitive)
+    const userHasNoContacts = !userPhone9 && !userEmail
+    const bookingHasNoContacts = !bookingPhone9 && !bookingEmail
+    if (userHasNoContacts && bookingHasNoContacts) {
+      const normalizeNameText = (n: string | undefined) => (n || '').trim().replace(/\s+/g, ' ').toLowerCase()
+      return normalizeNameText(user.name) === normalizeNameText((booking as any).name)
+    }
+    return false
+  })
 
   const getStatusColor = (status: string) => {
     switch (status) {
@@ -69,6 +82,17 @@ const UserHistory = ({ user, bookings, onClose, onUpdateTreatmentNotes, onEditBo
     }
   }
 
+  const getServiceDisplayName = (booking: Booking) => {
+    if (booking.servicename) {
+      return booking.servicename
+    }
+    if (booking.serviceName) {
+      return booking.serviceName
+    }
+    // Fallback to service ID if no name is available
+    return `Услуга ${booking.service}`
+  }
+
   const handleEditNotes = (booking: Booking) => {
     setEditingNotes(booking.id)
     setNotesText(booking.treatment_notes || '')
@@ -87,8 +111,26 @@ const UserHistory = ({ user, bookings, onClose, onUpdateTreatmentNotes, onEditBo
     setNotesText('')
   }
 
+  // Handle Escape key for closing modal
+  useEffect(() => {
+    const handleEscape = (event: KeyboardEvent) => {
+      if (event.key === 'Escape') {
+        onClose()
+      }
+    }
+
+    document.addEventListener('keydown', handleEscape)
+    return () => document.removeEventListener('keydown', handleEscape)
+  }, [onClose])
+
+  const handleDeleteBooking = (bookingId: string) => {
+    if (confirm('Сигурни ли сте, че искате да изтриете тази резервация? Това действие не може да бъде отменено.')) {
+      onDeleteBooking?.(bookingId)
+    }
+  }
+
   return (
-    <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+    <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-40">
       <div className="bg-white rounded-lg shadow-xl max-w-4xl w-full mx-4 max-h-[90vh] overflow-y-auto">
         {/* Header */}
         <div className="flex items-center justify-between p-6 border-b">
@@ -150,10 +192,21 @@ const UserHistory = ({ user, bookings, onClose, onUpdateTreatmentNotes, onEditBo
 
           {/* Bookings History */}
           <div>
-            <h3 className="text-lg font-semibold mb-4 flex items-center space-x-2">
-              <Calendar className="w-5 h-5" />
-              <span>История на резервациите ({userBookings.length})</span>
-            </h3>
+            <div className="flex items-center justify-between mb-4">
+              <h3 className="text-lg font-semibold flex items-center space-x-2">
+                <Calendar className="w-5 h-5" />
+                <span>История на резервациите ({userBookings.length})</span>
+              </h3>
+              {onCreateBooking && (
+                <button
+                  onClick={() => onCreateBooking(user)}
+                  className="flex items-center gap-2 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
+                >
+                  <Plus className="w-4 h-4" />
+                  Нова резервация
+                </button>
+              )}
+            </div>
             
             {userBookings.length === 0 ? (
               <div className="text-center py-8 text-gray-500">
@@ -177,20 +230,32 @@ const UserHistory = ({ user, bookings, onClose, onUpdateTreatmentNotes, onEditBo
                           {getStatusText(booking.status)}
                         </span>
                       </div>
-                      {onEditBooking && (
-                        <button
-                          onClick={() => onEditBooking(booking)}
-                          className="text-blue-600 hover:text-blue-800 text-sm flex items-center space-x-1 px-2 py-1 rounded-md hover:bg-blue-50"
-                          title="Редактирай резервацията"
-                        >
-                          <Edit className="w-4 h-4" />
-                          <span>Редактирай</span>
-                        </button>
-                      )}
+                      <div className="flex items-center space-x-2">
+                        {onEditBooking && (
+                          <button
+                            onClick={() => onEditBooking(booking)}
+                            className="text-blue-600 hover:text-blue-800 text-sm flex items-center space-x-1 px-2 py-1 rounded-md hover:bg-blue-50"
+                            title="Редактирай резервацията"
+                          >
+                            <Edit className="w-4 h-4" />
+                            <span>Редактирай</span>
+                          </button>
+                        )}
+                        {onDeleteBooking && (
+                          <button
+                            onClick={() => handleDeleteBooking(booking.id)}
+                            className="text-red-600 hover:text-red-800 text-sm flex items-center space-x-1 px-2 py-1 rounded-md hover:bg-red-50"
+                            title="Изтрий резервацията"
+                          >
+                            <Trash2 className="w-4 h-4" />
+                            <span>Изтрий</span>
+                          </button>
+                        )}
+                      </div>
                     </div>
                     
                     <div className="mb-3">
-                      <span className="font-medium">Услуга:</span> {booking.serviceName || `Услуга ${booking.service}`}
+                      <span className="font-medium">Услуга:</span> {getServiceDisplayName(booking)}
                     </div>
 
                     <div className="mb-3">
@@ -201,7 +266,14 @@ const UserHistory = ({ user, bookings, onClose, onUpdateTreatmentNotes, onEditBo
                     </div>
 
                     <div className="mb-3 text-sm text-gray-600">
-                      <span className="font-medium">Създадена на:</span> {new Date(booking.createdAt).toLocaleDateString('bg-BG')} в {new Date(booking.createdAt).toLocaleTimeString('bg-BG', { hour: '2-digit', minute: '2-digit' })}
+                      <span className="font-medium">Създадена на:</span> 
+                      {booking.createdAt ? (
+                        <>
+                          {formatBulgariaDate(new Date(booking.createdAt))} в {formatBulgariaTime(new Date(booking.createdAt), { hour: '2-digit', minute: '2-digit' })}
+                        </>
+                      ) : (
+                        'Няма информация за датата на създаване'
+                      )}
                     </div>
 
                     {booking.message && (

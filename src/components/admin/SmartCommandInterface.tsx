@@ -167,10 +167,12 @@ const SmartCommandInterface: React.FC<SmartCommandInterfaceProps> = ({ onCommand
     setSuccess('')
 
     try {
+      const adminToken = localStorage.getItem('adminToken');
       const response = await fetch('/api/admin/voice-commands', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
+          'x-admin-token': adminToken || ''
         },
         body: JSON.stringify({
           action: 'smart_command',

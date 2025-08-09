@@ -1,0 +1,173 @@
+<!DOCTYPE html>
+<html lang="bg">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Regex Debug Test</title>
+    <style>
+        body { 
+            font-family: Arial, sans-serif; 
+            margin: 20px; 
+            background: #f5f5f5;
+        }
+        .container {
+            max-width: 800px;
+            margin: 0 auto;
+            background: white;
+            padding: 20px;
+            border-radius: 10px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+        }
+        .test-section {
+            margin: 20px 0;
+            padding: 15px;
+            border: 1px solid #ddd;
+            border-radius: 5px;
+        }
+        .success { background: #d4edda; border-color: #c3e6cb; }
+        .error { background: #f8d7da; border-color: #f5c6cb; }
+        .info { background: #d1ecf1; border-color: #bee5eb; }
+        .log {
+            background: #f8f9fa;
+            border: 1px solid #dee2e6;
+            padding: 10px;
+            border-radius: 5px;
+            font-family: monospace;
+            white-space: pre-wrap;
+            max-height: 400px;
+            overflow-y: auto;
+        }
+        input[type="text"] {
+            width: 100%;
+            padding: 10px;
+            border: 1px solid #ddd;
+            border-radius: 5px;
+            margin: 10px 0;
+        }
+        button {
+            background: #007bff;
+            color: white;
+            border: none;
+            padding: 10px 20px;
+            border-radius: 5px;
+            cursor: pointer;
+            margin: 5px;
+        }
+        button:hover { background: #0056b3; }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🔍 Regex Debug Test</h1>
+        
+        <div class="test-section info">
+            <h3>📋 Тестване на regex patterns:</h3>
+            <input type="text" id="testCommand" placeholder="Въведете команда за тестване..." value="изтрий потребител Пешо Пешо">
+            <button onclick="testCommand()">🧪 Тествай команда</button>
+        </div>
+
+        <div class="test-section">
+            <h3>📊 Резултати:</h3>
+            <div id="log" class="log"></div>
+        </div>
+    </div>
+
+    <script>
+        function log(message) {
+            const logDiv = document.getElementById('log');
+            const timestamp = new Date().toLocaleTimeString();
+            logDiv.textContent += `[${timestamp}] ${message}\n`;
+            logDiv.scrollTop = logDiv.scrollHeight;
+        }
+
+        function testCommand() {
+            const command = document.getElementById('testCommand').value;
+            log('🎤 === TESTING COMMAND ===');
+            log(`📝 Input: "${command}"`);
+            
+            const patterns = {
+                addUser: /добави\s+потребител\s+(.+?)(?:\s+телефон\s+([^\s]+))?(?:\s+имейл\s+([^\s]+))?/i,
+                updateUser: /промени\s+потребител\s+(.+?)(?:\s+телефон\s+([^\s]+))?(?:\s+имейл\s+([^\s]+))?/i,
+                deleteUser: /изтрий\s+потребител\s+(.+?)(?:\s|$)/i,
+                addBooking: /добави\s+резервация\s+(.+?)(?:\s+дата\s+([^\s]+))?(?:\s+час\s+([^\s]+))?(?:\s+услуга\s+([^\s]+))?/i,
+                updateBooking: /промени\s+резервация\s+(.+?)(?:\s+дата\s+([^\s]+))?(?:\s+час\s+([^\s]+))?/i,
+                cancelBooking: /отмени\s+резервация\s+(.+?)(?:\s+дата\s+([^\s]+))?/i,
+                deleteBooking: /изтрий\s+резервация\s+(.+?)(?:\s+дата\s+([^\s]+))?/i,
+                checkAvailability: /провери\s+свободни\s+часове(?:\s+за\s+([^\s]+))?/i,
+                showBookings: /покажи\s+резервации\s+за\s+([^\s]+)/i,
+            };
+
+            let matched = false;
+            
+            for (const [action, pattern] of Object.entries(patterns)) {
+                log(`🔍 Testing pattern: ${action}`);
+                log(`📋 Pattern: ${pattern}`);
+                
+                const match = command.match(pattern);
+                if (match) {
+                    log(`✅ Pattern matched: ${action}`);
+                    log(`📋 Match groups: ${JSON.stringify(match, null, 2)}`);
+                    
+                    const result = {
+                        action: action,
+                        originalCommand: command
+                    };
+
+                    // Extract parameters based on action
+                    switch (action) {
+                        case 'addUser':
+                        case 'updateUser':
+                            result.name = match[1]?.trim();
+                            result.phone = match[2]?.trim();
+                            result.email = match[3]?.trim();
+                            break;
+                        case 'deleteUser':
+                            result.name = match[1]?.trim();
+                            break;
+                        case 'addBooking':
+                            result.name = match[1]?.trim();
+                            result.date = match[2]?.trim();
+                            result.time = match[3]?.trim();
+                            result.service = match[4]?.trim();
+                            break;
+                        case 'updateBooking':
+                            result.name = match[1]?.trim();
+                            result.date = match[2]?.trim();
+                            result.time = match[3]?.trim();
+                            break;
+                        case 'cancelBooking':
+                        case 'deleteBooking':
+                            result.name = match[1]?.trim();
+                            result.date = match[2]?.trim();
+                            break;
+                        case 'checkAvailability':
+                            result.date = match[1]?.trim();
+                            break;
+                        case 'showBookings':
+                            result.date = match[1]?.trim();
+                            break;
+                    }
+
+                    log(`📤 Parsed result: ${JSON.stringify(result, null, 2)}`);
+                    matched = true;
+                    break;
+                } else {
+                    log(`❌ No match for ${action}`);
+                }
+            }
+
+            if (!matched) {
+                log('❌ No pattern matched');
+            }
+            
+            log('================================');
+        }
+
+        // Автоматично тестване при зареждане
+        window.onload = () => {
+            log('🚀 Regex debug test готов');
+            log('Кликнете "Тествай команда" или променете командата и тествайте отново');
+        };
+    </script>
+</body>
+</html> 

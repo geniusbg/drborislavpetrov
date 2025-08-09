@@ -1,0 +1,41 @@
+{
+  "timestamp": "2025-08-07T09:53:29.412Z",
+  "summary": {
+    "total": 5,
+    "passed": 1,
+    "failed": 4,
+    "successRate": 20
+  },
+  "results": [
+    {
+      "test": "Admin Login",
+      "passed": false,
+      "details": "Грешка: Protocol error (DOM.describeNode): Cannot find context with specified id",
+      "timestamp": "2025-08-07T09:53:22.082Z"
+    },
+    {
+      "test": "Services Tab Button",
+      "passed": false,
+      "details": "Не можем да намерим бутон \"Услуги\"",
+      "timestamp": "2025-08-07T09:53:24.199Z"
+    },
+    {
+      "test": "Security",
+      "passed": false,
+      "details": "Грешка: Protocol error (DOM.describeNode): Cannot find context with specified id",
+      "timestamp": "2025-08-07T09:53:27.362Z"
+    },
+    {
+      "test": "Page Load Time",
+      "passed": true,
+      "details": "Страницата се зарежда за 1937ms",
+      "timestamp": "2025-08-07T09:53:29.300Z"
+    },
+    {
+      "test": "Memory Usage",
+      "passed": false,
+      "details": "Memory usage твърде високо: 150.26MB",
+      "timestamp": "2025-08-07T09:53:29.409Z"
+    }
+  ]
+}

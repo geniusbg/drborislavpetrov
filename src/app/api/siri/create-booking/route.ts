@@ -19,54 +19,53 @@ export async function POST(request: NextRequest) {
     const userPhone = phone || '+359888000000'
 
     // Check if user exists
-    let user = await db.get('SELECT * FROM users WHERE name = ?', [patientName])
-    if (!user) {
-      const userResult = await db.run(`
+    let user = await db.query('SELECT * FROM users WHERE name = $1', [patientName])
+    if (user.rows.length === 0) {
+      const userResult = await db.query(`
         INSERT INTO users (name, phone, email)
-        VALUES (?, ?, ?)
+        VALUES ($1, $2, $3)
+        RETURNING id
       `, [patientName, userPhone, email || null])
       
-      user = {
-        id: userResult.lastID,
-        name: patientName,
-        phone: userPhone,
-        email: email || null
-      }
-      console.log('Created new user via Siri:', user)
+      // Update user variable with the new user data
+      user = await db.query('SELECT * FROM users WHERE id = $1', [userResult.rows[0].id])
+      console.log('Created new user via Siri:', user.rows[0])
     } else {
       // Update phone and email if provided and different
+      const existingUser = user.rows[0]
       const updateFields = []
       const updateValues = []
       
-      if (phone && phone !== user.phone) {
-        updateFields.push('phone = ?')
+      if (phone && phone !== existingUser.phone) {
+        updateFields.push('phone = $' + (updateValues.length + 1))
         updateValues.push(phone)
       }
       
-      if (email && email !== user.email) {
-        updateFields.push('email = ?')
+      if (email && email !== existingUser.email) {
+        updateFields.push('email = $' + (updateValues.length + 1))
         updateValues.push(email)
       }
       
       if (updateFields.length > 0) {
-        updateValues.push(user.id)
-        await db.run(`UPDATE users SET ${updateFields.join(', ')} WHERE id = ?`, updateValues)
+        updateValues.push(existingUser.id)
+        await db.query(`UPDATE users SET ${updateFields.join(', ')} WHERE id = $${updateValues.length}`, updateValues)
         
         // Update user object
-        if (phone) user.phone = phone
-        if (email) user.email = email
+        if (phone) existingUser.phone = phone
+        if (email) existingUser.email = email
         
-        console.log('Updated user via Siri:', user)
+        console.log('Updated user via Siri:', existingUser)
       }
     }
 
     // Check if slot is available
-    const existingBooking = await db.get(`
+    const existingBooking = await db.query(`
       SELECT * FROM bookings 
-      WHERE date = ? AND time = ? AND status != 'cancelled'
+      WHERE date = $1 AND time = $2 AND status != 'cancelled'
     `, [date, time])
 
-    if (existingBooking) {
+    if (existingBooking.rows.length > 0) {
+      db.release()
       return NextResponse.json(
         { error: `Този час (${time}) на ${date} вече е зает` },
         { status: 409 }
@@ -74,15 +73,17 @@ export async function POST(request: NextRequest) {
     }
 
     // Create booking
-    const result = await db.run(`
+    const result = await db.query(`
       INSERT INTO bookings (name, phone, service, date, time, status)
-      VALUES (?, ?, ?, ?, ?, 'pending')
-    `, [patientName, user.phone, service, date, time])
+      VALUES ($1, $2, $3, $4, $5, 'pending')
+      RETURNING id
+    `, [patientName, user.rows[0].phone, service, date, time])
 
+    db.release()
     return NextResponse.json({
       success: true,
       message: `Резервацията за ${patientName} на ${date} в ${time} е създадена успешно`,
-      bookingId: result.lastID
+      bookingId: result.rows[0].id
     })
   } catch (error) {
     console.error('Siri create booking error:', error)

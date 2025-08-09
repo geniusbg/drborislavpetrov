@@ -1,0 +1,5 @@
+Write-Host "Testing PowerShell terminal..."
+Write-Host "Current time: $(Get-Date)"
+Write-Host "Current directory: $(Get-Location)"
+Write-Host "Test completed!"
+Read-Host "Press Enter to continue" 

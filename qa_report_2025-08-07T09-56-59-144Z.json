@@ -1,0 +1,47 @@
+{
+  "timestamp": "2025-08-07T09:56:58.330Z",
+  "summary": {
+    "total": 6,
+    "passed": 5,
+    "failed": 1,
+    "successRate": 83.3
+  },
+  "results": [
+    {
+      "test": "Admin Login",
+      "passed": true,
+      "details": "Успешен login в admin panel",
+      "timestamp": "2025-08-07T09:56:49.479Z"
+    },
+    {
+      "test": "Services Tab Button",
+      "passed": false,
+      "details": "Не можем да намерим бутон \"Услуги\". Намерени бутони: 182",
+      "timestamp": "2025-08-07T09:56:51.707Z"
+    },
+    {
+      "test": "Admin Panel Protection",
+      "passed": true,
+      "details": "Админ панелът е достъпен за админи",
+      "timestamp": "2025-08-07T09:56:55.877Z"
+    },
+    {
+      "test": "API Protection",
+      "passed": true,
+      "details": "API endpoints са защитени",
+      "timestamp": "2025-08-07T09:56:56.318Z"
+    },
+    {
+      "test": "Page Load Time",
+      "passed": true,
+      "details": "Страницата се зарежда за 1848ms",
+      "timestamp": "2025-08-07T09:56:58.168Z"
+    },
+    {
+      "test": "Memory Usage",
+      "passed": true,
+      "details": "Memory usage: 155.86MB",
+      "timestamp": "2025-08-07T09:56:58.323Z"
+    }
+  ]
+}

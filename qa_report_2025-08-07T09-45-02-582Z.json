@@ -1,0 +1,41 @@
+{
+  "timestamp": "2025-08-07T09:45:01.362Z",
+  "summary": {
+    "total": 5,
+    "passed": 1,
+    "failed": 4,
+    "successRate": 20
+  },
+  "results": [
+    {
+      "test": "Admin Login",
+      "passed": false,
+      "details": "Грешка: Protocol error (DOM.resolveNode): Node with given id does not belong to the document",
+      "timestamp": "2025-08-07T09:44:51.279Z"
+    },
+    {
+      "test": "Services Tab Button",
+      "passed": false,
+      "details": "Не можем да намерим бутон \"Услуги\"",
+      "timestamp": "2025-08-07T09:44:53.409Z"
+    },
+    {
+      "test": "Security",
+      "passed": false,
+      "details": "Грешка: Execution context was destroyed, most likely because of a navigation.",
+      "timestamp": "2025-08-07T09:44:58.815Z"
+    },
+    {
+      "test": "Page Load Time",
+      "passed": true,
+      "details": "Страницата се зарежда за 2185ms",
+      "timestamp": "2025-08-07T09:45:01.002Z"
+    },
+    {
+      "test": "Memory Usage",
+      "passed": false,
+      "details": "Memory usage твърде високо: 148.50MB",
+      "timestamp": "2025-08-07T09:45:01.355Z"
+    }
+  ]
+}

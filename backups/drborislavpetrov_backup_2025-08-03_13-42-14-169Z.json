@@ -1,0 +1,546 @@
+{
+  "metadata": {
+    "timestamp": "2025-08-03T13:42:14.240Z",
+    "version": "1.0",
+    "database": "drborislavpetrov",
+    "host": "192.168.1.134"
+  },
+  "tables": {
+    "bookings": [
+      {
+        "id": 1,
+        "name": "Тестова резервация",
+        "email": "test@example.com",
+        "phone": "0988825195",
+        "service": "1",
+        "date": "2025-08-03",
+        "time": "14:30",
+        "message": "Тестова резервация за проверка",
+        "status": "pending",
+        "createdat": "2025-08-04T09:38:16.300Z",
+        "serviceduration": 30,
+        "treatment_notes": null
+      },
+      {
+        "id": 2,
+        "name": "Николай Петров",
+        "email": "geniuss0ft@yahoo.com",
+        "phone": "+359988825195",
+        "service": "3",
+        "date": "2025-08-03",
+        "time": "17:00",
+        "message": null,
+        "status": "confirmed",
+        "createdat": "2025-08-04T09:47:33.421Z",
+        "serviceduration": 60,
+        "treatment_notes": null
+      },
+      {
+        "id": 3,
+        "name": "Николай Петров",
+        "email": "geniuss0ft@yahoo.com",
+        "phone": "+359988825195",
+        "service": "1",
+        "date": "2025-08-03",
+        "time": "18:00",
+        "message": null,
+        "status": "pending",
+        "createdat": "2025-08-04T09:51:07.567Z",
+        "serviceduration": 30,
+        "treatment_notes": null
+      }
+    ],
+    "users": [
+      {
+        "id": 1,
+        "name": "Николай Петров",
+        "email": "geniuss0ft@yahoo.com",
+        "phone": "0988825195",
+        "address": "Муткурова 22",
+        "notes": null,
+        "createdat": "2025-08-03T01:18:55.702Z",
+        "updatedat": "2025-08-03T01:18:55.702Z"
+      },
+      {
+        "id": 2,
+        "name": "тест",
+        "email": "geniuss0ft@yahoo.com",
+        "phone": "12312312331132123321",
+        "address": "Муткурова 22",
+        "notes": null,
+        "createdat": "2025-08-04T09:50:16.252Z",
+        "updatedat": "2025-08-04T09:50:16.252Z"
+      },
+      {
+        "id": 3,
+        "name": "тест2",
+        "email": null,
+        "phone": "123123",
+        "address": null,
+        "notes": null,
+        "createdat": "2025-08-04T03:32:12.032Z",
+        "updatedat": "2025-08-04T03:32:12.032Z"
+      }
+    ],
+    "services": [
+      {
+        "id": 1,
+        "name": "Преглед и консултация",
+        "description": "Основен преглед на зъбите и консултация",
+        "duration": 30,
+        "price": 50,
+        "isactive": true,
+        "createdat": "2025-08-03T01:09:57.933Z"
+      },
+      {
+        "id": 2,
+        "name": "Почистване и профилактика",
+        "description": "Професионално почистване на зъбен камък",
+        "duration": 45,
+        "price": 80,
+        "isactive": true,
+        "createdat": "2025-08-03T01:09:57.933Z"
+      },
+      {
+        "id": 3,
+        "name": "Лечение на кариес",
+        "description": "Лечение на кариес с модерни материали",
+        "duration": 60,
+        "price": 120,
+        "isactive": true,
+        "createdat": "2025-08-03T01:09:57.933Z"
+      },
+      {
+        "id": 4,
+        "name": "Отбелязване",
+        "description": "Професионално отбелязване на зъбите",
+        "duration": 90,
+        "price": 200,
+        "isactive": true,
+        "createdat": "2025-08-03T01:09:57.933Z"
+      },
+      {
+        "id": 5,
+        "name": "Ортодонтия",
+        "description": "Консултация за ортодонтски лечение",
+        "duration": 45,
+        "price": 100,
+        "isactive": true,
+        "createdat": "2025-08-03T01:09:57.933Z"
+      }
+    ],
+    "working_hours": [
+      {
+        "id": 4,
+        "date": "2025-07-29",
+        "is_working_day": true,
+        "start_time": "09:00",
+        "end_time": "20:00",
+        "break_start": "12:00",
+        "break_end": "13:00",
+        "notes": "",
+        "created_at": "2025-07-30T09:48:17.242Z"
+      },
+      {
+        "id": 5,
+        "date": "2025-07-31",
+        "is_working_day": true,
+        "start_time": "09:00",
+        "end_time": "18:00",
+        "break_start": "12:00",
+        "break_end": "13:00",
+        "notes": "",
+        "created_at": "2025-07-31T10:19:18.442Z"
+      },
+      {
+        "id": 6,
+        "date": "2025-07-30",
+        "is_working_day": true,
+        "start_time": "09:00",
+        "end_time": "18:00",
+        "break_start": "12:00",
+        "break_end": "13:00",
+        "notes": "",
+        "created_at": "2025-08-01T10:43:27.486Z"
+      },
+      {
+        "id": 7,
+        "date": "2025-08-02",
+        "is_working_day": true,
+        "start_time": "09:00",
+        "end_time": "16:00",
+        "break_start": "12:00",
+        "break_end": "13:00",
+        "notes": "",
+        "created_at": "2025-08-02T03:07:21.580Z"
+      },
+      {
+        "id": 8,
+        "date": "2025-08-03",
+        "is_working_day": true,
+        "start_time": "09:00",
+        "end_time": "18:00",
+        "break_start": "12:00",
+        "break_end": "13:00",
+        "notes": "",
+        "created_at": "2025-08-03T19:51:51.790Z"
+      }
+    ],
+    "working_breaks": [
+      {
+        "id": 8,
+        "working_hours_id": 4,
+        "start_time": "12:00",
+        "end_time": "13:00",
+        "description": "Почивка",
+        "created_at": "2025-07-31T00:13:14.526Z"
+      },
+      {
+        "id": 26,
+        "working_hours_id": 5,
+        "start_time": "12:00",
+        "end_time": "13:00",
+        "description": "Почивка",
+        "created_at": "2025-07-31T17:52:15.112Z"
+      },
+      {
+        "id": 27,
+        "working_hours_id": 6,
+        "start_time": "12:00",
+        "end_time": "13:00",
+        "description": "Почивка",
+        "created_at": "2025-08-01T10:43:27.501Z"
+      },
+      {
+        "id": 28,
+        "working_hours_id": 6,
+        "start_time": "13:00",
+        "end_time": "14:00",
+        "description": "Почивка",
+        "created_at": "2025-08-01T10:43:27.514Z"
+      },
+      {
+        "id": 31,
+        "working_hours_id": 7,
+        "start_time": "12:00",
+        "end_time": "13:00",
+        "description": "Почивка",
+        "created_at": "2025-08-02T07:29:04.180Z"
+      },
+      {
+        "id": 32,
+        "working_hours_id": 7,
+        "start_time": "15:00",
+        "end_time": "16:00",
+        "description": "Почивка",
+        "created_at": "2025-08-02T07:29:04.193Z"
+      },
+      {
+        "id": 33,
+        "working_hours_id": 8,
+        "start_time": "12:00",
+        "end_time": "13:00",
+        "description": "Почивка",
+        "created_at": "2025-08-03T19:51:51.806Z"
+      }
+    ],
+    "bug_reports": [
+      {
+        "id": 2,
+        "title": "Hydration Error: Prop `min` did not match",
+        "description": "Сървърът показваше \"2025-07-31\", а клиентът \"2025-08-01\" в booking формата. Това причиняваше hydration mismatch error.",
+        "severity": "high",
+        "status": "open",
+        "category": "ui",
+        "priority": "high",
+        "reporter": "QA Team",
+        "assigned_to": null,
+        "created_at": "2025-08-01T23:43:53.014Z",
+        "updated_at": "2025-08-01T23:43:53.014Z",
+        "steps_to_reproduce": [
+          "Отвори главната страница",
+          "Отиди в секцията за резервации",
+          "Провери датата в date input полето",
+          "Виж конзолата за hydration errors"
+        ],
+        "expected_behavior": "Сървърът и клиентът трябва да показват една и съща дата",
+        "actual_behavior": "Сървърът и клиентът показваха различни дати",
+        "browser": "Chrome, Firefox, Safari",
+        "device": "Desktop, Mobile",
+        "screenshots": null,
+        "tags": [
+          "hydration",
+          "date",
+          "booking-form",
+          "critical"
+        ]
+      },
+      {
+        "id": 3,
+        "title": "CSS не се зарежда - страницата се показва без стилове",
+        "description": "След рестартиране на приложението, CSS стиловете не се зареждаха правилно и страницата се показваше без стилове.",
+        "severity": "critical",
+        "status": "open",
+        "category": "ui",
+        "priority": "urgent",
+        "reporter": "QA Team",
+        "assigned_to": null,
+        "created_at": "2025-08-01T23:43:53.197Z",
+        "updated_at": "2025-08-01T23:43:53.197Z",
+        "steps_to_reproduce": [
+          "Стартирай приложението",
+          "Отвори главната страница",
+          "Провери дали CSS се зарежда"
+        ],
+        "expected_behavior": "Страницата трябва да се показва с правилните CSS стилове",
+        "actual_behavior": "Страницата се показваше без стилове и позициониране",
+        "browser": "Всички браузъри",
+        "device": "Всички устройства",
+        "screenshots": null,
+        "tags": [
+          "css",
+          "styling",
+          "critical",
+          "layout"
+        ]
+      },
+      {
+        "id": 4,
+        "title": "AM/PM формат все още видим в time inputs",
+        "description": "Въпреки че добавихме data-format=\"24h\", AM/PM индикаторът все още се показваше в time input полетата.",
+        "severity": "medium",
+        "status": "open",
+        "category": "ui",
+        "priority": "medium",
+        "reporter": "QA Team",
+        "assigned_to": null,
+        "created_at": "2025-08-01T23:43:53.369Z",
+        "updated_at": "2025-08-01T23:43:53.369Z",
+        "steps_to_reproduce": [
+          "Отвори booking формата",
+          "Кликни на time input полето",
+          "Провери дали се показва AM/PM"
+        ],
+        "expected_behavior": "Time inputs трябва да показват само 24-часов формат без AM/PM",
+        "actual_behavior": "AM/PM индикаторът се показваше в time inputs",
+        "browser": "Chrome, Safari",
+        "device": "Desktop",
+        "screenshots": null,
+        "tags": [
+          "time-format",
+          "24h",
+          "am-pm",
+          "ui"
+        ]
+      },
+      {
+        "id": 5,
+        "title": "Time input полетата не са избираеми след CSS fix",
+        "description": "След поправянето на CSS за скриване на AM/PM, time input полетата станаха неизбираеми.",
+        "severity": "high",
+        "status": "open",
+        "category": "functionality",
+        "priority": "high",
+        "reporter": "QA Team",
+        "assigned_to": null,
+        "created_at": "2025-08-01T23:43:53.563Z",
+        "updated_at": "2025-08-01T23:43:53.563Z",
+        "steps_to_reproduce": [
+          "Отвори booking формата",
+          "Кликни на time input полето",
+          "Опитай да избереш час"
+        ],
+        "expected_behavior": "Time input полетата трябва да са избираеми и функционални",
+        "actual_behavior": "Time input полетата не са избираеми",
+        "browser": "Chrome, Safari",
+        "device": "Desktop",
+        "screenshots": null,
+        "tags": [
+          "time-input",
+          "functionality",
+          "css-conflict"
+        ]
+      },
+      {
+        "id": 6,
+        "title": "Timeline маркер показва грешна дата (2-ри август вместо 1-ви)",
+        "description": "Timeline маркерът показваше 2-ри август вместо 1-ви август, което е грешна дата.",
+        "severity": "medium",
+        "status": "open",
+        "category": "ui",
+        "priority": "medium",
+        "reporter": "QA Team",
+        "assigned_to": null,
+        "created_at": "2025-08-01T23:43:53.751Z",
+        "updated_at": "2025-08-01T23:43:53.751Z",
+        "steps_to_reproduce": [
+          "Отиди в Календар секцията",
+          "Кликни на днешната дата",
+          "Провери timeline маркера"
+        ],
+        "expected_behavior": "Timeline маркерът трябва да показва правилната дата",
+        "actual_behavior": "Timeline маркерът показваше грешна дата",
+        "browser": "Всички браузъри",
+        "device": "Desktop",
+        "screenshots": null,
+        "tags": [
+          "timeline",
+          "date",
+          "calendar",
+          "timezone"
+        ]
+      },
+      {
+        "id": 7,
+        "title": "Service editing modal се затваря автоматично след 4 секунди",
+        "description": "Модалът за редактиране на услуги се затваряше автоматично след 4 секунди, което пречи на редактирането.",
+        "severity": "high",
+        "status": "open",
+        "category": "functionality",
+        "priority": "high",
+        "reporter": "QA Team",
+        "assigned_to": null,
+        "created_at": "2025-08-01T23:43:53.962Z",
+        "updated_at": "2025-08-01T23:43:53.962Z",
+        "steps_to_reproduce": [
+          "Отиди в Услуги секцията",
+          "Кликни на редактирай услуга",
+          "Изчакай 4 секунди",
+          "Модалът се затваря автоматично"
+        ],
+        "expected_behavior": "Модалът трябва да остане отворен докато потребителят го затвори",
+        "actual_behavior": "Модалът се затваряше автоматично след 4 секунди",
+        "browser": "Всички браузъри",
+        "device": "Desktop",
+        "screenshots": null,
+        "tags": [
+          "modal",
+          "auto-close",
+          "service-editing",
+          "race-condition"
+        ]
+      },
+      {
+        "id": 8,
+        "title": "User modal се отваря отново след затваряне",
+        "description": "След като се затвори user modal-ът, той се отваряше отново автоматично в рамките на минута.",
+        "severity": "medium",
+        "status": "open",
+        "category": "functionality",
+        "priority": "medium",
+        "reporter": "QA Team",
+        "assigned_to": null,
+        "created_at": "2025-08-01T23:43:54.157Z",
+        "updated_at": "2025-08-01T23:43:54.157Z",
+        "steps_to_reproduce": [
+          "Отиди в Потребители секцията",
+          "Добави или редактирай потребител",
+          "Затвори модала",
+          "Изчакай минута",
+          "Модалът се отваря отново"
+        ],
+        "expected_behavior": "Модалът трябва да остане затворен след затваряне",
+        "actual_behavior": "Модалът се отваряше отново автоматично",
+        "browser": "Всички браузъри",
+        "device": "Desktop",
+        "screenshots": null,
+        "tags": [
+          "modal",
+          "auto-open",
+          "user-management"
+        ]
+      },
+      {
+        "id": 9,
+        "title": "Timeline click логика не работи правилно",
+        "description": "Кликването на timeline не отваряше правилните форми - трябва да отваря \"Нова резервация\" за празни часове и \"Редактирай резервация\" за заети часове.",
+        "severity": "medium",
+        "status": "open",
+        "category": "functionality",
+        "priority": "medium",
+        "reporter": "QA Team",
+        "assigned_to": null,
+        "created_at": "2025-08-01T23:43:54.346Z",
+        "updated_at": "2025-08-01T23:43:54.346Z",
+        "steps_to_reproduce": [
+          "Отиди в Календар -> Daily Schedule",
+          "Кликни на празен час в timeline",
+          "Кликни на зает час в timeline",
+          "Провери дали се отварят правилните форми"
+        ],
+        "expected_behavior": "Клик на празен час трябва да отваря \"Нова резервация\", клик на зает час трябва да отваря \"Редактирай резервация\"",
+        "actual_behavior": "Timeline click логиката не работеше правилно",
+        "browser": "Всички браузъри",
+        "device": "Desktop",
+        "screenshots": null,
+        "tags": [
+          "timeline",
+          "booking",
+          "click-logic",
+          "calendar"
+        ]
+      },
+      {
+        "id": 10,
+        "title": "Form inputs изтриват символи при писане",
+        "description": "При писане в form inputs, символите се изтриваха веднага след въвеждане.",
+        "severity": "high",
+        "status": "open",
+        "category": "functionality",
+        "priority": "high",
+        "reporter": "QA Team",
+        "assigned_to": null,
+        "created_at": "2025-08-01T23:43:54.532Z",
+        "updated_at": "2025-08-01T23:43:54.532Z",
+        "steps_to_reproduce": [
+          "Отвори booking формата",
+          "Опитай да напишеш в name полето",
+          "Символите се изтриват"
+        ],
+        "expected_behavior": "Символите трябва да остават в input полетата при писане",
+        "actual_behavior": "Символите се изтриваха веднага след въвеждане",
+        "browser": "Всички браузъри",
+        "device": "Desktop",
+        "screenshots": null,
+        "tags": [
+          "form-input",
+          "typing",
+          "input-deletion",
+          "react-hooks"
+        ]
+      },
+      {
+        "id": 11,
+        "title": "Next.js ChunkLoadError при зареждане",
+        "description": "При зареждане на приложението се показваше ChunkLoadError: Loading chunk app/page failed.",
+        "severity": "critical",
+        "status": "open",
+        "category": "performance",
+        "priority": "urgent",
+        "reporter": "QA Team",
+        "assigned_to": null,
+        "created_at": "2025-08-01T23:43:54.753Z",
+        "updated_at": "2025-08-01T23:43:54.753Z",
+        "steps_to_reproduce": [
+          "Стартирай приложението",
+          "Отвори браузъра",
+          "Отиди на localhost:3000",
+          "Виж конзолата за грешки"
+        ],
+        "expected_behavior": "Приложението трябва да се зарежда без грешки",
+        "actual_behavior": "Показваше се ChunkLoadError",
+        "browser": "Всички браузъри",
+        "device": "Всички устройства",
+        "screenshots": null,
+        "tags": [
+          "nextjs",
+          "chunk-error",
+          "build-error",
+          "critical"
+        ]
+      }
+    ],
+    "bug_comments": [],
+    "bug_attachments": []
+  }
+}

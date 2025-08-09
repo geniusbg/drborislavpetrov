@@ -8,7 +8,7 @@ export async function POST(request: NextRequest) {
 
     if (!userId && !patientName) {
       return NextResponse.json(
-        { error: 'Липсва ID или име на потребителя' },
+        { error: 'ID на потребителя или име е задължително' },
         { status: 400 }
       )
     }
@@ -18,50 +18,50 @@ export async function POST(request: NextRequest) {
     // Find user by ID or name
     let user
     if (userId) {
-      user = await db.get('SELECT * FROM users WHERE id = ?', [userId])
+      user = await db.query('SELECT * FROM users WHERE id = $1', [userId])
     } else {
-      user = await db.get('SELECT * FROM users WHERE name = ?', [patientName])
+      user = await db.query('SELECT * FROM users WHERE name = $1', [patientName])
     }
 
-    if (!user) {
+    if (user.rows.length === 0) {
+      db.release()
       return NextResponse.json(
         { error: 'Потребителят не е намерен' },
         { status: 404 }
       )
     }
 
-    // Update user fields
+    const existingUser = user.rows[0]
+
+    // Build update query
     const updateFields = []
     const updateValues = []
     
-    if (patientName && patientName !== user.name) {
-      updateFields.push('name = ?')
+    if (patientName && patientName !== existingUser.name) {
+      updateFields.push('name = $' + (updateValues.length + 1))
       updateValues.push(patientName)
     }
     
-    if (phone && phone !== user.phone) {
-      updateFields.push('phone = ?')
+    if (phone && phone !== existingUser.phone) {
+      updateFields.push('phone = $' + (updateValues.length + 1))
       updateValues.push(phone)
     }
     
-    if (email && email !== user.email) {
-      updateFields.push('email = ?')
+    if (email && email !== existingUser.email) {
+      updateFields.push('email = $' + (updateValues.length + 1))
       updateValues.push(email)
     }
     
-    if (updateFields.length === 0) {
-      return NextResponse.json(
-        { error: 'Няма промени за прилагане' },
-        { status: 400 }
-      )
+    if (updateFields.length > 0) {
+      updateValues.push(existingUser.id)
+      await db.query(`UPDATE users SET ${updateFields.join(', ')} WHERE id = $${updateValues.length}`, updateValues)
     }
 
-    updateValues.push(user.id)
-    await db.run(`UPDATE users SET ${updateFields.join(', ')} WHERE id = ?`, updateValues)
+    db.release()
 
     return NextResponse.json({
       success: true,
-      message: `Потребителят ${user.name} е обновен успешно`
+      message: 'Потребителят е обновен успешно'
     })
   } catch (error) {
     console.error('Siri update user error:', error)

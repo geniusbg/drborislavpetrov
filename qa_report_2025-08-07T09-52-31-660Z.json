@@ -1,0 +1,41 @@
+{
+  "timestamp": "2025-08-07T09:52:31.213Z",
+  "summary": {
+    "total": 5,
+    "passed": 1,
+    "failed": 4,
+    "successRate": 20
+  },
+  "results": [
+    {
+      "test": "Admin Login",
+      "passed": false,
+      "details": "Грешка: Execution context was destroyed, most likely because of a navigation.",
+      "timestamp": "2025-08-07T09:52:26.056Z"
+    },
+    {
+      "test": "Services Tab Button",
+      "passed": false,
+      "details": "Не можем да намерим бутон \"Услуги\"",
+      "timestamp": "2025-08-07T09:52:28.173Z"
+    },
+    {
+      "test": "Security",
+      "passed": false,
+      "details": "Грешка: Execution context was destroyed, most likely because of a navigation.",
+      "timestamp": "2025-08-07T09:52:30.103Z"
+    },
+    {
+      "test": "Page Load Time",
+      "passed": true,
+      "details": "Страницата се зарежда за 796ms",
+      "timestamp": "2025-08-07T09:52:30.901Z"
+    },
+    {
+      "test": "Performance",
+      "passed": false,
+      "details": "Грешка: Execution context was destroyed, most likely because of a navigation.",
+      "timestamp": "2025-08-07T09:52:31.207Z"
+    }
+  ]
+}

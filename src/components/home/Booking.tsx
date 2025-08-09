@@ -4,6 +4,7 @@
 import { useState, useEffect } from 'react'
 import { Calendar, Clock, User, Phone, Mail, MessageSquare } from 'lucide-react'
 import { validateBooking, type BookingFormData } from '@/lib/validation'
+import { getBulgariaTime } from '@/lib/bulgaria-time'
 
 const Booking = () => {
   const [bookingData, setBookingData] = useState<BookingFormData>({
@@ -23,6 +24,7 @@ const Booking = () => {
   const [services, setServices] = useState<Array<{id: number, name: string, duration: number}>>([])
   const [availableSlots, setAvailableSlots] = useState<string[]>([])
   const [isLoadingSlots, setIsLoadingSlots] = useState(false)
+  const [minDate, setMinDate] = useState('')
 
   // Load services on mount
   useEffect(() => {
@@ -46,6 +48,15 @@ const Booking = () => {
       loadAvailableSlots()
     }
   }, [bookingData.date, bookingData.service])
+
+  // Set min date on client side only to avoid hydration mismatch
+  useEffect(() => {
+    const today = getBulgariaTime()
+    const year = today.getFullYear()
+    const month = (today.getMonth() + 1).toString().padStart(2, '0')
+    const day = today.getDate().toString().padStart(2, '0')
+    setMinDate(`${year}-${month}-${day}`)
+  }, [])
 
   const loadAvailableSlots = async () => {
     setIsLoadingSlots(true)
@@ -250,7 +261,7 @@ const Booking = () => {
                       onChange={handleChange}
                       required
                       className={`input-field pl-10 ${errors.date ? 'border-red-500' : ''}`}
-                      min={new Date().toISOString().split('T')[0]}
+                      min={minDate}
                     />
                     {errors.date && (
                       <p className="text-red-600 text-xs mt-1">{errors.date}</p>

@@ -1,0 +1,47 @@
+{
+  "timestamp": "2025-08-07T09:55:22.509Z",
+  "summary": {
+    "total": 6,
+    "passed": 3,
+    "failed": 3,
+    "successRate": 50
+  },
+  "results": [
+    {
+      "test": "Admin Login",
+      "passed": false,
+      "details": "Грешка: Execution context was destroyed, most likely because of a navigation.",
+      "timestamp": "2025-08-07T09:55:13.665Z"
+    },
+    {
+      "test": "Services Tab Button",
+      "passed": false,
+      "details": "Не можем да намерим бутон \"Услуги\"",
+      "timestamp": "2025-08-07T09:55:15.790Z"
+    },
+    {
+      "test": "Admin Panel Protection",
+      "passed": false,
+      "details": "Достъпът не е защитен!",
+      "timestamp": "2025-08-07T09:55:20.745Z"
+    },
+    {
+      "test": "API Protection",
+      "passed": true,
+      "details": "API endpoints са защитени",
+      "timestamp": "2025-08-07T09:55:21.189Z"
+    },
+    {
+      "test": "Page Load Time",
+      "passed": true,
+      "details": "Страницата се зарежда за 1087ms",
+      "timestamp": "2025-08-07T09:55:22.278Z"
+    },
+    {
+      "test": "Memory Usage",
+      "passed": true,
+      "details": "Memory usage: 150.19MB",
+      "timestamp": "2025-08-07T09:55:22.502Z"
+    }
+  ]
+}

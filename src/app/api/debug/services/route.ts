@@ -4,11 +4,13 @@ import { getDatabase } from '@/lib/database'
 export async function GET() {
   try {
     const db = await getDatabase()
-    const services = await db.all('SELECT * FROM services ORDER BY id')
+    const services = await db.query('SELECT * FROM services ORDER BY id')
+    
+    db.release()
     
     return NextResponse.json({ 
-      count: services.length,
-      services 
+      count: services.rows.length,
+      services: services.rows
     })
   } catch (error) {
     return NextResponse.json(

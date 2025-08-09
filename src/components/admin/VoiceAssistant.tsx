@@ -94,16 +94,16 @@ const VoiceAssistant: React.FC<VoiceAssistantProps> = ({ onCommand, isListening,
   // Check if voice recognition is supported (desktop only)
   const checkVoiceSupport = useCallback(() => {
     if (typeof window !== 'undefined') {
-      const hasSpeechRecognition = 'webkitSpeechRecognition' in window || 'SpeechRecognition' in window
-      
-      // Only enable voice on desktop browsers
+      // iOS Safari doesn't support SpeechRecognition, so disable voice mode on mobile
       if (isMobile) {
         setVoiceSupported(false)
         setShowTextInput(true)
-        setError('Мобилните устройства използват текстово въвеждане за по-добро изживяване.')
+        setError('iOS използва hold-to-record бутона за по-добро изживяване.')
         return
       }
       
+      // Desktop: check for SpeechRecognition support
+      const hasSpeechRecognition = 'webkitSpeechRecognition' in window || 'SpeechRecognition' in window
       setVoiceSupported(hasSpeechRecognition)
       if (!hasSpeechRecognition) {
         setShowTextInput(true)
@@ -133,10 +133,12 @@ const VoiceAssistant: React.FC<VoiceAssistantProps> = ({ onCommand, isListening,
       const parsedCommand = parseVoiceCommand(command)
       
       if (parsedCommand.action) {
+        const adminToken = localStorage.getItem('adminToken');
         const response = await fetch('/api/admin/voice-commands', {
           method: 'POST',
           headers: {
             'Content-Type': 'application/json',
+            'x-admin-token': adminToken || ''
           },
           body: JSON.stringify(parsedCommand),
         })
@@ -160,16 +162,54 @@ const VoiceAssistant: React.FC<VoiceAssistantProps> = ({ onCommand, isListening,
     }
   }, [onCommand])
 
+  // iOS-friendly: hold-to-record button using MediaRecorder, sending to /api/stt
+  const startRecording = useCallback(async () => {
+    if (typeof window === 'undefined' || !navigator.mediaDevices) return
+    try {
+      const stream = await navigator.mediaDevices.getUserMedia({ audio: true })
+      const mediaRecorder = new MediaRecorder(stream)
+      const chunks: BlobPart[] = []
+      mediaRecorder.ondataavailable = (e) => { if (e.data.size > 0) chunks.push(e.data) }
+      mediaRecorder.onstop = async () => {
+        try {
+          const blob = new Blob(chunks, { type: 'audio/webm' })
+          const resp = await fetch('/api/stt', {
+            method: 'POST',
+            headers: { 'content-type': blob.type },
+            body: blob,
+          })
+          const data = await resp.json()
+          if (data?.text) {
+            await processCommand(data.text)
+          }
+        } catch (e) {
+          console.error('STT request failed', e)
+        } finally {
+          stream.getTracks().forEach(t => t.stop())
+        }
+      }
+      mediaRecorder.start()
+      ;(window as any).__va_rec = mediaRecorder
+    } catch (e) {
+      console.error('Recording error', e)
+    }
+  }, [processCommand])
+
+  const stopRecording = useCallback(() => {
+    const mr = (typeof window !== 'undefined' ? (window as any).__va_rec : null)
+    if (mr && mr.state !== 'inactive') mr.stop()
+  }, [])
+
   useEffect(() => {
     // Check voice support on mount
     checkVoiceSupport()
 
-    // Don't initialize voice recognition on mobile
-    if (isMobile) {
+    // Only initialize voice recognition on desktop
+    if (isMobile || !voiceSupported) {
       return
     }
 
-    if (voiceSupported && typeof window !== 'undefined' && 'webkitSpeechRecognition' in window) {
+    if (typeof window !== 'undefined' && 'webkitSpeechRecognition' in window) {
       const SpeechRecognition = window.webkitSpeechRecognition || window.SpeechRecognition
       recognitionRef.current = new SpeechRecognition()
       
@@ -231,10 +271,10 @@ const VoiceAssistant: React.FC<VoiceAssistantProps> = ({ onCommand, isListening,
   }, [processCommand, transcript, setIsListening, voiceSupported, isMobile, checkVoiceSupport, showTextInput])
 
   const startListening = async () => {
-    // Prevent voice recognition on mobile
+    // iOS doesn't support SpeechRecognition, use hold-to-record instead
     if (isMobile) {
       setShowTextInput(true)
-      setError('Мобилните устройства използват текстово въвеждане за по-добро изживяване.')
+      setError('iOS използва hold-to-record бутона за по-добро изживяване.')
       return
     }
 
@@ -463,11 +503,26 @@ const VoiceAssistant: React.FC<VoiceAssistantProps> = ({ onCommand, isListening,
           </div>
         )}
 
+        {/* iOS-friendly hold-to-record (works even when voiceSupported is false) */}
+        {isMobile && (
+          <div className="flex justify-center mb-3">
+            <button
+              onMouseDown={startRecording}
+              onMouseUp={stopRecording}
+              onTouchStart={(e) => { e.preventDefault(); startRecording(); }}
+              onTouchEnd={(e) => { e.preventDefault(); stopRecording(); }}
+              className="px-4 py-2 rounded-md bg-blue-600 text-white hover:bg-blue-700 active:scale-95 transition"
+            >
+              Задръж за говорене (iOS)
+            </button>
+          </div>
+        )}
+
         {/* Status */}
         <div className="text-center mb-3">
           <p className="text-sm text-gray-600">
             {isMobile 
-              ? '📱 Мобилно устройство: Използвайте текстово въвеждане' 
+              ? '📱 iOS: Използвайте hold-to-record бутона' 
               : showTextInput 
                 ? 'Въведете команда ръчно' 
                 : isListening 
@@ -477,7 +532,7 @@ const VoiceAssistant: React.FC<VoiceAssistantProps> = ({ onCommand, isListening,
           </p>
           {isMobile && (
             <p className="text-xs text-blue-600 mt-1">
-              💡 Оптимизирано за мобилни устройства
+              💡 iOS-оптимизирано с hold-to-record
             </p>
           )}
         </div>
