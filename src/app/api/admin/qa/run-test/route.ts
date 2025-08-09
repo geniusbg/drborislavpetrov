@@ -1,6 +1,18 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { getDatabase } from '@/lib/database'
 
+function getErrorMessage(error: unknown): string {
+  if (error && typeof error === 'object' && 'message' in (error as Record<string, unknown>)) {
+    const anyErr = error as { message?: unknown }
+    if (typeof anyErr.message === 'string') return anyErr.message
+  }
+  try {
+    return JSON.stringify(error)
+  } catch {
+    return String(error)
+  }
+}
+
 export async function POST(request: NextRequest) {
   try {
     const adminToken = request.headers.get('x-admin-token')
@@ -50,7 +62,7 @@ export async function POST(request: NextRequest) {
 
     return NextResponse.json(result)
   } catch (error) {
-    console.error('Error running QA test:', error)
+    console.error('Error running QA test:', getErrorMessage(error))
     return NextResponse.json(
       { error: 'Internal server error' },
       { status: 500 }
@@ -129,7 +141,7 @@ async function runBreaksTest() {
         testResults.push({ test: 'Резервация в почивка (отхвърлена)', status: 'FAILED', details: 'API не отхвърля резервация в почивка' })
       }
     } catch (error) {
-      testResults.push({ test: 'Резервация в почивка (отхвърлена)', status: 'FAILED', details: 'Грешка при тестване' })
+      testResults.push({ test: 'Резервация в почивка (отхвърлена)', status: 'FAILED', details: `Грешка при тестване: ${getErrorMessage(error)}` })
     }
 
     // Test 4: Try to create booking outside break time (should succeed)
@@ -187,7 +199,7 @@ async function runBreaksTest() {
         testResults.push({ test: 'Siri API с почивка', status: 'FAILED', details: 'Siri API не отхвърля резервация в почивка' })
       }
     } catch (error) {
-      testResults.push({ test: 'Siri API с почивка', status: 'FAILED', details: 'Грешка при тестване на Siri API' })
+      testResults.push({ test: 'Siri API с почивка', status: 'FAILED', details: `Грешка при тестване на Siri API: ${getErrorMessage(error)}` })
     }
 
     // Test 6: Test public booking API with break time
@@ -213,7 +225,7 @@ async function runBreaksTest() {
         testResults.push({ test: 'Публичен API с почивка', status: 'FAILED', details: 'Публичният API не отхвърля резервация в почивка' })
       }
     } catch (error) {
-      testResults.push({ test: 'Публичен API с почивка', status: 'FAILED', details: 'Грешка при тестване на публичен API' })
+      testResults.push({ test: 'Публичен API с почивка', status: 'FAILED', details: `Грешка при тестване на публичен API: ${getErrorMessage(error)}` })
     }
 
     return {
@@ -228,7 +240,7 @@ async function runBreaksTest() {
     }
 
   } catch (error) {
-    const msg = (error as Error)?.message || String(error)
+    const msg = getErrorMessage(error)
     return {
       success: false,
       message: 'Грешка при изпълнение на теста на почивки',
@@ -395,7 +407,7 @@ async function runCalendarTest() {
     return {
       success: false,
       message: 'Грешка при изпълнение на теста на календар',
-      details: { error: error.message }
+      details: { error: getErrorMessage(error) }
     }
   }
 }
@@ -437,9 +449,10 @@ async function runCalendarTest() {
        } finally {
          db.release()
        }
-     } catch (error) {
-       testResults.push({ test: 'Достъпност на таблица потребители', status: 'FAILED', details: `Грешка при свързване с базата: ${error.message}` })
-       console.log('Test 1 FAILED - connection error:', error.message)
+      } catch (error) {
+        const msg = getErrorMessage(error)
+        testResults.push({ test: 'Достъпност на таблица потребители', status: 'FAILED', details: `Грешка при свързване с базата: ${msg}` })
+        console.log('Test 1 FAILED - connection error:', msg)
      }
 
      // Test 2: Check if admin users can be created without phone
@@ -475,9 +488,10 @@ async function runCalendarTest() {
        } finally {
          db2.release()
        }
-     } catch (error) {
-       testResults.push({ test: 'Създаване на админ без телефон', status: 'FAILED', details: `Грешка при свързване с базата: ${error.message}` })
-       console.log('Test 2 FAILED - connection error:', error.message)
+      } catch (error) {
+        const msg = getErrorMessage(error)
+        testResults.push({ test: 'Създаване на админ без телефон', status: 'FAILED', details: `Грешка при свързване с базата: ${msg}` })
+        console.log('Test 2 FAILED - connection error:', msg)
      }
 
      // Test 3: Check if regular users require phone
@@ -505,8 +519,9 @@ async function runCalendarTest() {
        } finally {
          db3.release()
        }
-     } catch (error) {
-       testResults.push({ test: 'Създаване на потребител без телефон', status: 'FAILED', details: `Грешка при свързване с базата: ${error.message}` })
+      } catch (error) {
+        const msg = getErrorMessage(error)
+        testResults.push({ test: 'Създаване на потребител без телефон', status: 'FAILED', details: `Грешка при свързване с базата: ${msg}` })
      }
 
      // Test 4: Check if users can be updated
@@ -531,7 +546,7 @@ async function runCalendarTest() {
              UPDATE users SET name = $1 WHERE id = $2
            `, ['test-updated-qa', userId])
            
-           if (updateResult.rowCount > 0) {
+            if ((updateResult.rowCount ?? 0) > 0) {
              testResults.push({ test: 'Обновяване на потребители', status: 'PASSED', details: 'Потребителите могат да се обновяват' })
              passedTests++
            } else {
@@ -549,8 +564,9 @@ async function runCalendarTest() {
        } finally {
          db4.release()
        }
-     } catch (error) {
-       testResults.push({ test: 'Обновяване на потребители', status: 'FAILED', details: `Грешка при свързване с базата: ${error.message}` })
+      } catch (error) {
+        const msg = getErrorMessage(error)
+        testResults.push({ test: 'Обновяване на потребители', status: 'FAILED', details: `Грешка при свързване с базата: ${msg}` })
      }
 
      // Test 5: Check if users can be deleted
@@ -575,7 +591,7 @@ async function runCalendarTest() {
              DELETE FROM users WHERE id = $1
            `, [userId])
            
-           if (deleteResult.rowCount > 0) {
+            if ((deleteResult.rowCount ?? 0) > 0) {
              testResults.push({ test: 'Изтриване на потребители', status: 'PASSED', details: 'Потребителите могат да се изтриват' })
              passedTests++
            } else {
@@ -590,8 +606,9 @@ async function runCalendarTest() {
        } finally {
          db5.release()
        }
-     } catch (error) {
-       testResults.push({ test: 'Изтриване на потребители', status: 'FAILED', details: `Грешка при свързване с базата: ${error.message}` })
+      } catch (error) {
+        const msg = getErrorMessage(error)
+        testResults.push({ test: 'Изтриване на потребители', status: 'FAILED', details: `Грешка при свързване с базата: ${msg}` })
      }
 
      console.log('runUsersTest completed:', { passedTests, totalTests, testResults })
@@ -606,11 +623,11 @@ async function runCalendarTest() {
        }
      }
 
-   } catch (error) {
-     return {
+  } catch (error) {
+    return {
        success: false,
        message: 'Грешка при изпълнение на теста на потребители',
-       details: { error: error.message }
+      details: { error: getErrorMessage(error) }
      }
    }
  }
