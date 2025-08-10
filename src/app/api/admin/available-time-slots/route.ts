@@ -34,20 +34,25 @@ export async function GET(req: NextRequest) {
     
     let workingStart = '09:00'
     let workingEnd = '18:00'
-    let isWorkingDay = true
+    let isWorkingDay = false
     let breakStart = null
     let breakEnd = null
 
     if (workingHoursResult.rows.length > 0) {
       const workingHours = workingHoursResult.rows[0]
-      if (!workingHours.is_working_day) {
-        isWorkingDay = false
-      } else {
+      if (workingHours.is_working_day) {
+        isWorkingDay = true
         workingStart = workingHours.start_time || '09:00'
         workingEnd = workingHours.end_time || '18:00'
         breakStart = workingHours.break_start
         breakEnd = workingHours.break_end
       }
+    } else {
+      // If no working hours record exists, assume it's a working day with default hours
+      // This handles the case where working_hours table is empty
+      isWorkingDay = true
+      workingStart = '09:00'
+      workingEnd = '18:00'
     }
 
     console.log('🕒 Working hours:', { isWorkingDay, workingStart, workingEnd, breakStart, breakEnd })
@@ -103,11 +108,10 @@ export async function GET(req: NextRequest) {
       const slotStartInMinutes = convertTimeToMinutes(slot)
       const slotEndInMinutes = slotStartInMinutes + serviceDuration
 
-      // Check if this slot conflicts with break time
+      // Check if this slot conflicts with break time (single window)
       if (breakStart && breakEnd) {
         const breakStartInMinutes = convertTimeToMinutes(breakStart)
         const breakEndInMinutes = convertTimeToMinutes(breakEnd)
-        
         if (slotStartInMinutes < breakEndInMinutes && slotEndInMinutes > breakStartInMinutes) {
           return false // Conflicts with break time
         }

@@ -1,6 +1,6 @@
 'use client'
 
-import React, { useState, useEffect } from 'react'
+import React, { useState, useEffect, useCallback, useMemo } from 'react'
 import { Phone, Clock, Copy, X, ChevronLeft, ChevronRight } from 'lucide-react'
 import { getBulgariaTime, formatBulgariaDate } from '@/lib/bulgaria-time'
 
@@ -10,6 +10,12 @@ interface TimeSlot {
   service?: string
 }
 
+interface ServiceOption {
+  id: number
+  name: string
+  duration: number
+}
+
 interface QuickResponseWidgetProps {
   onClose?: () => void
   onCreateBooking?: (date: string, time: string) => void
@@ -17,16 +23,15 @@ interface QuickResponseWidgetProps {
 
 const QuickResponseWidget: React.FC<QuickResponseWidgetProps> = ({ onClose, onCreateBooking }) => {
   const [isOpen, setIsOpen] = useState(false)
-  const [activeTab, setActiveTab] = useState<'today' | 'tomorrow' | 'week' | 'month'>('today')
+  const [activeTab, setActiveTab] = useState<'today' | 'tomorrow' | 'next20' | 'month'>('today')
   const [availableSlots, setAvailableSlots] = useState<TimeSlot[]>([])
   const [isLoading, setIsLoading] = useState(false)
   const [selectedMonth, setSelectedMonth] = useState(() => {
     const now = getBulgariaTime()
     const year = now.getFullYear()
     const month = now.getMonth() + 1
-    console.log('🔍 Current date:', now.toISOString())
-    console.log('🔍 Calculated month:', `${year}-${String(month).padStart(2, '0')}`)
-    return `${year}-${String(month).padStart(2, '0')}`
+    const monthStr = `${year}-${String(month).padStart(2, '0')}`
+    return monthStr
   })
   const [copySuccess, setCopySuccess] = useState(false)
   
@@ -39,17 +44,63 @@ const QuickResponseWidget: React.FC<QuickResponseWidgetProps> = ({ onClose, onCr
   }>>([])
   const [selectedMonthDate, setSelectedMonthDate] = useState<string | null>(null)
 
-  // Get current date in Bulgaria timezone
-  const getCurrentDate = () => {
-    const now = getBulgariaTime()
-    return now.toISOString().split('T')[0]
+  // Service filter state
+  const [services, setServices] = useState<ServiceOption[]>([])
+  const [selectedServiceId, setSelectedServiceId] = useState<string>('') // empty => default behavior (15m)
+  const selectedServiceDuration = useMemo(() => {
+    const selected = services.find(s => s.id.toString() === selectedServiceId)
+    return selected?.duration ?? 15
+  }, [services, selectedServiceId])
+
+  // Load next N free slots across days
+  const loadNextAvailableSlots = async (count: number) => {
+    setIsLoading(true)
+    try {
+      const adminToken = localStorage.getItem('adminToken')
+      const start = getCurrentDate()
+      const params = new URLSearchParams({
+        from: start,
+        limit: String(count),
+        serviceDuration: String(selectedServiceDuration),
+      })
+      const response = await fetch(`/api/admin/available-time-slots/next?${params.toString()}`, {
+        headers: { 'x-admin-token': adminToken || '' }
+      })
+      if (response.ok) {
+        const data = await response.json()
+        const slots: TimeSlot[] = (data.slots || []).map((s: any) => ({
+          time: s.time,
+          date: s.date,
+        }))
+        setAvailableSlots(slots)
+        setMonthlyCalendar([])
+      } else {
+        setAvailableSlots([])
+      }
+    } catch (e) {
+      setAvailableSlots([])
+    } finally {
+      setIsLoading(false)
+    }
   }
 
-  // Get tomorrow's date
+  // Get current date in Bulgaria timezone (avoid UTC shift)
+  const getCurrentDate = () => {
+    const now = getBulgariaTime()
+    const y = now.getFullYear()
+    const m = String(now.getMonth() + 1).padStart(2, '0')
+    const d = String(now.getDate()).padStart(2, '0')
+    return `${y}-${m}-${d}`
+  }
+
+  // Get tomorrow's date (in BG timezone, avoid parsing YYYY-MM-DD as UTC)
   const getTomorrowDate = () => {
-    const tomorrow = new Date(getCurrentDate())
-    tomorrow.setDate(tomorrow.getDate() + 1)
-    return tomorrow.toISOString().split('T')[0]
+    const t = getBulgariaTime()
+    t.setDate(t.getDate() + 1)
+    const y = t.getFullYear()
+    const m = String(t.getMonth() + 1).padStart(2, '0')
+    const d = String(t.getDate()).padStart(2, '0')
+    return `${y}-${m}-${d}`
   }
 
   // Load available slots for a specific date
@@ -57,7 +108,7 @@ const QuickResponseWidget: React.FC<QuickResponseWidgetProps> = ({ onClose, onCr
     setIsLoading(true)
     try {
       const adminToken = localStorage.getItem('adminToken')
-      const response = await fetch(`/api/admin/available-time-slots?date=${date}&limit=${limit}`, {
+      const response = await fetch(`/api/admin/available-time-slots?date=${date}&limit=${limit}&serviceDuration=${selectedServiceDuration}`, {
         headers: {
           'x-admin-token': adminToken || ''
         }
@@ -65,7 +116,7 @@ const QuickResponseWidget: React.FC<QuickResponseWidgetProps> = ({ onClose, onCr
       
       if (response.ok) {
         const data = await response.json()
-        const slots = data.availableSlots.map((time: string) => ({
+        const slots = (data.availableSlots || []).map((time: string) => ({
           time,
           date,
           service: 'Общ преглед'
@@ -83,46 +134,16 @@ const QuickResponseWidget: React.FC<QuickResponseWidgetProps> = ({ onClose, onCr
     }
   }
 
-  // Load monthly calendar view
-  const loadMonthlyCalendar = async () => {
-    console.log('🔍 Loading monthly calendar for:', selectedMonth)
-    setIsLoading(true)
-    try {
-      const adminToken = localStorage.getItem('adminToken')
-      const response = await fetch(`/api/admin/available-time-slots/month?month=${selectedMonth}&limit=100`, {
-        headers: {
-          'x-admin-token': adminToken || ''
-        }
-      })
-      
-      if (response.ok) {
-        const data = await response.json()
-        const monthlySlots = data.availableSlots || []
-        
-        // Create calendar grid for the month
-        const calendar = createMonthlyCalendar(selectedMonth, monthlySlots)
-        setMonthlyCalendar(calendar)
-        setAvailableSlots([]) // Clear the list view
-      } else {
-        console.error('Failed to load monthly calendar')
-        setMonthlyCalendar([])
-      }
-    } catch (error) {
-      console.error('Error loading monthly calendar:', error)
-      setMonthlyCalendar([])
-    } finally {
-      setIsLoading(false)
-    }
-  }
-
   // Create monthly calendar grid
   const createMonthlyCalendar = (yearMonth: string, monthlySlots: TimeSlot[]) => {
     const [year, month] = yearMonth.split('-').map(Number)
-    console.log('🔍 Creating calendar for:', yearMonth, 'year:', year, 'month:', month)
+    
     const firstDay = new Date(year, month - 1, 1)
-    // const lastDay = new Date(year, month, 0)
+    const lastDay = new Date(year, month, 0)
     const startDate = new Date(firstDay)
-    startDate.setDate(startDate.getDate() - firstDay.getDay()) // Start from Sunday
+    // Shift to Monday-started week: getDay() => 0(Sun)..6(Sat). Offset so Monday=0
+    const mondayOffset = (firstDay.getDay() + 6) % 7
+    startDate.setDate(startDate.getDate() - mondayOffset)
     
     const calendar: Array<{
       date: string
@@ -135,9 +156,9 @@ const QuickResponseWidget: React.FC<QuickResponseWidgetProps> = ({ onClose, onCr
     for (let i = 0; i < 42; i++) {
       const currentDate = new Date(startDate)
       currentDate.setDate(startDate.getDate() + i)
-      // Use UTC to avoid timezone issues
-      const dateStr = currentDate.toISOString().split('T')[0]
-      const dayOfWeek = currentDate.getDay()
+      // Build date string in local time to avoid UTC shifts
+      const dateStr = `${currentDate.getFullYear()}-${String(currentDate.getMonth() + 1).padStart(2, '0')}-${String(currentDate.getDate()).padStart(2, '0')}`
+      const dayOfWeek = currentDate.getDay() // 0=Sun..6=Sat
       
       // Check if this date is in the current month
       const isCurrentMonth = currentDate.getMonth() === month - 1
@@ -177,30 +198,113 @@ const QuickResponseWidget: React.FC<QuickResponseWidgetProps> = ({ onClose, onCr
     return calendar
   }
 
-  // Calculate available hours for a day
+  // Load monthly calendar view
+  const loadMonthlyCalendar = useCallback(async () => {
+    setIsLoading(true)
+    try {
+      const adminToken = localStorage.getItem('adminToken')
+      const response = await fetch(`/api/admin/available-time-slots/month?month=${selectedMonth}&limit=0&serviceDuration=${selectedServiceDuration}`, {
+        headers: {
+          'x-admin-token': adminToken || ''
+        }
+      })
+      
+      if (response.ok) {
+        const data = await response.json()
+        const monthlySlots = (data.availableSlots || []) as TimeSlot[]
+        
+        // Create calendar grid for the month
+        const calendar = createMonthlyCalendar(selectedMonth, monthlySlots)
+        setMonthlyCalendar(calendar)
+        setAvailableSlots([]) // Clear the list view
+        setSelectedMonthDate(null) // Reset selected date
+      } else {
+        console.error('Failed to load monthly calendar')
+        setMonthlyCalendar([])
+      }
+    } catch (error) {
+      console.error('Error loading monthly calendar:', error)
+      setMonthlyCalendar([])
+    } finally {
+      setIsLoading(false)
+    }
+  }, [selectedMonth, selectedServiceDuration])
+
+  // Reload lists when service filter changes for non-month tabs
+  useEffect(() => {
+    // Only react after first load of services
+    if (!services) return
+    if (activeTab === 'today') {
+      loadAvailableSlots(getCurrentDate(), 0)
+    } else if (activeTab === 'tomorrow') {
+      loadAvailableSlots(getTomorrowDate(), 0)
+    } else if (activeTab === 'next20') {
+      loadNextAvailableSlots(20)
+    }
+  }, [selectedServiceDuration])
+
+
+
+  // Load monthly calendar when month tab is activated
+  useEffect(() => {
+    if (activeTab === 'month') {
+      loadMonthlyCalendar()
+    }
+  }, [activeTab]) // Only depend on activeTab
+
+  // Load monthly calendar when selectedMonth changes
+  useEffect(() => {
+    if (activeTab === 'month') {
+      setMonthlyCalendar([]) // Clear calendar to trigger reload
+      loadMonthlyCalendar()
+    }
+  }, [selectedMonth]) // Only depend on selectedMonth
+
+
+  // Calculate available time for a day considering service duration and slot grouping
   const calculateAvailableHours = (slots: string[]) => {
     if (slots.length === 0) return '0ч'
-    
-    // Convert slots to minutes and calculate total available time
-    const totalMinutes = slots.length * 15 // Each slot is 15 minutes
+
+    // Parse times to minutes
+    const toMinutes = (t: string) => {
+      const [h, m] = t.split(':').map(Number)
+      return h * 60 + m
+    }
+    const sorted = [...slots].sort()
+    let groupCount = 0
+    let prev: number | null = null
+    for (const t of sorted) {
+      const m = toMinutes(t)
+      if (prev === null || m !== prev + 15) {
+        groupCount += 1
+      }
+      prev = m
+    }
+    // Total unique available minutes (union of bookable windows)
+    const totalMinutes = slots.length * 15 + groupCount * (selectedServiceDuration - 15)
+
     const hours = Math.floor(totalMinutes / 60)
     const minutes = totalMinutes % 60
-    
-    if (hours === 0) {
-      return `${minutes}мин`
-    } else if (minutes === 0) {
-      return `${hours}ч`
-    } else {
-      return `${hours}ч ${minutes}мин`
-    }
+    if (hours === 0) return `${minutes}мин`
+    if (minutes === 0) return `${hours}ч`
+    return `${hours}ч ${minutes}мин`
   }
 
   // Handle calendar day click
   const handleCalendarDayClick = (date: string, status: string) => {
+    setSelectedMonthDate(date)
     if (status === 'has-slots') {
-      console.log('🔍 Calendar day clicked:', date, 'for month:', selectedMonth)
-      setSelectedMonthDate(date)
-      loadAvailableSlots(date, 0) // Load all available slots (no limit)
+      const dayData = monthlyCalendar.find(day => day.date === date)
+      if (dayData && dayData.availableSlots.length > 0) {
+        const slots = dayData.availableSlots.map(time => ({ time, date, service: 'Общ преглед' }))
+        setAvailableSlots(slots)
+        return
+      }
+      // Fallback to API call if needed
+      loadAvailableSlots(date, 0)
+    } else {
+      // No slots for this day → clear list to avoid confusion
+      setAvailableSlots([])
     }
   }
 
@@ -213,22 +317,38 @@ const QuickResponseWidget: React.FC<QuickResponseWidgetProps> = ({ onClose, onCr
   }
 
   // Handle tab change
-  const handleTabChange = (tab: 'today' | 'tomorrow' | 'week' | 'month') => {
-    console.log('🔍 Tab changed to:', tab)
+  const handleTabChange = (tab: 'today' | 'tomorrow' | 'next20' | 'month') => {
     setActiveTab(tab)
     setCopySuccess(false)
+    setSelectedMonthDate(null) // Reset selected date when changing tabs
     
     if (tab === 'today') {
       loadAvailableSlots(getCurrentDate(), 0)
     } else if (tab === 'tomorrow') {
       loadAvailableSlots(getTomorrowDate(), 0)
-    } else if (tab === 'week') {
-      loadAvailableSlots(getCurrentDate(), 0) // For now, just load today's slots
+    } else if (tab === 'next20') {
+      loadNextAvailableSlots(20)
     } else if (tab === 'month') {
-      console.log('🔍 Loading monthly calendar from handleTabChange')
       loadMonthlyCalendar()
     }
   }
+
+  // Load services for filter (once on mount)
+  useEffect(() => {
+    const loadServices = async () => {
+      try {
+        const adminToken = localStorage.getItem('adminToken')
+        const response = await fetch('/api/admin/services', {
+          headers: { 'x-admin-token': adminToken || 'test' }
+        })
+        if (response.ok) {
+          const data = await response.json()
+          setServices(data.services || [])
+        }
+      } catch {}
+    }
+    loadServices()
+  }, [])
 
   // Copy slots to clipboard
   const copyToClipboard = async () => {
@@ -237,7 +357,7 @@ const QuickResponseWidget: React.FC<QuickResponseWidgetProps> = ({ onClose, onCr
     let text = ''
     const dateLabel = activeTab === 'today' ? 'днес' : 
                      activeTab === 'tomorrow' ? 'утре' : 
-                     activeTab === 'week' ? 'тази седмица' : 
+                     activeTab === 'next20' ? 'следващите 20' : 
                      `за ${selectedMonth}`
 
     if (activeTab === 'month') {
@@ -286,7 +406,7 @@ const QuickResponseWidget: React.FC<QuickResponseWidgetProps> = ({ onClose, onCr
       console.log('🔍 useEffect triggered - loading monthly calendar')
       loadMonthlyCalendar()
     }
-  }, [selectedMonth, activeTab])
+  }, [selectedMonth, activeTab, loadMonthlyCalendar])
 
   // Debug useEffect
   useEffect(() => {
@@ -303,7 +423,7 @@ const QuickResponseWidget: React.FC<QuickResponseWidgetProps> = ({ onClose, onCr
     switch (tab) {
       case 'today': return 'Днес'
       case 'tomorrow': return 'Утре'
-      case 'week': return 'Седмица'
+      case 'next20': return 'Следващи 20'
       case 'month': return 'Месец'
       default: return tab
     }
@@ -322,8 +442,8 @@ const QuickResponseWidget: React.FC<QuickResponseWidgetProps> = ({ onClose, onCr
       dateLabel = 'днес'
     } else if (activeTab === 'tomorrow') {
       dateLabel = 'утре'
-    } else if (activeTab === 'week') {
-      dateLabel = 'тази седмица'
+    } else if (activeTab === 'next20') {
+      dateLabel = 'следващите 20'
     } else if (activeTab === 'month') {
       if (selectedMonthDate) {
         dateLabel = formatBulgariaDate(new Date(selectedMonthDate))
@@ -380,7 +500,7 @@ const QuickResponseWidget: React.FC<QuickResponseWidgetProps> = ({ onClose, onCr
               {/* Tabs */}
               <div className="border-b border-gray-200 mb-4">
                 <nav className="flex space-x-8">
-                  {(['today', 'tomorrow', 'week', 'month'] as const).map((tab) => (
+                  {(['today', 'tomorrow', 'next20', 'month'] as const).map((tab) => (
                     <button
                       key={tab}
                       onClick={() => handleTabChange(tab)}
@@ -399,44 +519,72 @@ const QuickResponseWidget: React.FC<QuickResponseWidgetProps> = ({ onClose, onCr
                              {/* Month selector for monthly view */}
                {activeTab === 'month' && (
                  <div className="flex items-center justify-between mb-4 p-3 bg-gray-50 rounded-lg">
-                                       <button
-                      onClick={() => {
-                        const [year, month] = selectedMonth.split('-')
-                        const currentDate = new Date(parseInt(year), parseInt(month) - 1, 1)
-                        currentDate.setMonth(currentDate.getMonth() - 1)
-                        const newMonth = `${currentDate.getFullYear()}-${String(currentDate.getMonth() + 1).padStart(2, '0')}`
-                        setSelectedMonth(newMonth)
-                        setTimeout(() => loadMonthlyCalendar(), 0)
-                      }}
+                   <button
+                     onClick={() => {
+                       const [year, month] = selectedMonth.split('-')
+                       const currentDate = new Date(parseInt(year), parseInt(month) - 1, 1)
+                       currentDate.setMonth(currentDate.getMonth() - 1)
+                       const newMonth = `${currentDate.getFullYear()}-${String(currentDate.getMonth() + 1).padStart(2, '0')}`
+                       setSelectedMonth(newMonth)
+                       setSelectedMonthDate(null) // Reset selected date
+                       setAvailableSlots([]) // Clear slots
+                       setMonthlyCalendar([]) // Clear calendar to trigger reload
+                     }}
                      className="p-1 hover:bg-gray-200 rounded"
                    >
                      <ChevronLeft className="w-5 h-5" />
                    </button>
-                                       <span className="font-medium">
-                      {(() => {
-                        const [year, month] = selectedMonth.split('-')
-                        const date = new Date(parseInt(year), parseInt(month) - 1, 1)
-                        return date.toLocaleDateString('bg-BG', { 
-                          year: 'numeric', 
-                          month: 'long' 
-                        })
-                      })()}
-                    </span>
-                                       <button
-                      onClick={() => {
-                        const [year, month] = selectedMonth.split('-')
-                        const currentDate = new Date(parseInt(year), parseInt(month) - 1, 1)
-                        currentDate.setMonth(currentDate.getMonth() + 1)
-                        const newMonth = `${currentDate.getFullYear()}-${String(currentDate.getMonth() + 1).padStart(2, '0')}`
-                        setSelectedMonth(newMonth)
-                        setTimeout(() => loadMonthlyCalendar(), 0)
-                      }}
+                   <span className="font-medium">
+                     {(() => {
+                       const [year, month] = selectedMonth.split('-')
+                       const date = new Date(parseInt(year), parseInt(month) - 1, 1)
+                       return date.toLocaleDateString('bg-BG', { 
+                         year: 'numeric', 
+                         month: 'long' 
+                       })
+                     })()}
+                   </span>
+                   <button
+                     onClick={() => {
+                       const [year, month] = selectedMonth.split('-')
+                       const currentDate = new Date(parseInt(year), parseInt(month) - 1, 1)
+                       currentDate.setMonth(currentDate.getMonth() + 1)
+                       const newMonth = `${currentDate.getFullYear()}-${String(currentDate.getMonth() + 1).padStart(2, '0')}`
+                       setSelectedMonth(newMonth)
+                       setSelectedMonthDate(null) // Reset selected date
+                       setAvailableSlots([]) // Clear slots
+                       setMonthlyCalendar([]) // Clear calendar to trigger reload
+                     }}
                      className="p-1 hover:bg-gray-200 rounded"
                    >
                      <ChevronRight className="w-5 h-5" />
                    </button>
                  </div>
                )}
+
+               {/* Service filter */}
+               <div className="mb-3">
+                 <label className="block text-sm text-gray-600 mb-1">Филтър по услуга (по избор)</label>
+                 <select
+                   value={selectedServiceId}
+                   onChange={(e) => {
+                     // Set new service; clear current view immediately to avoid flicker
+                     setSelectedServiceId(e.target.value)
+                     setAvailableSlots([])
+                     if (activeTab === 'month') {
+                       setMonthlyCalendar([])
+                     }
+                   }}
+                   className="w-full border border-gray-300 rounded-md px-3 py-2 focus:outline-none focus:ring-primary-500 focus:border-primary-500"
+                 >
+                   <option value="">Без филтър (15 мин)</option>
+                   {services.map(s => (
+                     <option key={s.id} value={s.id.toString()}>
+                       {s.name} ({s.duration} мин)
+                     </option>
+                   ))}
+                 </select>
+               </div>
 
               {/* Content */}
               <div className="space-y-4">
@@ -451,16 +599,16 @@ const QuickResponseWidget: React.FC<QuickResponseWidgetProps> = ({ onClose, onCr
                                  {/* Monthly Calendar View */}
                  {activeTab === 'month' && !isLoading && monthlyCalendar.length > 0 && (
                    <div>
-                                           <h4 className="font-medium text-gray-900 mb-3">
-                        Календар за {(() => {
-                          const [year, month] = selectedMonth.split('-')
-                          const date = new Date(parseInt(year), parseInt(month) - 1, 1)
-                          return date.toLocaleDateString('bg-BG', { 
-                            year: 'numeric', 
-                            month: 'long' 
-                          })
-                        })()}
-                      </h4>
+                     <h4 className="font-medium text-gray-900 mb-3">
+                       Календар за {(() => {
+                         const [year, month] = selectedMonth.split('-')
+                         const date = new Date(parseInt(year), parseInt(month) - 1, 1)
+                         return date.toLocaleDateString('bg-BG', { 
+                           year: 'numeric', 
+                           month: 'long' 
+                         })
+                       })()}
+                     </h4>
                      
                      {/* Calendar Legend */}
                      <div className="flex flex-wrap gap-4 mb-4 text-xs">
@@ -478,10 +626,15 @@ const QuickResponseWidget: React.FC<QuickResponseWidgetProps> = ({ onClose, onCr
                        </div>
                      </div>
                      
+                     {/* Debug info */}
+                     <div className="text-xs text-gray-500 mb-2">
+                       Calendar days: {monthlyCalendar.length}, Selected month: {selectedMonth}
+                     </div>
+                     
                      {/* Calendar Grid */}
                      <div className="grid grid-cols-7 gap-1">
                        {/* Day headers */}
-                       {['Нд', 'Пн', 'Вт', 'Ср', 'Чт', 'Пт', 'Сб'].map((day) => (
+                      {['Пн', 'Вт', 'Ср', 'Чт', 'Пт', 'Сб', 'Нд'].map((day) => (
                          <div key={day} className="p-2 text-center text-xs font-medium text-gray-500 bg-gray-50">
                            {day}
                          </div>
@@ -489,11 +642,10 @@ const QuickResponseWidget: React.FC<QuickResponseWidgetProps> = ({ onClose, onCr
                        
                        {/* Calendar days */}
                        {monthlyCalendar.map((day, index) => (
-                         <button
-                           key={index}
-                           onClick={() => handleCalendarDayClick(day.date, day.status)}
-                           disabled={day.status === 'empty' || day.status === 'weekend' || day.status === 'no-slots'}
-                           className={`p-2 text-center text-sm transition-colors ${
+                          <button
+                            key={index}
+                            onClick={() => handleCalendarDayClick(day.date, day.status)}
+                            className={`p-2 text-center text-sm transition-colors ${
                              day.status === 'empty'
                                ? 'text-gray-300 cursor-default'
                                : day.status === 'weekend'
@@ -505,15 +657,37 @@ const QuickResponseWidget: React.FC<QuickResponseWidgetProps> = ({ onClose, onCr
                                : 'bg-gray-100 text-gray-500 cursor-default'
                            }`}
                          >
-                                                       <div className="font-medium">{day.dayNumber}</div>
-                                                         {day.status === 'has-slots' && day.availableSlots.length > 0 && (
-                               <div className="text-xs text-green-600 mt-1">
-                                 {calculateAvailableHours(day.availableSlots)}
-                               </div>
-                             )}
+                           <div className="font-medium">{day.dayNumber}</div>
+                           {day.status === 'has-slots' && day.availableSlots.length > 0 && (
+                             <div className="text-xs text-green-600 mt-1">
+                               {calculateAvailableHours(day.availableSlots)}
+                             </div>
+                           )}
                          </button>
                        ))}
                      </div>
+                   </div>
+                 )}
+
+                 {/* Loading state for month */}
+                 {activeTab === 'month' && isLoading && (
+                   <div className="text-center py-8">
+                     <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-green-600 mx-auto mb-3"></div>
+                     <span className="text-gray-600">Зареждане на месечен календар...</span>
+                   </div>
+                 )}
+
+                 {/* No calendar data */}
+                 {activeTab === 'month' && !isLoading && monthlyCalendar.length === 0 && (
+                   <div className="text-center py-8">
+                     <Clock className="w-12 h-12 text-gray-400 mx-auto mb-3" />
+                     <p className="text-gray-600">Няма данни за календара</p>
+                     <button 
+                       onClick={loadMonthlyCalendar}
+                       className="mt-2 px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700"
+                     >
+                       Опитай отново
+                     </button>
                    </div>
                  )}
 
@@ -530,12 +704,17 @@ const QuickResponseWidget: React.FC<QuickResponseWidgetProps> = ({ onClose, onCr
                             onClick={() => handleTimeSlotClick(slot.date, slot.time)}
                             className="bg-green-50 border border-green-200 rounded-lg p-3 text-center hover:bg-green-100 transition-colors cursor-pointer"
                           >
-                            <div className="text-sm font-medium text-green-800">
-                              {formatTime(slot.time)}
-                            </div>
+                            <div className="text-sm font-medium text-green-800">{formatTime(slot.time)}</div>
                           </button>
                         ))}
                       </div>
+                    </div>
+                  )}
+
+                  {/* Debug info */}
+                  {activeTab === 'month' && (
+                    <div className="text-xs text-gray-500 mt-2">
+                      Debug: selectedMonth={selectedMonth}, selectedMonthDate={selectedMonthDate}, availableSlots={availableSlots.length}
                     </div>
                   )}
 
@@ -545,7 +724,7 @@ const QuickResponseWidget: React.FC<QuickResponseWidgetProps> = ({ onClose, onCr
                       <h4 className="font-medium text-gray-900 mb-3">
                         Свободни часове {activeTab === 'today' ? 'за днес' : 
                                         activeTab === 'tomorrow' ? 'за утре' : 
-                                        activeTab === 'week' ? 'за тази седмица' : 
+                                        activeTab === 'next20' ? 'следващите 20' : 
                                         `за ${selectedMonth}`}:
                       </h4>
                       <div className="grid grid-cols-2 sm:grid-cols-3 gap-2 max-h-64 overflow-auto pr-1">
@@ -553,9 +732,12 @@ const QuickResponseWidget: React.FC<QuickResponseWidgetProps> = ({ onClose, onCr
                           <button
                             key={index}
                             onClick={() => handleTimeSlotClick(slot.date, slot.time)}
-                            className="bg-green-50 border border-green-200 rounded-lg p-3 text-center hover:bg-green-100 transition-colors cursor-pointer"
+                            className="bg-green-50 border border-green-200 rounded-lg p-3 text-left hover:bg-green-100 transition-colors cursor-pointer"
                           >
-                            <div className="text-sm font-medium text-green-800">
+                            {activeTab === 'next20' && (
+                              <div className={"text-sm font-medium text-gray-700"}>{formatBulgariaDate(new Date(slot.date))}</div>
+                            )}
+                            <div className={activeTab === 'next20' ? 'text-lg font-semibold text-green-800' : 'text-sm font-medium text-green-800'}>
                               {formatTime(slot.time)}
                             </div>
                           </button>
@@ -568,12 +750,12 @@ const QuickResponseWidget: React.FC<QuickResponseWidgetProps> = ({ onClose, onCr
                  {!isLoading && availableSlots.length === 0 && activeTab !== 'month' && (
                    <div className="text-center py-8">
                      <Clock className="w-12 h-12 text-gray-400 mx-auto mb-3" />
-                     <p className="text-gray-600">
-                       Няма свободни часове {activeTab === 'today' ? 'за днес' : 
-                                           activeTab === 'tomorrow' ? 'за утре' : 
-                                           activeTab === 'week' ? 'за тази седмица' : 
-                                           `за ${selectedMonth}`}
-                     </p>
+                      <p className="text-gray-600">
+                        Няма свободни часове {activeTab === 'today' ? 'за днес' : 
+                                            activeTab === 'tomorrow' ? 'за утре' : 
+                                            activeTab === 'next20' ? 'в следващите 20' : 
+                                            `за ${selectedMonth}`}
+                      </p>
                    </div>
                  )}
 
