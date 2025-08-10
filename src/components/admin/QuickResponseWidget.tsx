@@ -157,7 +157,7 @@ const QuickResponseWidget: React.FC<QuickResponseWidgetProps> = ({ onClose, onCr
       currentDate.setDate(startDate.getDate() + i)
       // Build date string in local time to avoid UTC shifts
       const dateStr = `${currentDate.getFullYear()}-${String(currentDate.getMonth() + 1).padStart(2, '0')}-${String(currentDate.getDate()).padStart(2, '0')}`
-      const dayOfWeek = currentDate.getDay() // 0=Sun..6=Sat
+      // const dayOfWeek = currentDate.getDay() // 0=Sun..6=Sat (not needed here)
       
       // Check if this date is in the current month
       const isCurrentMonth = currentDate.getMonth() === month - 1

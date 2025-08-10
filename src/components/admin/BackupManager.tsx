@@ -206,7 +206,6 @@ export default function BackupManager() {
     }
   }
 
-  // eslint-disable-next-line react-hooks/exhaustive-deps
   useEffect(() => {
     const initializeData = async () => {
       await loadConfig() // Load config first
@@ -214,7 +213,7 @@ export default function BackupManager() {
     }
     
     initializeData()
-  }, [])
+  }, [loadBackups])
 
   return (
     <div className="bg-white rounded-lg shadow-lg p-6">
