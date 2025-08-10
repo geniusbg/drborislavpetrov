@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useCallback } from 'react'
 import { 
   Download, 
   Upload, 
@@ -57,7 +57,7 @@ export default function BackupManager() {
     compression: false
   })
 
-  const loadBackups = async () => {
+  const loadBackups = useCallback(async () => {
     setIsLoading(true)
     setError(null)
     
@@ -71,7 +71,8 @@ export default function BackupManager() {
       if (!response.ok) throw new Error('Failed to load backups')
       
       const data = await response.json()
-      setBackups(data.backups || [])
+      const files = (data.backups as BackupFile[] | undefined) || []
+      setBackups(files.map(({ name, size, date, age }) => ({ name, size, date, age })))
       
       // Update stats but preserve the retentionDays from config
       if (data.stats) {
@@ -92,7 +93,7 @@ export default function BackupManager() {
     } finally {
       setIsLoading(false)
     }
-  }
+  }, [config.retentionDays])
 
   const runManualBackup = async () => {
     setIsRunningBackup(true)
