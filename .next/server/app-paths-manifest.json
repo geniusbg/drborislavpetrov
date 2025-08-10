@@ -1,6 +1,4 @@
 {
   "/api/admin/bookings/route": "app/api/admin/bookings/route.js",
-  "/api/admin/available-time-slots/next/route": "app/api/admin/available-time-slots/next/route.js",
-  "/api/admin/available-time-slots/month/route": "app/api/admin/available-time-slots/month/route.js",
   "/admin/page": "app/admin/page.js"
 }

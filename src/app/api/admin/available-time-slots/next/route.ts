@@ -20,7 +20,7 @@ export async function GET(req: NextRequest) {
     const db = await getDatabase()
 
     const collected: Array<{ date: string; time: string }> = []
-    let cursor = new Date(from)
+    const cursor = new Date(from)
 
     // Collect until we have limit items or we traversed 90 days max
     for (let dayOffset = 0; collected.length < limit && dayOffset < 90; dayOffset++) {

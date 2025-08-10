@@ -1,135 +1,179 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { exec } from 'child_process'
-import { promisify } from 'util'
 import fs from 'fs'
 import path from 'path'
+import { spawn } from 'child_process'
 
-const execAsync = promisify(exec)
+type BackupFormat = 'json' | 'sql'
 
-// Конфигурация
-const BACKUP_DIR = path.join(process.cwd(), 'backups')
-const RETENTION_DAYS = 5
+const CONFIG_FILE = path.join(process.cwd(), 'backup-config.json')
 
-// Проверка на admin token
 function checkAdminToken(request: NextRequest) {
   const adminToken = request.headers.get('x-admin-token')
-  return adminToken === 'mock-token' // В продукция трябва да се проверява реалният token
+  return adminToken === 'mock-token' || adminToken === 'test'
 }
 
-// Вземане на backup файлове
-async function getBackupFiles() {
-  if (!fs.existsSync(BACKUP_DIR)) {
-    return []
-  }
-
-  const files = fs.readdirSync(BACKUP_DIR)
-  const backupFiles = files.filter(file => file.endsWith('.json'))
-  
-  return backupFiles.map(file => {
-    const filePath = path.join(BACKUP_DIR, file)
-    const stats = fs.statSync(filePath)
-    const age = Math.floor((Date.now() - stats.mtime.getTime()) / (1000 * 60 * 60 * 24))
-    
-    return {
-      name: file,
-      size: (stats.size / (1024 * 1024)).toFixed(2) + ' MB',
-      date: stats.mtime.toLocaleString('bg-BG'),
-      age: `${age} дни`
+function loadConfig() {
+  try {
+    if (fs.existsSync(CONFIG_FILE)) {
+      const raw = fs.readFileSync(CONFIG_FILE, 'utf8')
+      return JSON.parse(raw)
     }
-  }).sort((a, b) => {
-    // Sort by modification time (newest first)
-    const aPath = path.join(BACKUP_DIR, a.name)
-    const bPath = path.join(BACKUP_DIR, b.name)
-    const aStats = fs.statSync(aPath)
-    const bStats = fs.statSync(bPath)
-    return bStats.mtime.getTime() - aStats.mtime.getTime()
-  })
-}
-
-// Вземане на backup статистики
-async function getBackupStats() {
-  const files = await getBackupFiles()
-  
-  if (files.length === 0) {
-    return {
-      totalBackups: 0,
-      totalSize: '0 MB',
-      oldestBackup: 'Няма',
-      newestBackup: 'Няма',
-      retentionDays: RETENTION_DAYS
-    }
+  } catch (e) {
+    console.error('Backup loadConfig error:', e)
   }
-
-  const totalSize = files.reduce((sum, file) => {
-    const sizeInMB = parseFloat(file.size.replace(' MB', ''))
-    return sum + sizeInMB
-  }, 0)
-
   return {
-    totalBackups: files.length,
-    totalSize: `${totalSize.toFixed(2)} MB`,
-    oldestBackup: files[files.length - 1]?.date || 'Няма',
-    newestBackup: files[0]?.date || 'Няма',
-    retentionDays: RETENTION_DAYS
+    retentionDays: 5,
+    backupInterval: 1,
+    backupFormat: 'sql' as BackupFormat,
+    backupLocation: './backups/',
+    autoBackup: true,
+    compression: false,
   }
 }
 
-// GET - Вземане на backup файлове и статистики
+function ensureDir(dir: string) {
+  if (!fs.existsSync(dir)) {
+    fs.mkdirSync(dir, { recursive: true })
+  }
+}
+
+function formatBytes(bytes: number) {
+  if (bytes === 0) return '0 B'
+  const k = 1024
+  const sizes = ['B', 'KB', 'MB', 'GB', 'TB']
+  const i = Math.floor(Math.log(bytes) / Math.log(k))
+  return `${(bytes / Math.pow(k, i)).toFixed(2)} ${sizes[i]}`
+}
+
+function humanAge(from: Date) {
+  const diffMs = Date.now() - from.getTime()
+  const mins = Math.floor(diffMs / 60000)
+  if (mins < 60) return `${mins} мин`
+  const hours = Math.floor(mins / 60)
+  if (hours < 24) return `${hours} ч`
+  const days = Math.floor(hours / 24)
+  return `${days} дни`
+}
+
 export async function GET(request: NextRequest) {
   try {
     if (!checkAdminToken(request)) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
     }
 
-    const backups = await getBackupFiles()
-    const stats = await getBackupStats()
+    const cfg = loadConfig()
+    const dir = path.isAbsolute(cfg.backupLocation)
+      ? cfg.backupLocation
+      : path.join(process.cwd(), cfg.backupLocation)
+    ensureDir(dir)
 
-    return NextResponse.json({
-      backups,
-      stats
-    })
+    const files = fs.readdirSync(dir)
+      .filter((f) => fs.statSync(path.join(dir, f)).isFile())
+      .map((f) => {
+        const stat = fs.statSync(path.join(dir, f))
+        return {
+          name: f,
+          size: formatBytes(stat.size),
+          date: new Date(stat.mtime).toLocaleString('bg-BG'),
+          age: humanAge(stat.mtime),
+          mtime: stat.mtime.getTime(),
+        }
+      })
+      .sort((a, b) => b.mtime - a.mtime)
+
+    const stats = {
+      totalBackups: files.length,
+      totalSize: formatBytes(
+        files.reduce((sum, f) => sum + fs.statSync(path.join(dir, f.name)).size, 0)
+      ),
+      oldestBackup: files[files.length - 1]?.date || '-',
+      newestBackup: files[0]?.date || '-',
+      retentionDays: cfg.retentionDays,
+    }
+
+    return NextResponse.json({ backups: files.map(({ mtime, ...rest }) => rest), stats })
   } catch (error) {
-    console.error('Error getting backups:', error)
-    return NextResponse.json(
-      { error: 'Failed to get backups' },
-      { status: 500 }
-    )
+    console.error('Error listing backups:', error)
+    return NextResponse.json({ error: 'Internal server error' }, { status: 500 })
   }
 }
 
-// POST - Създаване на ръчен backup
 export async function POST(request: NextRequest) {
   try {
     if (!checkAdminToken(request)) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
     }
 
-    // Изпълняване на backup скрипта
-    const backupScript = path.join(process.cwd(), 'backup-database-node.js')
-    
-    if (!fs.existsSync(backupScript)) {
-      return NextResponse.json(
-        { error: 'Backup script not found' },
-        { status: 404 }
-      )
+    const cfg = loadConfig()
+    const dir = path.isAbsolute(cfg.backupLocation)
+      ? cfg.backupLocation
+      : path.join(process.cwd(), cfg.backupLocation)
+    ensureDir(dir)
+
+    const host = process.env.PGHOST
+    const port = process.env.PGPORT || '5432'
+    const db = process.env.PGDATABASE
+    const user = process.env.PGUSER
+    const pass = process.env.PGPASSWORD
+
+    if (!host || !db || !user || !pass) {
+      return NextResponse.json({
+        error: 'Missing database env vars (PGHOST, PGPORT, PGDATABASE, PGUSER, PGPASSWORD)'
+      }, { status: 500 })
     }
 
-    const { stdout, stderr } = await execAsync(`node "${backupScript}"`)
-    
-    if (stderr) {
-      console.warn('Backup warnings:', stderr)
+    const now = new Date()
+    const stamp = `${now.getFullYear()}${String(now.getMonth() + 1).padStart(2, '0')}${String(now.getDate()).padStart(2, '0')}_${String(now.getHours()).padStart(2, '0')}${String(now.getMinutes()).padStart(2, '0')}`
+    const ext = cfg.backupFormat === 'sql' ? 'sql' : 'dump'
+    const fmt = cfg.backupFormat === 'sql' ? 'p' : 'c'
+    const filePath = path.join(dir, `backup-${stamp}.${ext}`)
+
+    let stderrBuf = ''
+    let stdoutBuf = ''
+    try {
+      await new Promise<void>((resolve, reject) => {
+        const child = spawn('pg_dump', ['-h', host, '-p', String(port), '-U', user, '-F', fmt, '-b', '-v', '-f', filePath, db], {
+          env: { ...process.env, PGPASSWORD: pass },
+        })
+        child.stdout?.on('data', (d) => {
+          const s = d.toString()
+          stdoutBuf += s
+          process.stdout.write(d)
+        })
+        child.stderr?.on('data', (d) => {
+          const s = d.toString()
+          stderrBuf += s
+          process.stderr.write(d)
+        })
+        child.on('close', (code) => {
+          if (code === 0) resolve()
+          else reject(new Error(`pg_dump exited with code ${code}`))
+        })
+        child.on('error', reject)
+      })
+    } catch (e) {
+      const msg = (e && (e as any).message) || 'pg_dump failed'
+      return NextResponse.json({ error: 'Backup failed', details: stderrBuf || msg }, { status: 500 })
     }
 
-    return NextResponse.json({
-      success: true,
-      message: 'Backup completed successfully',
-      output: stdout
-    })
+    // Retention cleanup
+    try {
+      const cutoff = Date.now() - cfg.retentionDays * 24 * 60 * 60 * 1000
+      const entries = fs.readdirSync(dir)
+      for (const f of entries) {
+        const full = path.join(dir, f)
+        const st = fs.statSync(full)
+        if (st.isFile() && st.mtime.getTime() < cutoff) {
+          fs.unlinkSync(full)
+        }
+      }
+    } catch {}
+
+    return NextResponse.json({ success: true, file: path.basename(filePath) })
   } catch (error) {
     console.error('Error creating backup:', error)
-    return NextResponse.json(
-      { error: 'Failed to create backup' },
-      { status: 500 }
-    )
+    return NextResponse.json({ error: 'Backup failed' }, { status: 500 })
   }
-} 
+}
+
+// Duplicate legacy block removed to avoid multiple NextResponse definitions

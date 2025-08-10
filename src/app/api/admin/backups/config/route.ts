@@ -83,13 +83,12 @@ export async function POST(request: NextRequest) {
     }
 
     const body = await request.json()
-    
-    // Валидация на конфигурацията
+    // Валидация на конфигурацията (очаква директно полета, не вложен обект)
     const config: BackupConfigSchema = {
-      retentionDays: Math.max(1, Math.min(365, body.retentionDays || 5)),
-      backupInterval: Math.max(1, Math.min(24, body.backupInterval || 1)),
+      retentionDays: Math.max(1, Math.min(365, Number(body.retentionDays ?? 5))),
+      backupInterval: Math.max(1, Math.min(24, Number(body.backupInterval ?? 1))),
       backupFormat: (body.backupFormat === 'sql' ? 'sql' : 'json') as BackupFormat,
-      backupLocation: String(body.backupLocation || './backups/'),
+      backupLocation: String(body.backupLocation ?? './backups/'),
       autoBackup: Boolean(body.autoBackup),
       compression: Boolean(body.compression)
     }

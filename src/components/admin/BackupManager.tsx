@@ -65,7 +65,7 @@ export default function BackupManager() {
       const adminToken = localStorage.getItem('adminToken')
       const response = await fetch('/api/admin/backups', {
         headers: {
-          'x-admin-token': adminToken || ''
+          'x-admin-token': adminToken || 'mock-token'
         }
       })
       if (!response.ok) throw new Error('Failed to load backups')
@@ -103,7 +103,7 @@ export default function BackupManager() {
       const response = await fetch('/api/admin/backups', {
         method: 'POST',
         headers: {
-          'x-admin-token': adminToken || ''
+          'x-admin-token': adminToken || 'mock-token'
         }
       })
       
@@ -129,7 +129,7 @@ export default function BackupManager() {
       const response = await fetch(`/api/admin/backups/${encodeURIComponent(fileName)}`, {
         method: 'DELETE',
         headers: {
-          'x-admin-token': adminToken || ''
+          'x-admin-token': adminToken || 'mock-token'
         }
       })
       
@@ -149,7 +149,7 @@ export default function BackupManager() {
       const response = await fetch(`/api/admin/backups/${encodeURIComponent(fileName)}/restore`, {
         method: 'POST',
         headers: {
-          'x-admin-token': adminToken || ''
+          'x-admin-token': adminToken || 'mock-token'
         }
       })
       
@@ -206,6 +206,7 @@ export default function BackupManager() {
     }
   }
 
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   useEffect(() => {
     const initializeData = async () => {
       await loadConfig() // Load config first

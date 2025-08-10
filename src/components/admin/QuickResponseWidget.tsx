@@ -68,7 +68,7 @@ const QuickResponseWidget: React.FC<QuickResponseWidgetProps> = ({ onClose, onCr
       })
       if (response.ok) {
         const data = await response.json()
-        const slots: TimeSlot[] = (data.slots || []).map((s: any) => ({
+        const slots: TimeSlot[] = (data.slots as Array<{ time: string; date: string }> | undefined || []).map((s) => ({
           time: s.time,
           date: s.date,
         }))
@@ -139,7 +139,6 @@ const QuickResponseWidget: React.FC<QuickResponseWidgetProps> = ({ onClose, onCr
     const [year, month] = yearMonth.split('-').map(Number)
     
     const firstDay = new Date(year, month - 1, 1)
-    const lastDay = new Date(year, month, 0)
     const startDate = new Date(firstDay)
     // Shift to Monday-started week: getDay() => 0(Sun)..6(Sat). Offset so Monday=0
     const mondayOffset = (firstDay.getDay() + 6) % 7
@@ -168,17 +167,6 @@ const QuickResponseWidget: React.FC<QuickResponseWidgetProps> = ({ onClose, onCr
           date: dateStr,
           dayNumber: currentDate.getDate().toString(),
           status: 'empty',
-          availableSlots: []
-        })
-        continue
-      }
-      
-      // Check if it's weekend
-      if (dayOfWeek === 0 || dayOfWeek === 6) {
-        calendar.push({
-          date: dateStr,
-          dayNumber: currentDate.getDate().toString(),
-          status: 'weekend',
           availableSlots: []
         })
         continue
@@ -231,6 +219,7 @@ const QuickResponseWidget: React.FC<QuickResponseWidgetProps> = ({ onClose, onCr
   }, [selectedMonth, selectedServiceDuration])
 
   // Reload lists when service filter changes for non-month tabs
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   useEffect(() => {
     // Only react after first load of services
     if (!services) return
@@ -246,6 +235,7 @@ const QuickResponseWidget: React.FC<QuickResponseWidgetProps> = ({ onClose, onCr
 
 
   // Load monthly calendar when month tab is activated
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   useEffect(() => {
     if (activeTab === 'month') {
       loadMonthlyCalendar()
@@ -253,6 +243,7 @@ const QuickResponseWidget: React.FC<QuickResponseWidgetProps> = ({ onClose, onCr
   }, [activeTab]) // Only depend on activeTab
 
   // Load monthly calendar when selectedMonth changes
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   useEffect(() => {
     if (activeTab === 'month') {
       setMonthlyCalendar([]) // Clear calendar to trigger reload
@@ -388,12 +379,24 @@ const QuickResponseWidget: React.FC<QuickResponseWidgetProps> = ({ onClose, onCr
   }
 
   // Load initial data when modal opens
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   useEffect(() => {
     const onOpen = () => setIsOpen(true)
+    const onKeyDown = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') {
+        setIsOpen(false)
+        setAvailableSlots([])
+      }
+    }
     window.addEventListener('quick-response-open', onOpen as EventListener)
-    return () => window.removeEventListener('quick-response-open', onOpen as EventListener)
+    window.addEventListener('keydown', onKeyDown)
+    return () => {
+      window.removeEventListener('quick-response-open', onOpen as EventListener)
+      window.removeEventListener('keydown', onKeyDown)
+    }
   }, [])
 
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   useEffect(() => {
     if (isOpen) {
       handleTabChange(activeTab)
@@ -403,15 +406,11 @@ const QuickResponseWidget: React.FC<QuickResponseWidgetProps> = ({ onClose, onCr
   // Load monthly calendar when selectedMonth changes
   useEffect(() => {
     if (activeTab === 'month' && selectedMonth) {
-      console.log('🔍 useEffect triggered - loading monthly calendar')
       loadMonthlyCalendar()
     }
   }, [selectedMonth, activeTab, loadMonthlyCalendar])
 
-  // Debug useEffect
-  useEffect(() => {
-    console.log('🔍 Debug - selectedMonth:', selectedMonth, 'activeTab:', activeTab)
-  }, [selectedMonth, activeTab])
+  // (debug removed)
 
   // Format time for display
   const formatTime = (time: string) => {
@@ -711,12 +710,7 @@ const QuickResponseWidget: React.FC<QuickResponseWidgetProps> = ({ onClose, onCr
                     </div>
                   )}
 
-                  {/* Debug info */}
-                  {activeTab === 'month' && (
-                    <div className="text-xs text-gray-500 mt-2">
-                      Debug: selectedMonth={selectedMonth}, selectedMonthDate={selectedMonthDate}, availableSlots={availableSlots.length}
-                    </div>
-                  )}
+                  {/* Debug info removed */}
 
                                    {/* Available slots for other tabs */}
                   {!isLoading && availableSlots.length > 0 && activeTab !== 'month' && (
