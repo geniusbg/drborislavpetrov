@@ -1,5 +1,26 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { getDatabase } from '@/lib/database'
+import fs from 'fs'
+import path from 'path'
+
+function loadDefaultSettings() {
+  try {
+    const SETTINGS_FILE = path.join(process.cwd(), 'app-settings.json')
+    if (fs.existsSync(SETTINGS_FILE)) {
+      const json = JSON.parse(fs.readFileSync(SETTINGS_FILE, 'utf8'))
+      return json?.defaultWorkingHours || null
+    }
+  } catch (e) {
+    console.error('Failed to load default settings:', e)
+  }
+  return {
+    workingDays: [1,2,3,4,5],
+    startTime: '09:00',
+    endTime: '18:00',
+    breakStart: '13:00',
+    breakEnd: '14:00'
+  }
+}
 
 export async function GET(req: NextRequest) {
   try {
@@ -46,13 +67,23 @@ export async function GET(req: NextRequest) {
         workingEnd = workingHours.end_time || '18:00'
         breakStart = workingHours.break_start
         breakEnd = workingHours.break_end
+      } else {
+        isWorkingDay = false
       }
     } else {
-      // If no working hours record exists, assume it's a working day with default hours
-      // This handles the case where working_hours table is empty
-      isWorkingDay = true
-      workingStart = '09:00'
-      workingEnd = '18:00'
+      // Fallback to global settings and default working days
+      const defaults = loadDefaultSettings()
+      const dayOfWeek = new Date(date).getDay()
+      const workingDays: number[] = defaults?.workingDays || [1,2,3,4,5]
+      if (workingDays.includes(dayOfWeek)) {
+        isWorkingDay = true
+        workingStart = defaults?.startTime || '09:00'
+        workingEnd = defaults?.endTime || '18:00'
+        breakStart = defaults?.breakStart || null
+        breakEnd = defaults?.breakEnd || null
+      } else {
+        isWorkingDay = false
+      }
     }
 
     console.log('🕒 Working hours:', { isWorkingDay, workingStart, workingEnd, breakStart, breakEnd })

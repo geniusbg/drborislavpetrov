@@ -1,5 +1,26 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { getDatabase } from '@/lib/database'
+import fs from 'fs'
+import path from 'path'
+
+function loadDefaultSettings() {
+  try {
+    const SETTINGS_FILE = path.join(process.cwd(), 'app-settings.json')
+    if (fs.existsSync(SETTINGS_FILE)) {
+      const json = JSON.parse(fs.readFileSync(SETTINGS_FILE, 'utf8'))
+      return json?.defaultWorkingHours || null
+    }
+  } catch (e) {
+    console.error('Failed to load default settings:', e)
+  }
+  return {
+    workingDays: [1,2,3,4,5],
+    startTime: '09:00',
+    endTime: '18:00',
+    breakStart: '13:00',
+    breakEnd: '14:00'
+  }
+}
 
 export async function GET(req: NextRequest) {
   try {
@@ -33,13 +54,7 @@ export async function GET(req: NextRequest) {
       const currentDate = new Date(year, monthNum - 1, day)
       const dateStr = `${currentDate.getFullYear()}-${String(currentDate.getMonth() + 1).padStart(2, '0')}-${String(currentDate.getDate()).padStart(2, '0')}`
 
-      // Skip weekends (Saturday = 6, Sunday = 0)
-      const dayOfWeek = currentDate.getDay()
-      if (dayOfWeek === 0 || dayOfWeek === 6) {
-        continue
-      }
-
-      // Get working hours for this date
+      // Get working hours for this date (override per-day from table, otherwise settings defaults)
       const workingHoursQuery = `
         SELECT start_time, end_time, is_working_day, break_start, break_end 
         FROM working_hours 
@@ -61,13 +76,23 @@ export async function GET(req: NextRequest) {
           workingEnd = workingHours.end_time || '18:00'
           breakStart = workingHours.break_start
           breakEnd = workingHours.break_end
+        } else {
+          isWorkingDay = false
         }
       } else {
-        // If no working hours record exists, assume it's a working day with default hours
-        // This handles the case where working_hours table is empty
-        isWorkingDay = true
-        workingStart = '09:00'
-        workingEnd = '18:00'
+        // Fallback to global settings and default working days
+        const defaultSettings = loadDefaultSettings()
+        const workingDays: number[] = defaultSettings?.workingDays || [1,2,3,4,5]
+        const dayOfWeek = currentDate.getDay()
+        if (workingDays.includes(dayOfWeek)) {
+          isWorkingDay = true
+          workingStart = defaultSettings?.startTime || '09:00'
+          workingEnd = defaultSettings?.endTime || '18:00'
+          breakStart = defaultSettings?.breakStart || null
+          breakEnd = defaultSettings?.breakEnd || null
+        } else {
+          isWorkingDay = false
+        }
       }
 
       if (!isWorkingDay) {

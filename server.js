@@ -1,3 +1,4 @@
+require('dotenv').config()
 const { createServer } = require('http')
 const { parse } = require('url')
 const next = require('next')
@@ -88,5 +89,114 @@ app.prepare().then(() => {
     console.log(`🚀 Ready on http://${hostname}:${port}`)
     console.log(`🔌 Socket.io server running on port ${port}`)
     console.log(`🌍 Environment: ${process.env.NODE_ENV || 'development'}`)
+
+    // Auto-backup scheduler (node-cron fallback to setInterval)
+    try {
+      const fs = require('fs')
+      const path = require('path')
+      const { spawn } = require('child_process')
+      let cron
+      try { cron = require('node-cron') } catch {}
+
+      const CONFIG_FILE = path.join(process.cwd(), 'backup-config.json')
+
+      function loadConfig() {
+        try {
+          if (fs.existsSync(CONFIG_FILE)) {
+            const raw = fs.readFileSync(CONFIG_FILE, 'utf8')
+            return JSON.parse(raw)
+          }
+        } catch (e) {
+          console.error('Auto-backup loadConfig error:', e)
+        }
+        return {
+          retentionDays: 5,
+          backupInterval: 1,
+          backupFormat: 'sql',
+          backupLocation: './backups/',
+          autoBackup: true,
+          compression: false,
+        }
+      }
+
+      function ensureDir(dir) {
+        if (!fs.existsSync(dir)) fs.mkdirSync(dir, { recursive: true })
+      }
+
+      function latestBackupMtime(dir) {
+        try {
+          const files = fs.readdirSync(dir)
+          let latest = 0
+          for (const f of files) {
+            const full = path.join(dir, f)
+            const st = fs.statSync(full)
+            if (st.isFile()) latest = Math.max(latest, st.mtimeMs)
+          }
+          return latest
+        } catch {
+          return 0
+        }
+      }
+
+      async function runBackupIfDue() {
+        const cfg = loadConfig()
+        if (!cfg.autoBackup) return
+        const dir = path.isAbsolute(cfg.backupLocation) ? cfg.backupLocation : path.join(process.cwd(), cfg.backupLocation)
+        ensureDir(dir)
+
+        const last = latestBackupMtime(dir)
+        const hoursSince = last ? (Date.now() - last) / (1000 * 60 * 60) : Infinity
+        if (hoursSince < cfg.backupInterval) return
+
+        const host = process.env.PGHOST
+        const port = process.env.PGPORT || '5432'
+        const db = process.env.PGDATABASE
+        const user = process.env.PGUSER
+        const pass = process.env.PGPASSWORD
+        if (!host || !db || !user || !pass) {
+          console.warn('Auto-backup skipped: missing PG env vars')
+          return
+        }
+
+        const now = new Date()
+        const stamp = `${now.getFullYear()}${String(now.getMonth() + 1).padStart(2, '0')}${String(now.getDate()).padStart(2, '0')}_${String(now.getHours()).padStart(2, '0')}${String(now.getMinutes()).padStart(2, '0')}`
+        const ext = cfg.backupFormat === 'sql' ? 'sql' : 'dump'
+        const fmt = cfg.backupFormat === 'sql' ? 'p' : 'c'
+        const filePath = path.join(dir, `backup-${stamp}.${ext}`)
+
+        console.log('🗄️ Auto-backup started →', filePath)
+        await new Promise((resolve, reject) => {
+          const child = spawn('pg_dump', ['-h', host, '-p', String(port), '-U', user, '-F', fmt, '-b', '-v', '-f', filePath, db], {
+            env: { ...process.env, PGPASSWORD: pass },
+          })
+          child.stdout?.on('data', (d) => process.stdout.write(d))
+          child.stderr?.on('data', (d) => process.stderr.write(d))
+          child.on('close', (code) => (code === 0 ? resolve() : reject(new Error(`pg_dump exited ${code}`))))
+          child.on('error', reject)
+        }).catch((e) => console.error('Auto-backup error:', e))
+
+        // Retention cleanup
+        try {
+          const cutoff = Date.now() - cfg.retentionDays * 24 * 60 * 60 * 1000
+          const entries = fs.readdirSync(dir)
+          for (const f of entries) {
+            const full = path.join(dir, f)
+            const st = fs.statSync(full)
+            if (st.isFile() && st.mtimeMs < cutoff) fs.unlinkSync(full)
+          }
+        } catch {}
+      }
+
+      if (cron && cron.schedule) {
+        // Check every 5 minutes whether backup is due
+        cron.schedule('*/5 * * * *', runBackupIfDue)
+        console.log('⏱️ node-cron scheduler initialized (*/5 * * * *).')
+      } else {
+        setInterval(runBackupIfDue, 5 * 60 * 1000)
+        console.log('⏱️ setInterval scheduler initialized (5 min).')
+      }
+    } catch (e) {
+      console.error('Scheduler init error:', e)
+    }
   })
 }) 
