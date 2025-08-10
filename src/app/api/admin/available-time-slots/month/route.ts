@@ -10,7 +10,8 @@ export async function GET(req: NextRequest) {
 
     const { searchParams } = new URL(req.url)
     const month = searchParams.get('month') // Format: YYYY-MM
-    const limit = parseInt(searchParams.get('limit') || '20')
+    const limit = parseInt(searchParams.get('limit') || '0')
+    const serviceDuration = parseInt(searchParams.get('serviceDuration') || '30')
 
     if (!month) {
       return NextResponse.json({ error: 'Month is required (format: YYYY-MM)' }, { status: 400 })
@@ -22,14 +23,15 @@ export async function GET(req: NextRequest) {
 
     // Parse month
     const [year, monthNum] = month.split('-').map(Number)
-    const endDate = new Date(year, monthNum, 0) // Last day of the month
+    // Use local time boundaries to avoid UTC off-by-one
+    const endDate = new Date(year, monthNum, 0)
 
     const allSlots: Array<{ time: string; date: string }> = []
 
     // Iterate through each day of the month
     for (let day = 1; day <= endDate.getDate(); day++) {
       const currentDate = new Date(year, monthNum - 1, day)
-      const dateStr = currentDate.toISOString().split('T')[0]
+      const dateStr = `${currentDate.getFullYear()}-${String(currentDate.getMonth() + 1).padStart(2, '0')}-${String(currentDate.getDate()).padStart(2, '0')}`
 
       // Skip weekends (Saturday = 6, Sunday = 0)
       const dayOfWeek = currentDate.getDay()
@@ -47,20 +49,25 @@ export async function GET(req: NextRequest) {
       
       let workingStart = '09:00'
       let workingEnd = '18:00'
-      let isWorkingDay = true
+      let isWorkingDay = false
       let breakStart = null
       let breakEnd = null
 
       if (workingHoursResult.rows.length > 0) {
         const workingHours = workingHoursResult.rows[0]
-        if (!workingHours.is_working_day) {
-          isWorkingDay = false
-        } else {
+        if (workingHours.is_working_day) {
+          isWorkingDay = true
           workingStart = workingHours.start_time || '09:00'
           workingEnd = workingHours.end_time || '18:00'
           breakStart = workingHours.break_start
           breakEnd = workingHours.break_end
         }
+      } else {
+        // If no working hours record exists, assume it's a working day with default hours
+        // This handles the case where working_hours table is empty
+        isWorkingDay = true
+        workingStart = '09:00'
+        workingEnd = '18:00'
       }
 
       if (!isWorkingDay) {
@@ -91,7 +98,7 @@ export async function GET(req: NextRequest) {
         const minute = timeInMinutes % 60
         
         // Check if this slot + service duration fits within working hours
-        if (timeInMinutes + 30 <= endTimeInMinutes) { // Default 30 min service
+        if (timeInMinutes + serviceDuration <= endTimeInMinutes) {
           const timeString = `${hour.toString().padStart(2, '0')}:${minute.toString().padStart(2, '0')}`
           allTimeSlots.push(timeString)
         }
@@ -100,13 +107,12 @@ export async function GET(req: NextRequest) {
       // Filter out slots that conflict with existing bookings and break time
       const availableSlots = allTimeSlots.filter(slot => {
         const slotStartInMinutes = convertTimeToMinutes(slot)
-        const slotEndInMinutes = slotStartInMinutes + 30 // Default 30 min service
+        const slotEndInMinutes = slotStartInMinutes + serviceDuration
 
-        // Check if this slot conflicts with break time
+        // Check if this slot conflicts with break time (single window)
         if (breakStart && breakEnd) {
           const breakStartInMinutes = convertTimeToMinutes(breakStart)
           const breakEndInMinutes = convertTimeToMinutes(breakEnd)
-          
           if (slotStartInMinutes < breakEndInMinutes && slotEndInMinutes > breakStartInMinutes) {
             return false // Conflicts with break time
           }
