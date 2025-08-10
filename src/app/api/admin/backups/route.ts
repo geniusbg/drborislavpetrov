@@ -67,7 +67,7 @@ export async function GET(request: NextRequest) {
       : path.join(process.cwd(), cfg.backupLocation)
     ensureDir(dir)
 
-    const files = fs.readdirSync(dir)
+    const filesRaw = fs.readdirSync(dir)
       .filter((f) => fs.statSync(path.join(dir, f)).isFile())
       .map((f) => {
         const stat = fs.statSync(path.join(dir, f))
@@ -80,6 +80,13 @@ export async function GET(request: NextRequest) {
         }
       })
       .sort((a, b) => b.mtime - a.mtime)
+
+    const files = filesRaw.map((file) => ({
+      name: file.name,
+      size: file.size,
+      date: file.date,
+      age: file.age,
+    }))
 
     const stats = {
       totalBackups: files.length,
@@ -129,15 +136,12 @@ export async function POST(request: NextRequest) {
     const filePath = path.join(dir, `backup-${stamp}.${ext}`)
 
     let stderrBuf = ''
-    let stdoutBuf = ''
     try {
       await new Promise<void>((resolve, reject) => {
         const child = spawn('pg_dump', ['-h', host, '-p', String(port), '-U', user, '-F', fmt, '-b', '-v', '-f', filePath, db], {
           env: { ...process.env, PGPASSWORD: pass },
         })
         child.stdout?.on('data', (d) => {
-          const s = d.toString()
-          stdoutBuf += s
           process.stdout.write(d)
         })
         child.stderr?.on('data', (d) => {
@@ -151,8 +155,8 @@ export async function POST(request: NextRequest) {
         })
         child.on('error', reject)
       })
-    } catch (e) {
-      const msg = (e && (e as any).message) || 'pg_dump failed'
+    } catch (e: unknown) {
+      const msg = e instanceof Error ? e.message : String(e)
       return NextResponse.json({ error: 'Backup failed', details: stderrBuf || msg }, { status: 500 })
     }
 
