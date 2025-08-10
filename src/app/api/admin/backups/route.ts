@@ -98,7 +98,7 @@ export async function GET(request: NextRequest) {
       retentionDays: cfg.retentionDays,
     }
 
-    return NextResponse.json({ backups: files.map(({ mtime, ...rest }) => rest), stats })
+    return NextResponse.json({ backups: files, stats })
   } catch (error) {
     console.error('Error listing backups:', error)
     return NextResponse.json({ error: 'Internal server error' }, { status: 500 })
