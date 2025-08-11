@@ -838,10 +838,13 @@ export default function AdminPage() {
   const filteredUsers = useMemo(() => {
     const searchTerm = userSearchTerm.toLowerCase()
     return users.filter(user => {
+      const name = (user.name || '').toLowerCase()
+      const phone = (user.phone || '').toLowerCase()
+      const email = (user.email || '').toLowerCase()
       return (
-        user.name.toLowerCase().includes(searchTerm) ||
-        user.phone.toLowerCase().includes(searchTerm) ||
-        (user.email && user.email.toLowerCase().includes(searchTerm))
+        name.includes(searchTerm) ||
+        phone.includes(searchTerm) ||
+        email.includes(searchTerm)
       )
     })
   }, [users, userSearchTerm])
@@ -2261,7 +2264,7 @@ export default function AdminPage() {
             name: '',
             phone: '',
             email: '',
-            service: '1',
+            service: '',
             serviceName: '',
             serviceDuration: 30,
             time: time,
