@@ -25,6 +25,15 @@ const Booking = () => {
   const [availableSlots, setAvailableSlots] = useState<string[]>([])
   const [isLoadingSlots, setIsLoadingSlots] = useState(false)
   const [minDate, setMinDate] = useState('')
+  const isServiceSelected = !!bookingData.service
+  const isDateSelected = !!bookingData.date
+  const timePlaceholder = isLoadingSlots
+    ? 'Зареждане...'
+    : !isServiceSelected
+      ? 'Първо изберете услуга'
+      : !isDateSelected
+        ? 'Първо изберете дата'
+        : (availableSlots.length === 0 ? 'Няма свободни часове' : 'Изберете час')
 
   // Load services on mount
   useEffect(() => {
@@ -283,10 +292,10 @@ const Booking = () => {
                                 onChange={handleChange}
                                 required
                                 className={`input-field pl-10 ${errors.time ? 'border-red-500' : ''}`}
-                                disabled={isLoadingSlots}
+                                disabled={!isServiceSelected || !isDateSelected || isLoadingSlots}
                               >
                                 <option value="">
-                                  {isLoadingSlots ? 'Зареждане...' : 'Изберете час'}
+                                  {timePlaceholder}
                                 </option>
                                 {availableSlots.map((time) => (
                                   <option key={time} value={time}>
