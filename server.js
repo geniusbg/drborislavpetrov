@@ -24,11 +24,31 @@ app.prepare().then(() => {
     }
   })
 
+  // Resolve site domain from settings/env for CORS
+  function getSiteDomainServer() {
+    try {
+      const fs = require('fs')
+      const path = require('path')
+      const SETTINGS_FILE = path.join(process.cwd(), 'app-settings.json')
+      if (fs.existsSync(SETTINGS_FILE)) {
+        const raw = fs.readFileSync(SETTINGS_FILE, 'utf8')
+        const json = JSON.parse(raw)
+        if (json?.site?.domain && typeof json.site.domain === 'string') {
+          return String(json.site.domain).replace(/\/$/, '')
+        }
+      }
+    } catch {}
+    if (process.env.SITE_DOMAIN) return String(process.env.SITE_DOMAIN).replace(/\/$/, '')
+    return 'http://localhost:3000'
+  }
+
+  const siteDomain = getSiteDomainServer()
+
   // Create Socket.io server with improved CORS settings
   const io = new Server(server, {
     cors: {
       origin: process.env.NODE_ENV === 'production' 
-        ? ["https://yourdomain.com", "https://www.yourdomain.com"] // Replace with actual domain
+        ? [siteDomain, siteDomain.replace('://www.', '://'), siteDomain.replace('://', '://www.')] 
         : ["http://localhost:3000", "http://127.0.0.1:3000"],
       methods: ["GET", "POST"],
       credentials: true,

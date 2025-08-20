@@ -102,13 +102,22 @@ const Booking = () => {
     }
 
     try {
+      // Normalize phone on client to help UX
+      const phoneDigits = (bookingData.phone || '').replace(/\D/g, '')
+      let phoneE164 = bookingData.phone
+      if (phoneDigits.startsWith('0')) {
+        phoneE164 = '+359' + phoneDigits.replace(/^0+/, '')
+      } else if (!bookingData.phone.startsWith('+') && phoneDigits.length === 9) {
+        phoneE164 = '+359' + phoneDigits
+      }
+      const payload = { ...bookingData, phone: phoneE164 }
       const response = await fetch('/api/booking', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
           // 'x-csrf-token': csrfToken // временно изключено
         },
-        body: JSON.stringify(bookingData)
+        body: JSON.stringify(payload)
       })
 
       const result = await response.json()

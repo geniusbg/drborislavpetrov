@@ -98,8 +98,9 @@ class QADashboard {
       const { exec } = require('child_process');
       
       // Проверяваме дали server-ът работи
+      const base = process.env.SITE_DOMAIN || 'http://localhost:3000'
       const testServer = new Promise((resolve) => {
-        exec('curl -s http://localhost:3000/api/admin/bugs -H "x-admin-token: admin-token"', (error, stdout, stderr) => {
+        exec(`curl -s ${base}/api/admin/bugs -H "x-admin-token: admin-token"`, (error, stdout, stderr) => {
           if (error) {
             console.log('❌ Server-ът не работи! Стартирайте го с: npm run dev');
             resolve(false);
@@ -245,7 +246,8 @@ class QADashboard {
     console.log('🔍 Проверявам server статус...');
     
     const { exec } = require('child_process');
-    exec('curl -s http://localhost:3000/api/admin/bugs -H "x-admin-token: admin-token"', (error, stdout, stderr) => {
+    const base = process.env.SITE_DOMAIN || 'http://localhost:3000'
+    exec(`curl -s ${base}/api/admin/bugs -H "x-admin-token: admin-token"`, (error, stdout, stderr) => {
       if (error) {
         console.log('❌ Server-ът не работи!');
         console.log('💡 Стартирайте го с: npm run dev');

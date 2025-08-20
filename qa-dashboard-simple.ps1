@@ -78,7 +78,8 @@ function Start-AutomatedTest {
     Write-Host "Checking if server is running..." -ForegroundColor Cyan
     
     try {
-        $response = Invoke-WebRequest -Uri "http://localhost:3000/api/admin/bugs" -Headers @{"x-admin-token"="admin-token"} -ErrorAction Stop
+        $base = if ($env:SITE_DOMAIN) { $env:SITE_DOMAIN } else { "http://localhost:3000" }
+        Invoke-WebRequest -Uri "$base/api/admin/bugs" -Headers @{"x-admin-token"="admin-token"} -ErrorAction Stop | Out-Null
         Write-Host "OK: Server is running!" -ForegroundColor Green
         
         Write-Host "Starting automated QA test..." -ForegroundColor Yellow
@@ -256,7 +257,8 @@ function Check-TestStatus {
     Write-Host "Checking server status..." -ForegroundColor Cyan
     
     try {
-        $response = Invoke-WebRequest -Uri "http://localhost:3000/api/admin/bugs" -Headers @{"x-admin-token"="admin-token"} -ErrorAction Stop
+        $base = if ($env:SITE_DOMAIN) { $env:SITE_DOMAIN } else { "http://localhost:3000" }
+        Invoke-WebRequest -Uri "$base/api/admin/bugs" -Headers @{"x-admin-token"="admin-token"} -ErrorAction Stop | Out-Null
         Write-Host "OK: Server is running!" -ForegroundColor Green
     } catch {
         Write-Host "ERROR: Server is not running!" -ForegroundColor Red

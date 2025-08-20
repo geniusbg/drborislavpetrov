@@ -125,6 +125,8 @@ secrets/
 *.bak
 *.backup
 backups/
+app-settings.json
+backup-config.json
 backup-*.json
 
 # QA and test files

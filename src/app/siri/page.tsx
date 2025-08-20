@@ -14,7 +14,7 @@ const SiriShortcutsPage = () => {
       description: 'Създава нова резервация за пациент',
       icon: Calendar,
       color: 'bg-blue-500',
-      url: 'http://localhost:3000/api/siri/create-booking'
+      url: `/api/siri/create-booking`
     },
     {
       id: 'confirm_booking',
@@ -22,7 +22,7 @@ const SiriShortcutsPage = () => {
       description: 'Потвърждава чакаща резервация',
       icon: CheckCircle,
       color: 'bg-green-500',
-      url: 'http://localhost:3000/api/siri/confirm-booking'
+      url: `/api/siri/confirm-booking`
     },
     {
       id: 'cancel_booking',
@@ -30,7 +30,7 @@ const SiriShortcutsPage = () => {
       description: 'Отменя резервация',
       icon: XCircle,
       color: 'bg-red-500',
-      url: 'http://localhost:3000/api/siri/cancel-booking'
+      url: `/api/siri/cancel-booking`
     },
     {
       id: 'get_bookings',
@@ -38,7 +38,7 @@ const SiriShortcutsPage = () => {
       description: 'Показва чакащи резервации',
       icon: Users,
       color: 'bg-purple-500',
-      url: 'http://localhost:3000/api/siri/get-bookings'
+      url: `/api/siri/get-bookings`
     },
     {
       id: 'create_user',
@@ -46,7 +46,7 @@ const SiriShortcutsPage = () => {
       description: 'Създава нов потребител',
       icon: Users,
       color: 'bg-indigo-500',
-      url: 'http://localhost:3000/api/siri/create-user'
+      url: `/api/siri/create-user`
     },
     {
       id: 'update_user',
@@ -54,7 +54,7 @@ const SiriShortcutsPage = () => {
       description: 'Редактира съществуващ потребител',
       icon: Users,
       color: 'bg-yellow-500',
-      url: 'http://localhost:3000/api/siri/update-user'
+      url: `/api/siri/update-user`
     },
     {
       id: 'delete_user',
@@ -62,7 +62,7 @@ const SiriShortcutsPage = () => {
       description: 'Изтрива потребител',
       icon: Users,
       color: 'bg-red-600',
-      url: 'http://localhost:3000/api/siri/delete-user'
+      url: `/api/siri/delete-user`
     }
   ]
 

@@ -303,11 +303,7 @@ const NextBookingNotification = ({ currentTime }: NextBookingNotificationProps) 
     setIsVisible(false)
   }
 
-  const handleSnooze5 = () => {
-    snoozeUntilRef.current = Date.now() + 5 * 60 * 1000
-    setIsVisible(false)
-    setIsDismissed(true)
-  }
+  // Snooze disabled per request
 
   const handleMuteToday = () => {
     if (!nextBooking) return
@@ -377,13 +373,7 @@ const NextBookingNotification = ({ currentTime }: NextBookingNotificationProps) 
           </div>
         </div>
         <div className="flex items-center gap-1">
-          <button
-            onClick={handleSnooze5}
-            className="text-xs px-2 py-1 rounded bg-white/20 hover:bg-white/30 transition-colors"
-            title="Отложи с 5 мин"
-          >
-            +5 мин
-          </button>
+          {/* Snooze button removed */}
           <button
             onClick={handleMuteToday}
             className="text-xs px-2 py-1 rounded bg-white/20 hover:bg-white/30 transition-colors"

@@ -459,11 +459,12 @@ const QuickResponseWidget: React.FC<QuickResponseWidgetProps> = ({ onClose, onCr
 
   return (
     <>
-      {/* Floating Button */}
+      {/* Floating Button (responsive, avoids overlapping header/actions) */}
       <button
         onClick={() => setIsOpen(true)}
-        className="fixed top-4 right-4 z-50 bg-green-600 hover:bg-green-700 text-white p-3 rounded-full shadow-lg transition-all duration-200 hover:scale-110 flex items-center space-x-2"
+        className="fixed bottom-4 right-4 sm:right-20 z-50 bg-green-600 hover:bg-green-700 text-white p-3 sm:p-4 rounded-full shadow-lg transition-all duration-200 hover:scale-110 flex items-center space-x-2"
         title="Бързо реагиране - свободни часове"
+        aria-label="Бързо реагиране"
       >
         <Phone className="w-5 h-5" />
         <Clock className="w-5 h-5" />

@@ -1,4 +1,5 @@
 import type { Metadata, Viewport } from 'next'
+import { getSiteDomain } from '@/lib/site'
 import { Inter } from 'next/font/google'
 import './globals.css'
 import Script from 'next/script'
@@ -6,15 +7,19 @@ import Script from 'next/script'
 
 const inter = Inter({ subsets: ['latin'] })
 
-export const metadata: Metadata = {
-  title: 'Д-р Борислав Петров - Стоматология',
-  description: 'Професионална стоматологична практика в София',
-  manifest: '/manifest.json',
-  appleWebApp: {
-    capable: true,
-    statusBarStyle: 'default',
-    title: 'Админ Панел',
-  },
+export async function generateMetadata(): Promise<Metadata> {
+  const base = getSiteDomain()
+  return {
+    title: 'Д-р Борислав Петров - Стоматология',
+    description: 'Професионална стоматологична практика в София',
+    manifest: '/manifest.json',
+    appleWebApp: {
+      capable: true,
+      statusBarStyle: 'default',
+      title: 'Админ Панел',
+    },
+    metadataBase: new URL(base),
+  }
 }
 
 export const viewport: Viewport = {
