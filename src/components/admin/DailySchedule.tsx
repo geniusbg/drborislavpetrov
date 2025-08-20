@@ -4,7 +4,7 @@
 // AdminPage no longer has booking logic, eliminating conflicts
 
 import { useState, useEffect, useCallback, useMemo, useRef } from 'react'
-import { Clock, User, Phone, Calendar, X, Edit, Plus } from 'lucide-react'
+import { User, Phone, Calendar, X, Edit, Plus } from 'lucide-react'
 import BookingForm from './BookingForm'
 import { useSocket } from '@/hooks/useSocket'
 import type { Booking, WorkingHours } from '@/types/global'
