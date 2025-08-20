@@ -943,11 +943,7 @@ export default function AdminPage() {
                 <Calendar className="w-5 h-5 sm:w-6 sm:h-6 text-white" />
               </div>
               <div className="text-white">
-                <div className="flex items-center text-xs sm:text-sm text-blue-100 space-x-2">
-                  <span className="hidden sm:inline">Админ</span>
-                  <span className="hidden sm:inline">/</span>
-                  <span className="font-medium">Табло</span>
-                </div>
+                <div className="flex items-center text-xs sm:text-sm text-blue-100 space-x-2" />
                 <h1 className="text-xl sm:text-2xl lg:text-3xl font-bold">Администрация</h1>
               </div>
             </div>
@@ -1032,64 +1028,7 @@ export default function AdminPage() {
       {!isLoading && (
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4 sm:py-8">
           
-          {/* Statistics Cards - Beautiful Modern Design */}
-          <div className="grid grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
-            <div className="bg-gradient-to-br from-blue-500 to-blue-600 rounded-2xl shadow-xl p-6 text-white hover:shadow-2xl transition-all duration-300 hover:scale-105">
-              <div className="flex items-center justify-between">
-                <div>
-                  <p className="text-sm font-medium text-blue-100">Общо резервации</p>
-                  <p className="text-3xl font-bold text-white">{bookings.length}</p>
-                  <p className="text-xs text-blue-200 mt-1">Активни записи</p>
-                </div>
-                <div className="p-4 bg-white/20 rounded-xl backdrop-blur-sm">
-                  <Calendar className="w-8 h-8 text-white" />
-                </div>
-              </div>
-            </div>
-            
-            <div className="bg-gradient-to-br from-green-500 to-emerald-600 rounded-2xl shadow-xl p-6 text-white hover:shadow-2xl transition-all duration-300 hover:scale-105">
-              <div className="flex items-center justify-between">
-                <div>
-                  <p className="text-sm font-medium text-green-100">Потвърдени</p>
-                  <p className="text-3xl font-bold text-white">
-                    {bookings.filter(b => b.status === 'confirmed').length}
-                  </p>
-                  <p className="text-xs text-green-200 mt-1">Одобрени записи</p>
-                </div>
-                <div className="p-4 bg-white/20 rounded-xl backdrop-blur-sm">
-                  <Clock className="w-8 h-8 text-white" />
-                </div>
-              </div>
-            </div>
-            
-            <div className="bg-gradient-to-br from-yellow-500 to-orange-500 rounded-2xl shadow-xl p-6 text-white hover:shadow-2xl transition-all duration-300 hover:scale-105">
-              <div className="flex items-center justify-between">
-                <div>
-                  <p className="text-sm font-medium text-yellow-100">Чакащи</p>
-                  <p className="text-3xl font-bold text-white">
-                    {bookings.filter(b => b.status === 'pending').length}
-                  </p>
-                  <p className="text-xs text-yellow-200 mt-1">В процес</p>
-                </div>
-                <div className="p-4 bg-white/20 rounded-xl backdrop-blur-sm">
-                  <TrendingUp className="w-8 h-8 text-white" />
-                </div>
-              </div>
-            </div>
-            
-            <div className="bg-gradient-to-br from-purple-500 to-pink-600 rounded-2xl shadow-xl p-6 text-white hover:shadow-2xl transition-all duration-300 hover:scale-105">
-              <div className="flex items-center justify-between">
-                <div>
-                  <p className="text-sm font-medium text-purple-100">Потребители</p>
-                  <p className="text-3xl font-bold text-white">{users.length}</p>
-                  <p className="text-xs text-purple-200 mt-1">Регистрирани</p>
-                </div>
-                <div className="p-4 bg-white/20 rounded-xl backdrop-blur-sm">
-                  <Users className="w-8 h-8 text-white" />
-                </div>
-              </div>
-            </div>
-          </div>
+
 
           {/* Tabs - Mobile Optimized Design */}
           <div className="bg-white rounded-xl shadow-sm border border-gray-100 mb-8">
@@ -2232,13 +2171,14 @@ export default function AdminPage() {
       )}
 
       {/* Floating Voice Button */}
-      <div className="fixed bottom-4 right-4 z-50">
+      <div className="fixed z-50 right-4 bottom-20 sm:bottom-4">
         <button
           onClick={() => setShowVoiceInterface(!showVoiceInterface)}
-          className="bg-blue-600 hover:bg-blue-700 text-white p-4 rounded-full shadow-lg transition-all duration-200 hover:scale-110"
+          className="bg-blue-600 hover:bg-blue-700 text-white p-3 sm:p-4 rounded-full shadow-lg transition-all duration-200 hover:scale-110"
           title="Гласови команди"
+          aria-label="Гласови команди"
         >
-          <Mic className="w-6 h-6" />
+          <Mic className="w-5 h-5 sm:w-6 sm:h-6" />
         </button>
       </div>
 

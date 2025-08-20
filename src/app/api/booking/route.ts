@@ -1,14 +1,16 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { getDatabase } from '@/lib/database'
+import { normalizePhoneE164, sanitizePhoneDigits } from '@/lib/phone'
 import { sendBookingConfirmation, sendAdminNotification } from '@/lib/email'
 
 export async function POST(request: NextRequest) {
   try {
     const body = await request.json()
     const { name, email, phone, service, date, time, message } = body
+    const phoneE164 = normalizePhoneE164(phone, process.env.DEFAULT_COUNTRY || 'BG')
 
     // Validate required fields - phone is mandatory for public bookings
-    if (!name || !phone || !service || !date || !time) {
+    if (!name || !phoneE164 || !service || !date || !time) {
       return NextResponse.json(
         { error: 'Всички задължителни полета трябва да бъдат попълнени' },
         { status: 400 }
@@ -18,7 +20,7 @@ export async function POST(request: NextRequest) {
     const db = await getDatabase()
 
     // Check if user exists by phone number
-    let user = await db.query('SELECT * FROM users WHERE phone = $1', [phone])
+    let user = await db.query("SELECT * FROM users WHERE right(regexp_replace(coalesce(phone, ''), '[^0-9]', '', 'g'), 9) = $1", [sanitizePhoneDigits(phoneE164).slice(-9)])
     
     if (user.rows.length === 0) {
       // Create new user
@@ -26,7 +28,7 @@ export async function POST(request: NextRequest) {
         INSERT INTO users (name, email, phone)
         VALUES ($1, $2, $3)
         RETURNING id
-      `, [name, email || null, phone])
+      `, [name, email || null, phoneE164])
       
       // Update user variable with the new user data
       user = await db.query('SELECT * FROM users WHERE id = $1', [userResult.rows[0].id])
@@ -99,7 +101,7 @@ export async function POST(request: NextRequest) {
       INSERT INTO bookings (name, email, phone, service, serviceduration, date, time, message, status)
       VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9)
       RETURNING id
-    `, [name, email || null, phone, serviceDetails.rows[0].name, serviceDetails.rows[0].duration, date, time, message || null, 'pending'])
+    `, [name, email || null, phoneE164, serviceDetails.rows[0].name, serviceDetails.rows[0].duration, date, time, message || null, 'pending'])
 
     const bookingId = result.rows[0].id
 

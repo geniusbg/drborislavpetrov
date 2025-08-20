@@ -13,6 +13,7 @@ import {
   LineChart,
   Line
 } from 'recharts'
+import { Calendar, Clock, TrendingUp, Users } from 'lucide-react'
 
 interface AnalyticsData {
   bookingsByPeriod: Array<{
@@ -163,7 +164,7 @@ export default function AnalyticsDashboard() {
       <div className="max-w-7xl mx-auto">
         {/* Header */}
         <div className="mb-8">
-          <h1 className="text-3xl font-bold text-gray-900 mb-4">Аналитикс Табло</h1>
+          <h1 className="text-3xl font-bold text-gray-900 mb-4">Аналитика</h1>
           
           {/* Period Selector */}
           <div className="flex gap-2 mb-6">
@@ -182,23 +183,58 @@ export default function AnalyticsDashboard() {
             ))}
           </div>
 
-          {/* Overall Stats Cards */}
+          {/* Overall Stats Cards - Beautiful Modern Design */}
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
-            <div className="bg-white p-6 rounded-lg shadow">
-              <h3 className="text-sm font-medium text-gray-500">Общо резервации</h3>
-              <p className="text-3xl font-bold text-gray-900">{data.overallStats.totalbookings}</p>
+            <div className="bg-gradient-to-br from-blue-500 to-blue-600 rounded-2xl shadow-xl p-6 text-white hover:shadow-2xl transition-all duration-300 hover:scale-105">
+              <div className="flex items-center justify-between">
+                <div>
+                  <p className="text-sm font-medium text-blue-100">Общо резервации</p>
+                  <p className="text-3xl font-bold text-white">{data.overallStats.totalbookings}</p>
+                  <p className="text-xs text-blue-200 mt-1">Активни записи</p>
+                </div>
+                <div className="p-4 bg-white/20 rounded-xl backdrop-blur-sm">
+                  <Calendar className="w-8 h-8 text-white" />
+                </div>
+              </div>
             </div>
-            <div className="bg-white p-6 rounded-lg shadow">
-              <h3 className="text-sm font-medium text-gray-500">Потвърдени</h3>
-              <p className="text-3xl font-bold text-green-600">{data.overallStats.confirmedbookings}</p>
+            
+            <div className="bg-gradient-to-br from-green-500 to-emerald-600 rounded-2xl shadow-xl p-6 text-white hover:shadow-2xl transition-all duration-300 hover:scale-105">
+              <div className="flex items-center justify-between">
+                <div>
+                  <p className="text-sm font-medium text-green-100">Потвърдени</p>
+                  <p className="text-3xl font-bold text-white">{data.overallStats.confirmedbookings}</p>
+                  <p className="text-xs text-green-200 mt-1">Одобрени записи</p>
+                </div>
+                <div className="p-4 bg-white/20 rounded-xl backdrop-blur-sm">
+                  <Clock className="w-8 h-8 text-white" />
+                </div>
+              </div>
             </div>
-            <div className="bg-white p-6 rounded-lg shadow">
-              <h3 className="text-sm font-medium text-gray-500">Отменени</h3>
-              <p className="text-3xl font-bold text-red-600">{data.overallStats.cancelledbookings}</p>
+            
+            <div className="bg-gradient-to-br from-yellow-500 to-orange-500 rounded-2xl shadow-xl p-6 text-white hover:shadow-2xl transition-all duration-300 hover:scale-105">
+              <div className="flex items-center justify-between">
+                <div>
+                  <p className="text-sm font-medium text-yellow-100">Чакащи</p>
+                  <p className="text-3xl font-bold text-white">{data.overallStats.pendingbookings}</p>
+                  <p className="text-xs text-yellow-200 mt-1">В процес</p>
+                </div>
+                <div className="p-4 bg-white/20 rounded-xl backdrop-blur-sm">
+                  <TrendingUp className="w-8 h-8 text-white" />
+                </div>
+              </div>
             </div>
-            <div className="bg-white p-6 rounded-lg shadow">
-              <h3 className="text-sm font-medium text-gray-500">Общо потребители</h3>
-              <p className="text-3xl font-bold text-blue-600">{data.overallStats.totalusers}</p>
+            
+            <div className="bg-gradient-to-br from-purple-500 to-pink-600 rounded-2xl shadow-xl p-6 text-white hover:shadow-2xl transition-all duration-300 hover:scale-105">
+              <div className="flex items-center justify-between">
+                <div>
+                  <p className="text-sm font-medium text-purple-100">Потребители</p>
+                  <p className="text-3xl font-bold text-white">{data.overallStats.totalusers}</p>
+                  <p className="text-xs text-purple-200 mt-1">Регистрирани</p>
+                </div>
+                <div className="p-4 bg-white/20 rounded-xl backdrop-blur-sm">
+                  <Users className="w-8 h-8 text-white" />
+                </div>
+              </div>
             </div>
           </div>
         </div>

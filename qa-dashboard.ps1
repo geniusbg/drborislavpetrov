@@ -78,7 +78,8 @@ function Start-AutomatedTest {
     Write-Host "🔍 Проверявам дали server-ът работи..." -ForegroundColor Cyan
     
     try {
-        $response = Invoke-WebRequest -Uri "http://localhost:3000/api/admin/bugs" -Headers @{"x-admin-token"="admin-token"} -ErrorAction Stop
+        $base = if ($env:SITE_DOMAIN) { $env:SITE_DOMAIN } else { "http://localhost:3000" }
+        Invoke-WebRequest -Uri "$base/api/admin/bugs" -Headers @{"x-admin-token"="admin-token"} -ErrorAction Stop | Out-Null
         Write-Host "✅ Server-ът работи!" -ForegroundColor Green
         
         Write-Host "🚀 Стартирам автоматизирания QA тест..." -ForegroundColor Yellow
@@ -157,7 +158,7 @@ function Show-QAGuides {
     }
 }
 
-function Cleanup-TestData {
+function Clear-TestData {
     Write-Host "`n🧹 === ИЗЧИСТВАНЕ НА ТЕСТОВИ ДАННИ ===`n" -ForegroundColor Yellow
     
     if (Test-Path 'CLEANUP_TEST_DATA.js') {
@@ -174,7 +175,7 @@ function Cleanup-TestData {
     }
 }
 
-function Generate-QAReport {
+function New-QAReport {
     Write-Host "`n📈 === ГЕНЕРИРАНЕ НА QA ОТЧЕТ ===`n" -ForegroundColor Yellow
     
     $report = @{
@@ -249,13 +250,14 @@ function Generate-QAReport {
     Write-Host "   - Ръководства: $($report.summary.availableGuides)/$($report.summary.totalGuides)" -ForegroundColor White
 }
 
-function Check-TestStatus {
+function Test-QAStatus {
     Write-Host "`n🔍 === ПРОВЕРКА НА СТАТУС НА ТЕСТОВЕ ===`n" -ForegroundColor Yellow
     
     Write-Host "🔍 Проверявам server статус..." -ForegroundColor Cyan
     
     try {
-        $response = Invoke-WebRequest -Uri "http://localhost:3000/api/admin/bugs" -Headers @{"x-admin-token"="admin-token"} -ErrorAction Stop
+        $base = if ($env:SITE_DOMAIN) { $env:SITE_DOMAIN } else { "http://localhost:3000" }
+        Invoke-WebRequest -Uri "$base/api/admin/bugs" -Headers @{"x-admin-token"="admin-token"} -ErrorAction Stop | Out-Null
         Write-Host "✅ Server-ът работи!" -ForegroundColor Green
     } catch {
         Write-Host "❌ Server-ът не работи!" -ForegroundColor Red

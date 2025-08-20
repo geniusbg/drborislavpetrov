@@ -101,7 +101,9 @@ async function runBreaksTest() {
     // Test 2: Check if bookings API returns breaks
     totalTests++
     await delay(500) // Add delay for realistic testing
-    const bookingsResponse = await fetch('http://localhost:3000/api/admin/bookings?date=2025-08-09', {
+    const { getSiteDomain } = await import('@/lib/site')
+    const base = getSiteDomain()
+    const bookingsResponse = await fetch(`${base}/api/admin/bookings?date=2025-08-09`, {
       headers: { 'x-admin-token': 'mock-token' }
     })
     

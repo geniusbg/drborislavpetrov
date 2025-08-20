@@ -121,6 +121,8 @@ const DailySchedule = ({ date, onClose, onEditWorkingHours, onEditBooking, onDel
     return () => document.removeEventListener('keydown', handleEscape)
   }, [showBookingForm, onClose])
 
+
+
   // WebSocket event listeners for real-time updates
   useEffect(() => {
     if (socket && isConnected && isSupported) {
@@ -853,7 +855,7 @@ const DailySchedule = ({ date, onClose, onEditWorkingHours, onEditBooking, onDel
   
   return (
     <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
-      <div className="bg-white rounded-lg p-6 w-full max-w-4xl mx-4 max-h-[90vh] overflow-y-auto">
+      <div className="bg-white rounded-lg p-6 w-full mx-4 max-h-[90vh] overflow-y-auto">
         <div className="flex items-center justify-between mb-6">
           <div>
             <h2 className="text-2xl font-bold text-gray-900">
@@ -870,18 +872,11 @@ const DailySchedule = ({ date, onClose, onEditWorkingHours, onEditBooking, onDel
           </div>
           <div className="flex space-x-2">
             <button
-              onClick={handleAddNewBooking}
-              className="px-3 py-2 text-sm font-medium text-white bg-green-600 rounded-md hover:bg-green-700 flex items-center space-x-2 transition-colors"
-            >
-              <Plus className="w-4 h-4" />
-              <span>Нова резервация</span>
-            </button>
-            <button
               onClick={onEditWorkingHours}
               className="px-3 py-2 text-sm font-medium text-primary-700 bg-primary-100 rounded-md hover:bg-primary-200 flex items-center space-x-2"
             >
               <Edit className="w-4 h-4" />
-              <span>Работно време</span>
+              <span>Промени работно време</span>
             </button>
             <button
               onClick={onClose}
@@ -893,52 +888,115 @@ const DailySchedule = ({ date, onClose, onEditWorkingHours, onEditBooking, onDel
         </div>
 
         {!schedule.workingHours.isWorkingDay ? (
-          <div className="text-center py-8">
-            <Calendar className="w-16 h-16 text-gray-400 mx-auto mb-4" />
-            <h3 className="text-xl font-semibold text-gray-900 mb-2">Почивен ден</h3>
-            {schedule.workingHours.notes && (
-              <p className="text-gray-600">{schedule.workingHours.notes}</p>
+          <div className="space-y-6">
+            {/* Header */}
+            <div className="text-center py-6">
+              <Calendar className="w-16 h-16 text-gray-400 mx-auto mb-4" />
+              <h3 className="text-xl font-semibold text-gray-900 mb-2">Почивен ден</h3>
+              {schedule.workingHours.notes && (
+                <p className="text-gray-600">{schedule.workingHours.notes}</p>
+              )}
+            </div>
+            
+            {/* Извънредни резервации */}
+            {schedule.bookings.length > 0 ? (
+              <div>
+                <div className="flex items-center justify-between mb-4">
+                  <h4 className="text-lg font-semibold text-gray-900">Извънредни резервации</h4>
+                  <button
+                    onClick={handleAddNewBooking}
+                    className="px-3 py-1 text-sm font-medium text-white bg-green-600 rounded-md hover:bg-green-700 flex items-center space-x-2 transition-colors"
+                  >
+                    <Plus className="w-4 h-4" />
+                    <span>Добави резервация</span>
+                  </button>
+                </div>
+                
+                <div className="space-y-3">
+                  {schedule.bookings.map((booking) => (
+                    <div
+                      key={booking.id}
+                      className={`p-4 rounded-lg border ${
+                        booking.status === 'cancelled' 
+                          ? 'bg-red-50 border-red-200' 
+                          : booking.status === 'pending'
+                          ? 'bg-yellow-50 border-yellow-200'
+                          : 'bg-green-50 border-green-200'
+                      }`}
+                    >
+                      <div className="flex items-center justify-between">
+                        <div className="flex items-center space-x-3">
+                          <span className="font-mono text-sm font-medium text-blue-600 bg-blue-100 px-2 py-1 rounded">
+                            {booking.time}
+                          </span>
+                          <div className="flex items-center space-x-2">
+                            <User className="w-4 h-4 text-green-600" />
+                            <span className="font-medium">{booking.name}</span>
+                            <Phone className="w-4 h-4 text-gray-500" />
+                            <span className="text-sm text-gray-600">{booking.phone}</span>
+                          </div>
+                        </div>
+                        <div className="flex items-center space-x-2">
+                          <div className="text-right">
+                            <div className="text-sm text-gray-600">
+                              {booking.serviceName || getServiceName(booking.service || '')}
+                            </div>
+                            <div className="text-xs text-gray-500">
+                              до {(() => {
+                                const [hours, minutes] = booking.time.split(':').map(Number)
+                                const duration = booking.serviceDuration || 30
+                                const endTimeInMinutes = hours * 60 + minutes + duration
+                                const endHour = Math.floor(endTimeInMinutes / 60) % 24
+                                const endMinute = endTimeInMinutes % 60
+                                return `${endHour.toString().padStart(2, '0')}:${endMinute.toString().padStart(2, '0')}`
+                              })()}
+                            </div>
+                            {booking.status === 'cancelled' && (
+                              <span className="text-xs text-red-600 font-medium">Отменена</span>
+                            )}
+                          </div>
+                          {onEditBooking && (
+                            <button
+                              onClick={() => handleEditBooking(booking)}
+                              disabled={loadingActions[`edit-${booking.id}`]}
+                              className={`p-2 text-gray-500 hover:text-blue-600 transition-colors rounded ${loadingActions[`edit-${booking.id}`] ? 'opacity-50 cursor-not-allowed' : ''}`}
+                              title="Редактирай резервация"
+                            >
+                              {loadingActions[`edit-${booking.id}`] ? (
+                                <div className="w-4 h-4 border-2 border-blue-600 border-t-transparent rounded-full animate-spin"></div>
+                              ) : (
+                                <Edit className="w-4 h-4" />
+                              )}
+                            </button>
+                          )}
+                        </div>
+                      </div>
+                      {booking.message && (
+                        <div className="mt-3 text-sm text-gray-500 bg-gray-50 p-2 rounded">
+                          {booking.message}
+                        </div>
+                      )}
+                    </div>
+                  ))}
+                </div>
+              </div>
+            ) : (
+              <div className="text-center py-4">
+                <p className="text-gray-500 mb-4">Няма извънредни резервации за този ден</p>
+                <button
+                  onClick={handleAddNewBooking}
+                  className="px-4 py-2 text-sm font-medium text-white bg-green-600 rounded-md hover:bg-green-700 flex items-center space-x-2 transition-colors"
+                >
+                  <Plus className="w-4 h-4" />
+                  <span>Добави извънредна резервация</span>
+                </button>
+              </div>
             )}
           </div>
         ) : (
           <div className="space-y-4">
-            {/* Working hours info */}
-            <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
-              <div className="flex items-center space-x-2 mb-2">
-                <Clock className="w-5 h-5 text-blue-600" />
-                <h3 className="font-semibold text-blue-900">Работно време</h3>
-              </div>
-              <div className="grid grid-cols-2 md:grid-cols-4 gap-4 text-sm">
-                <div>
-                  <span className="text-blue-700 font-medium">Начало:</span>
-                  <span className="ml-2">{schedule.workingHours.startTime}</span>
-                </div>
-                <div>
-                  <span className="text-blue-700 font-medium">Край:</span>
-                  <span className="ml-2">{schedule.workingHours.endTime}</span>
-                </div>
-                <div>
-                  <span className="text-blue-700 font-medium">Почивки:</span>
-                  <span className="ml-2">
-                    {schedule.workingHours.breaks && schedule.workingHours.breaks.length > 0 
-                      ? schedule.workingHours.breaks.map((breakItem, index) => 
-                          `${breakItem.startTime}-${breakItem.endTime}${index < schedule.workingHours.breaks.length - 1 ? ', ' : ''}`
-                        ).join('')
-                      : 'Няма почивки'
-                    }
-                  </span>
-                </div>
-                {schedule.workingHours.notes && (
-                  <div className="md:col-span-2">
-                    <span className="text-blue-700 font-medium">Бележки:</span>
-                    <span className="ml-2">{schedule.workingHours.notes}</span>
-                  </div>
-                )}
-              </div>
-            </div>
-
             {/* Time slots */}
-            <div className="space-y-4">
+            <div className="space-y-4 max-h-80 overflow-y-auto overscroll-contain">
               {/* Timeline with Hour Markers */}
               <div className="relative">
                 {/* Timeline Bar */}
@@ -1084,6 +1142,20 @@ const DailySchedule = ({ date, onClose, onEditWorkingHours, onEditBooking, onDel
                     const allBookings = schedule.bookings
                     
                     return allBookings.map((booking) => {
+                      // Check if booking is within working hours
+                      const [bookingHour, bookingMinute] = booking.time.split(':').map(Number)
+                      const [startHour, startMinute] = (schedule.workingHours.startTime || '09:00').split(':').map(Number)
+                      const [endHour, endMinute] = (schedule.workingHours.endTime || '18:00').split(':').map(Number)
+                      
+                      const bookingTimeMinutes = bookingHour * 60 + bookingMinute
+                      const startTimeMinutes = startHour * 60 + startMinute
+                      const endTimeMinutes = endHour * 60 + endMinute
+                      
+                      // Skip bookings outside working hours
+                      if (bookingTimeMinutes < startTimeMinutes || bookingTimeMinutes >= endTimeMinutes) {
+                        return null
+                      }
+                      
                       const slotStart = getSlotStartPercentage(booking.time)
                       
                       // Calculate end time based on service duration
@@ -1108,7 +1180,7 @@ const DailySchedule = ({ date, onClose, onEditWorkingHours, onEditBooking, onDel
                       return (
                         <div
                           key={`booking-${booking.id}-${booking.time}-${booking.serviceDuration || 30}`}
-                          className={`absolute ${colors.bg} ${booking.status === 'cancelled' ? 'h-full opacity-60' : 'h-full'} rounded cursor-pointer ${colors.hover} transition-all duration-300 shadow-lg border-2 ${colors.border} transform hover:scale-[1.02] hover:shadow-xl z-20`}
+                          className={`absolute ${colors.bg} ${booking.status === 'cancelled' ? 'h-full opacity-60' : 'h-full'} rounded cursor-pointer ${colors.hover} transition-all duration-300 shadow-lg border-2 ${colors.border} transform hover:scale-[1.02] hover:shadow-xl ${booking.status === 'cancelled' ? 'z-10' : 'z-30'}`}
                           style={{
                             left: `${slotStart}%`,
                             width: `${actualEndPercentage - slotStart}%`

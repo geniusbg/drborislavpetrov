@@ -31,15 +31,39 @@ const Calendar = ({ bookings, onBookingClick, onAddBooking, onNavigateToDailySch
   const [workingHoursFromDailySchedule, setWorkingHoursFromDailySchedule] = useState(false)
   const [dailyScheduleKey, setDailyScheduleKey] = useState(0)
   
+  // Mobile responsiveness state
+  const [screenSize, setScreenSize] = useState({ width: 0, height: 0 })
+  const [isMobile, setIsMobile] = useState(false)
+  const [isPortrait, setIsPortrait] = useState(false)
+  
+  // Detect screen size and orientation
+  useEffect(() => {
+    const updateScreenSize = () => {
+      setScreenSize({ width: window.innerWidth, height: window.innerHeight })
+      setIsMobile(window.innerWidth < 768)
+      setIsPortrait(window.innerHeight > window.innerWidth)
+    }
+    
+    updateScreenSize()
+    window.addEventListener('resize', updateScreenSize)
+    window.addEventListener('orientationchange', updateScreenSize)
+    
+    return () => {
+      window.removeEventListener('resize', updateScreenSize)
+      window.removeEventListener('orientationchange', updateScreenSize)
+    }
+  }, [])
+  
   // WebSocket connection for real-time updates
   const { socket, isConnected, isSupported, joinAdmin } = useSocket()
 
-  // Handle date from URL
+  // Handle date from URL - Block month navigation, only open DailySchedule
   useEffect(() => {
     if (selectedDateFromURL) {
       const date = new Date(selectedDateFromURL)
       if (!isNaN(date.getTime())) {
-        setCurrentDate(date)
+        // Don't change current month - only set selected date and open DailySchedule
+        // setCurrentDate(date) // BLOCKED - only arrow buttons can change months
         setSelectedDate(date)
         setShowDailySchedule(true)
       }
@@ -59,18 +83,19 @@ const Calendar = ({ bookings, onBookingClick, onAddBooking, onNavigateToDailySch
   }
 
   const onTouchEnd = () => {
-    if (!touchStart || !touchEnd) return
-    const distance = touchStart - touchEnd
-    const isLeftSwipe = distance > minSwipeDistance
-    const isRightSwipe = distance < -minSwipeDistance
+    // Touch navigation disabled - only arrow buttons can change months
+    // if (!touchStart || !touchEnd) return
+    // const distance = touchStart - touchEnd
+    // const isLeftSwipe = distance > minSwipeDistance
+    // const isRightSwipe = distance < -minSwipeDistance
 
-    if (isLeftSwipe) {
-      // Swipe left - next month
-      setCurrentDate(new Date(currentDate.getFullYear(), currentDate.getMonth() + 1, 1))
-    } else if (isRightSwipe) {
-      // Swipe right - previous month
-      setCurrentDate(new Date(currentDate.getFullYear(), currentDate.getMonth() - 1, 1))
-    }
+    // if (isLeftSwipe) {
+    //   // Swipe left - next month
+    //   setCurrentDate(new Date(currentDate.getFullYear(), currentDate.getMonth() + 1, 1))
+    // } else if (isRightSwipe) {
+    //   // Swipe right - previous month
+    //   setCurrentDate(new Date(currentDate.getFullYear(), currentDate.getMonth() - 1, 1))
+    // }
   }
 
   // Load working hours for current month
@@ -321,6 +346,48 @@ const Calendar = ({ bookings, onBookingClick, onAddBooking, onNavigateToDailySch
     }
   }
 
+  // Mobile calendar utilities
+  const getStatusDot = (status: string) => {
+    switch (status) {
+      case 'confirmed':
+        return 'bg-green-500'
+      case 'pending':
+        return 'bg-yellow-500'
+      case 'cancelled':
+        return 'bg-red-500'
+      default:
+        return 'bg-gray-500'
+    }
+  }
+
+  const getBookingIndicators = (date: Date) => {
+    const bookings = getBookingsForDate(date)
+    if (bookings.length === 0) return null
+
+    // For mobile compact view - show only dots
+    if (isMobile && isPortrait) {
+      return bookings.slice(0, 4).map((booking, index) => ({
+        status: booking.status,
+        index
+      }))
+    }
+
+    // For larger screens or landscape - show text info
+    return getRelevantBookings(date)
+  }
+
+  const getCellHeight = () => {
+    if (isMobile && isPortrait) return 'min-h-[60px]'
+    if (isMobile) return 'min-h-[80px]'
+    return 'min-h-[120px]'
+  }
+
+  const getCellPadding = () => {
+    if (isMobile && isPortrait) return 'p-1'
+    if (isMobile) return 'p-2'
+    return 'p-3'
+  }
+
   const handleDateClick = (date: Date) => {
     setSelectedDate(date)
     setShowDailySchedule(true)
@@ -440,14 +507,14 @@ const Calendar = ({ bookings, onBookingClick, onAddBooking, onNavigateToDailySch
   return (
     <div className="bg-gradient-to-br from-white via-blue-50 to-purple-50 rounded-2xl shadow-xl border border-white/50 backdrop-blur-sm">
       {/* Calendar Header - Modern Design */}
-      <div className="px-6 py-6 border-b border-white/20 bg-gradient-to-r from-blue-600/10 via-purple-600/10 to-pink-600/10">
-        <div className="flex items-center justify-between">
+      <div className="px-4 sm:px-6 py-4 sm:py-6 border-b border-white/20 bg-gradient-to-r from-blue-600/10 via-purple-600/10 to-pink-600/10">
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between space-y-4 sm:space-y-0">
           <div className="flex items-center space-x-3">
             <div className="p-3 bg-gradient-to-br from-blue-500 to-purple-600 rounded-xl shadow-lg">
               <CalendarIcon className="w-6 h-6 text-white" />
             </div>
             <div>
-              <h2 className="text-xl font-bold bg-gradient-to-r from-blue-600 to-purple-600 bg-clip-text text-transparent">
+              <h2 className="text-lg sm:text-xl font-bold bg-gradient-to-r from-blue-600 to-purple-600 bg-clip-text text-transparent">
                 Календар
               </h2>
               <p className="text-sm text-gray-600">Управление на резервации</p>
@@ -455,31 +522,31 @@ const Calendar = ({ bookings, onBookingClick, onAddBooking, onNavigateToDailySch
           </div>
           
           {/* Mobile: Touch-friendly navigation */}
-          <div className="flex items-center space-x-2">
+          <div className="flex items-center justify-center sm:justify-end space-x-2">
             <button
               onClick={() => handleMonthChange('prev')}
-              className="p-3 bg-white/80 hover:bg-white rounded-xl shadow-md hover:shadow-lg transition-all duration-200 touch-manipulation backdrop-blur-sm"
+              className="p-3 sm:p-4 bg-white/80 hover:bg-white rounded-xl shadow-md hover:shadow-lg transition-all duration-200 touch-manipulation backdrop-blur-sm min-w-[48px] min-h-[48px] flex items-center justify-center"
             >
-              <ChevronLeft className="w-5 h-5 text-gray-700" />
+              <ChevronLeft className="w-5 h-5 sm:w-6 sm:h-6 text-gray-700" />
             </button>
             
-            <div className="text-center min-w-[160px] sm:min-w-[200px]">
-              <h3 className="text-lg font-semibold text-gray-900">
+            <div className="text-center min-w-[140px] sm:min-w-[200px]">
+              <h3 className="text-base sm:text-lg font-semibold text-gray-900">
                 {monthNames[currentDate.getMonth()]} {currentDate.getFullYear()}
               </h3>
             </div>
             
             <button
               onClick={() => handleMonthChange('next')}
-              className="p-3 bg-white/80 hover:bg-white rounded-xl shadow-md hover:shadow-lg transition-all duration-200 touch-manipulation backdrop-blur-sm"
+              className="p-3 sm:p-4 bg-white/80 hover:bg-white rounded-xl shadow-md hover:shadow-lg transition-all duration-200 touch-manipulation backdrop-blur-sm min-w-[48px] min-h-[48px] flex items-center justify-center"
             >
-              <ChevronRight className="w-5 h-5 text-gray-700" />
+              <ChevronRight className="w-5 h-5 sm:w-6 sm:h-6 text-gray-700" />
             </button>
           </div>
         </div>
         
         {/* Status Filter - Modern Design */}
-        <div className="mt-6">
+        <div className="mt-4 sm:mt-6">
           <div className="flex space-x-2 overflow-x-auto scrollbar-hide">
             {[
               { key: 'all', label: 'Всички', color: 'from-gray-500 to-gray-600' },
@@ -490,7 +557,7 @@ const Calendar = ({ bookings, onBookingClick, onAddBooking, onNavigateToDailySch
               <button
                 key={status.key}
                 onClick={() => setStatusFilter(status.key)}
-                className={`flex-shrink-0 px-4 py-2 text-sm font-medium rounded-xl transition-all duration-200 shadow-md hover:shadow-lg ${
+                className={`flex-shrink-0 px-3 sm:px-4 py-2 sm:py-3 text-sm font-medium rounded-xl transition-all duration-200 shadow-md hover:shadow-lg min-h-[44px] ${
                   statusFilter === status.key
                     ? `bg-gradient-to-r ${status.color} text-white shadow-lg`
                     : 'bg-white/80 text-gray-700 hover:bg-white backdrop-blur-sm'
@@ -503,28 +570,29 @@ const Calendar = ({ bookings, onBookingClick, onAddBooking, onNavigateToDailySch
         </div>
       </div>
 
-      {/* Calendar Grid - Modern Design */}
+      {/* Calendar Grid - Mobile Responsive Design */}
       <div 
-        className="p-6"
+        className={`${isMobile ? 'p-2' : 'p-6'}`}
         onTouchStart={onTouchStart}
         onTouchMove={onTouchMove}
         onTouchEnd={onTouchEnd}
       >
-        {/* Day Headers - Modern Design */}
-        <div className="grid grid-cols-7 gap-0 mb-4">
+        {/* Day Headers - Mobile Responsive Design */}
+        <div className="grid grid-cols-7 gap-0 mb-2 sm:mb-4">
           {dayNames.map((day) => (
             <div key={day} className="text-center">
-              <div className="text-sm font-semibold text-gray-600 py-3 px-2 rounded-lg bg-gradient-to-br from-gray-50 to-gray-100">
+              <div className={`${isMobile ? 'text-xs py-2 px-1' : 'text-sm sm:text-base py-3 px-2'} font-semibold text-gray-600 rounded-lg bg-gradient-to-br from-gray-50 to-gray-100`}>
                 {day}
               </div>
             </div>
           ))}
         </div>
 
-        {/* Calendar Days - Modern Design */}
+        {/* Calendar Days - Mobile Responsive Design */}
         <div className="grid grid-cols-7 gap-1">
           {calendarDays.map((date, index) => {
             const bookings = getBookingsForDate(date)
+            const bookingIndicators = getBookingIndicators(date)
             const isSelected = selectedDate && selectedDate.getTime() === date.getTime()
             const workingHoursData = getWorkingHoursForDate(date)
             
@@ -533,7 +601,7 @@ const Calendar = ({ bookings, onBookingClick, onAddBooking, onNavigateToDailySch
                 key={index}
                 onClick={() => handleDateClick(date)}
                 className={`
-                  group relative min-h-[80px] sm:min-h-[100px] p-2 cursor-pointer transition-all duration-300
+                  group relative ${getCellHeight()} ${getCellPadding()} cursor-pointer transition-all duration-300
                   rounded-xl border-2 hover:border-blue-300 hover:shadow-lg
                   ${isToday(date) ? 'bg-gradient-to-br from-blue-500 to-purple-600 text-white shadow-xl border-blue-400 animate-pulse' : ''}
                   ${isSelected ? 'bg-gradient-to-br from-blue-100 to-purple-100 border-blue-300 shadow-lg' : ''}
@@ -544,80 +612,116 @@ const Calendar = ({ bookings, onBookingClick, onAddBooking, onNavigateToDailySch
                   touch-manipulation backdrop-blur-sm
                 `}
               >
-                {/* Date Number with Working Hours Indicator */}
-                <div className="flex items-center justify-between mb-2">
-                  <div className={`text-sm font-bold ${isToday(date) ? 'text-white' : ''}`}>
-                    {date.getUTCDate()}
-                  </div>
-                  
-                  <div className="flex items-center gap-1">
-                    {/* Today Indicator */}
-                    {isToday(date) && (
-                      <div className="w-2 h-2 bg-white rounded-full animate-bounce" title="Днешна дата"></div>
-                    )}
+                {/* Mobile Portrait - Compact Layout */}
+                {isMobile && isPortrait ? (
+                  <>
+                    {/* Date Number */}
+                    <div className="flex items-center justify-between mb-1">
+                      <div className={`text-lg font-bold ${isToday(date) ? 'text-white' : ''}`}>
+                        {date.getUTCDate()}
+                      </div>
+                      
+                      {/* Today Indicator */}
+                      {isToday(date) && (
+                        <div className="w-2 h-2 bg-white rounded-full animate-bounce" title="Днес"></div>
+                      )}
+                    </div>
                     
-                    {/* Working Hours Status */}
-                    {isCurrentMonth(date) && workingHoursData && (
-                      <div className="w-2 h-2 rounded-full" title={workingHoursData.isWorkingDay ? "Работен ден" : "Почивен ден"}>
-                        {workingHoursData.isWorkingDay ? (
-                          <div className="w-2 h-2 bg-green-500 rounded-full animate-pulse"></div>
-                        ) : (
-                          <div className="w-2 h-2 bg-red-500 rounded-full"></div>
+                    {/* Status Dots */}
+                    {bookingIndicators && (
+                      <div className="flex justify-center gap-1 mt-1">
+                        {bookingIndicators.map((indicator, idx) => (
+                          <div
+                            key={idx}
+                            className={`w-2 h-2 rounded-full ${getStatusDot(indicator.status)}`}
+                            title={`${getStatusText(indicator.status)}`}
+                          />
+                        ))}
+                        {bookings.length > 4 && (
+                          <div className="text-xs text-gray-500 ml-1">+{bookings.length - 4}</div>
                         )}
                       </div>
                     )}
-                  </div>
-                </div>
-                
-                {/* Add Booking Button */}
-                {isCurrentMonth(date) && onAddBooking && (
-                  <button
-                    onClick={(e) => handleAddBooking(date, e)}
-                    className="absolute top-1 left-1/2 transform -translate-x-1/2 -translate-x-7 p-1.5 rounded-full bg-gradient-to-r from-green-500 to-emerald-600 hover:from-green-600 hover:to-emerald-700 text-white transition-all duration-200 shadow-md hover:shadow-lg opacity-0 group-hover:opacity-100 z-10"
-                    title="Добави резервация"
-                  >
-                    <Plus className="w-3 h-3" />
-                  </button>
-                )}
-                
-                {/* Bookings Indicators */}
-                {bookings.length > 0 && (
-                  <div className="space-y-1">
-                    {getRelevantBookings(date).map((booking, bookingIndex) => (
-                      <div
-                        key={bookingIndex}
-                        onClick={(e) => {
-                          e.stopPropagation()
-                          onBookingClick(booking)
-                        }}
-                        className={`
-                          text-xs px-2 py-1 rounded-lg border truncate transition-all duration-200 hover:scale-105
-                          ${getStatusColor(booking.status)}
-                          touch-manipulation shadow-sm hover:shadow-md
-                        `}
-                        title={`${booking.name} - ${booking.time} - ${getStatusText(booking.status)}`}
-                      >
-                        {booking.time} - {booking.name}
+                  </>
+                ) : (
+                  /* Desktop/Landscape - Full Layout */
+                  <>
+                    {/* Date Number with Working Hours Indicator */}
+                    <div className="flex items-center justify-between mb-2">
+                      <div className={`text-lg sm:text-xl font-bold ${isToday(date) ? 'text-white' : ''}`}>
+                        {date.getUTCDate()}
                       </div>
-                    ))}
+                      
+                      <div className="flex items-center gap-1">
+                        {/* Today Indicator */}
+                        {isToday(date) && (
+                          <div className="w-3 h-3 sm:w-4 sm:h-4 bg-white rounded-full animate-bounce" title="Днешна дата"></div>
+                        )}
+                        
+                        {/* Working Hours Status */}
+                        {isCurrentMonth(date) && workingHoursData && (
+                          <div className="w-3 h-3 sm:w-4 sm:h-4 rounded-full" title={workingHoursData.isWorkingDay ? "Работен ден" : "Почивен ден"}>
+                            {workingHoursData.isWorkingDay ? (
+                              <div className="w-3 h-3 sm:w-4 sm:h-4 bg-green-500 rounded-full animate-pulse"></div>
+                            ) : (
+                              <div className="w-3 h-3 sm:w-4 sm:h-4 bg-red-500 rounded-full"></div>
+                            )}
+                          </div>
+                        )}
+                      </div>
+                    </div>
                     
-                    {bookings.length > getRelevantBookings(date).length && (
-                      <div className="text-xs text-gray-500 text-center bg-gray-100 rounded-lg py-1">
-                        +{bookings.length - getRelevantBookings(date).length} още
+                    {/* Add Booking Button - Hidden on mobile portrait */}
+                    {isCurrentMonth(date) && onAddBooking && !isMobile && (
+                      <button
+                        onClick={(e) => handleAddBooking(date, e)}
+                        className="absolute top-2 left-1/2 transform -translate-x-1/2 -translate-x-8 p-1.5 rounded-full bg-gradient-to-r from-green-500 to-emerald-600 hover:from-green-600 hover:to-emerald-700 text-white transition-all duration-200 shadow-md hover:shadow-lg opacity-0 group-hover:opacity-100 z-10 min-w-[32px] min-h-[32px] flex items-center justify-center"
+                        title="Добави резервация"
+                      >
+                        <Plus className="w-4 h-4" />
+                      </button>
+                    )}
+                    
+                    {/* Bookings Indicators */}
+                    {bookingIndicators && (
+                      <div className="space-y-1">
+                        {(bookingIndicators as any[]).map((booking, bookingIndex) => (
+                          <div
+                            key={bookingIndex}
+                            onClick={(e) => {
+                              e.stopPropagation()
+                              onBookingClick(booking)
+                            }}
+                            className={`
+                              text-sm px-2 py-1.5 rounded-lg border truncate transition-all duration-200 hover:scale-105
+                              ${getStatusColor(booking.status)}
+                              touch-manipulation shadow-sm hover:shadow-md
+                            `}
+                            title={`${booking.name} - ${booking.time} - ${getStatusText(booking.status)}`}
+                          >
+                            {booking.time} - {booking.name}
+                          </div>
+                        ))}
+                        
+                        {bookings.length > (bookingIndicators as any[]).length && (
+                          <div className="text-sm text-gray-500 text-center bg-gray-100 rounded-lg py-1.5">
+                            +{bookings.length - (bookingIndicators as any[]).length} още
+                          </div>
+                        )}
                       </div>
                     )}
-                  </div>
-                )}
 
-                {/* Working Hours Indicator */}
-                {isCurrentMonth(date) && (
-                  <button
-                    onClick={(e) => handleWorkingHoursClick(date, e)}
-                    className="absolute top-1 left-1/2 transform -translate-x-1/2 translate-x-1 p-1.5 rounded-full bg-gradient-to-r from-gray-200 to-gray-300 hover:from-gray-300 hover:to-gray-400 transition-all duration-200 opacity-0 group-hover:opacity-100 shadow-md hover:shadow-lg"
-                    title="Работно време"
-                  >
-                    <Settings className="w-3 h-3 text-gray-600" />
-                  </button>
+                    {/* Working Hours Indicator - Hidden on mobile portrait */}
+                    {isCurrentMonth(date) && !isMobile && (
+                      <button
+                        onClick={(e) => handleWorkingHoursClick(date, e)}
+                        className="absolute top-2 left-1/2 transform -translate-x-1/2 translate-x-2 p-1.5 rounded-full bg-gradient-to-r from-gray-200 to-gray-300 hover:from-gray-300 hover:to-gray-400 transition-all duration-200 opacity-0 group-hover:opacity-100 shadow-md hover:shadow-lg min-w-[32px] min-h-[32px] flex items-center justify-center"
+                        title="Работно време"
+                      >
+                        <Settings className="w-4 h-4 text-gray-600" />
+                      </button>
+                    )}
+                  </>
                 )}
               </div>
             )

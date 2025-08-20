@@ -1,4 +1,7 @@
 {
+  "site": {
+    "domain": "http://localhost:3000"
+  },
   "defaultWorkingHours": {
     "workingDays": [
       1,
@@ -11,5 +14,24 @@
     "endTime": "18:00",
     "breakStart": "13:00",
     "breakEnd": "14:00"
+  },
+  "sms": {
+    "bulkgate": {
+      "enabled": true,
+      "applicationId": "35241",
+      "applicationToken": "m8N0hUqus3fcpp1bVRqXA2q0EwNQzwprjeGCwZJBMNWYC8NR2m",
+      "senderId": "drpetrov.bg",
+      "senderType": "alphanumeric",
+      "testRecipient": "+359988825195",
+      "t1Enabled": false,
+      "t1Hour": 18,
+      "t0Enabled": false,
+      "templateT1": "Напомняне: {date} в {time} – {service}. Д-р Петров. Ако не можете да дойдете, моля обадете се.",
+      "templateT0": "Днес в {time}: {service}. Д-р Петров.",
+      "channelPriority": [
+        "viber",
+        "sms"
+      ]
+    }
   }
 }

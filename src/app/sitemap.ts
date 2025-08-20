@@ -1,7 +1,8 @@
 import { MetadataRoute } from 'next'
+import { getSiteDomain } from '@/lib/site'
 
 export default function sitemap(): MetadataRoute.Sitemap {
-  const baseUrl = 'https://drborislavpetrov.bg'
+  const baseUrl = getSiteDomain()
   
   return [
     {

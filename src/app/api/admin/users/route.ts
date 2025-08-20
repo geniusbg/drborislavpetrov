@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { getDatabase } from '@/lib/database'
+import { normalizePhoneE164, sanitizePhoneDigits } from '@/lib/phone'
 import { emitUserAdded, emitUserUpdate, emitUserDeleted } from '@/lib/socket'
 
 export async function GET(request: NextRequest) {
@@ -45,6 +46,7 @@ export async function POST(request: NextRequest) {
 
     const body = await request.json()
     const { name, email, phone, address, notes } = body
+    const phoneE164 = phone && phone.trim() ? normalizePhoneE164(phone.trim(), 'BG') : null
 
     if (!name) {
       return NextResponse.json(
@@ -64,11 +66,10 @@ export async function POST(request: NextRequest) {
     const db = await getDatabase()
     
     // Check if user with this phone already exists (only if phone is provided)
-    if (phone && phone.trim()) {
-      // Normalize by last 9 digits to avoid +359/0 duplicates
-      const digits = phone.replace(/\D/g, '')
+    if (phoneE164) {
+      const digits = sanitizePhoneDigits(phoneE164)
       const last9 = digits.slice(-9)
-      const existingUser = await db.query('SELECT * FROM users WHERE right(regexp_replace(coalesce(phone, \'\'), \n\t\t\'[^0-9]\', \'\', \'g\'), 9) = $1', [last9])
+      const existingUser = await db.query("SELECT * FROM users WHERE right(regexp_replace(coalesce(phone, ''), '[^0-9]', '', 'g'), 9) = $1", [last9])
       if (existingUser.rows.length > 0) {
         db.release()
         return NextResponse.json(
@@ -82,7 +83,7 @@ export async function POST(request: NextRequest) {
       INSERT INTO users (name, email, phone, address, notes, createdat)
       VALUES ($1, $2, $3, $4, $5, NOW())
       RETURNING *
-    `, [name, email || null, phone && phone.trim() ? phone.trim() : null, address || null, notes || null])
+    `, [name, email || null, phoneE164, address || null, notes || null])
 
     const newUser = result.rows[0]
     db.release()
@@ -116,6 +117,7 @@ export async function PUT(request: NextRequest) {
 
     const body = await request.json()
     const { id, name, email, phone, address, notes } = body
+    const phoneE164 = phone && phone.trim() ? normalizePhoneE164(phone.trim(), 'BG') : null
 
     if (!id || !name) {
       return NextResponse.json(
@@ -135,10 +137,10 @@ export async function PUT(request: NextRequest) {
     const db = await getDatabase()
     
     // Check if phone is already used by another user (only if phone is provided)
-    if (phone && phone.trim()) {
-      const digits = phone.replace(/\D/g, '')
+    if (phoneE164) {
+      const digits = sanitizePhoneDigits(phoneE164)
       const last9 = digits.slice(-9)
-      const existingUser = await db.query('SELECT * FROM users WHERE right(regexp_replace(coalesce(phone, \'\'), \'[^0-9]\', \'\', \'g\'), 9) = $1 AND id != $2', [last9, id])
+      const existingUser = await db.query("SELECT * FROM users WHERE right(regexp_replace(coalesce(phone, ''), '[^0-9]', '', 'g'), 9) = $1 AND id != $2", [last9, id])
       if (existingUser.rows.length > 0) {
         db.release()
         return NextResponse.json(
@@ -153,7 +155,7 @@ export async function PUT(request: NextRequest) {
       SET name = $1, email = $2, phone = $3, address = $4, notes = $5, updatedat = NOW()
       WHERE id = $6
       RETURNING *
-    `, [name, email || null, phone && phone.trim() ? phone.trim() : null, address || null, notes || null, id])
+    `, [name, email || null, phoneE164, address || null, notes || null, id])
 
     const updatedUser = result.rows[0]
     db.release()
