@@ -22,8 +22,7 @@ const Calendar = ({ bookings, onBookingClick, onAddBooking, onNavigateToDailySch
   const [currentDate, setCurrentDate] = useState(getBulgariaTime())
   const [selectedDate, setSelectedDate] = useState<Date | null>(null)
   const [statusFilter, setStatusFilter] = useState<string>('all')
-  const [touchStart, setTouchStart] = useState<number | null>(null)
-  const [touchEnd, setTouchEnd] = useState<number | null>(null)
+
   const [workingHours, setWorkingHours] = useState<WorkingHours[]>([])
   const [showWorkingHoursForm, setShowWorkingHoursForm] = useState(false)
   const [showDailySchedule, setShowDailySchedule] = useState(false)
@@ -32,14 +31,12 @@ const Calendar = ({ bookings, onBookingClick, onAddBooking, onNavigateToDailySch
   const [dailyScheduleKey, setDailyScheduleKey] = useState(0)
   
   // Mobile responsiveness state
-  const [screenSize, setScreenSize] = useState({ width: 0, height: 0 })
   const [isMobile, setIsMobile] = useState(false)
   const [isPortrait, setIsPortrait] = useState(false)
   
   // Detect screen size and orientation
   useEffect(() => {
     const updateScreenSize = () => {
-      setScreenSize({ width: window.innerWidth, height: window.innerHeight })
       setIsMobile(window.innerWidth < 768)
       setIsPortrait(window.innerHeight > window.innerWidth)
     }
@@ -70,33 +67,7 @@ const Calendar = ({ bookings, onBookingClick, onAddBooking, onNavigateToDailySch
     }
   }, [selectedDateFromURL])
 
-  // Touch gesture handling for mobile swipe
-  const minSwipeDistance = 50
 
-  const onTouchStart = (e: React.TouchEvent) => {
-    setTouchEnd(null)
-    setTouchStart(e.targetTouches[0].clientX)
-  }
-
-  const onTouchMove = (e: React.TouchEvent) => {
-    setTouchEnd(e.targetTouches[0].clientX)
-  }
-
-  const onTouchEnd = () => {
-    // Touch navigation disabled - only arrow buttons can change months
-    // if (!touchStart || !touchEnd) return
-    // const distance = touchStart - touchEnd
-    // const isLeftSwipe = distance > minSwipeDistance
-    // const isRightSwipe = distance < -minSwipeDistance
-
-    // if (isLeftSwipe) {
-    //   // Swipe left - next month
-    //   setCurrentDate(new Date(currentDate.getFullYear(), currentDate.getMonth() + 1, 1))
-    // } else if (isRightSwipe) {
-    //   // Swipe right - previous month
-    //   setCurrentDate(new Date(currentDate.getFullYear(), currentDate.getMonth() - 1, 1))
-    // }
-  }
 
   // Load working hours for current month
   const loadWorkingHours = useCallback(async () => {
@@ -573,9 +544,6 @@ const Calendar = ({ bookings, onBookingClick, onAddBooking, onNavigateToDailySch
       {/* Calendar Grid - Mobile Responsive Design */}
       <div 
         className={`${isMobile ? 'p-2' : 'p-6'}`}
-        onTouchStart={onTouchStart}
-        onTouchMove={onTouchMove}
-        onTouchEnd={onTouchEnd}
       >
         {/* Day Headers - Mobile Responsive Design */}
         <div className="grid grid-cols-7 gap-0 mb-2 sm:mb-4">
@@ -685,27 +653,30 @@ const Calendar = ({ bookings, onBookingClick, onAddBooking, onNavigateToDailySch
                     {/* Bookings Indicators */}
                     {bookingIndicators && (
                       <div className="space-y-1">
-                        {(bookingIndicators as any[]).map((booking, bookingIndex) => (
-                          <div
-                            key={bookingIndex}
-                            onClick={(e) => {
-                              e.stopPropagation()
-                              onBookingClick(booking)
-                            }}
-                            className={`
-                              text-sm px-2 py-1.5 rounded-lg border truncate transition-all duration-200 hover:scale-105
-                              ${getStatusColor(booking.status)}
-                              touch-manipulation shadow-sm hover:shadow-md
-                            `}
-                            title={`${booking.name} - ${booking.time} - ${getStatusText(booking.status)}`}
-                          >
-                            {booking.time} - {booking.name}
-                          </div>
-                        ))}
+                        {Array.isArray(bookingIndicators) && bookingIndicators.length > 0 && 'name' in bookingIndicators[0] ? (
+                          // Full booking objects (desktop view)
+                          (bookingIndicators as Booking[]).map((booking: Booking, bookingIndex: number) => (
+                            <div
+                              key={bookingIndex}
+                              onClick={(e) => {
+                                e.stopPropagation()
+                                onBookingClick(booking)
+                              }}
+                              className={`
+                                text-sm px-2 py-1.5 rounded-lg border truncate transition-all duration-200 hover:scale-105
+                                ${getStatusColor(booking.status)}
+                                touch-manipulation shadow-sm hover:shadow-md
+                              `}
+                              title={`${booking.name} - ${booking.time} - ${getStatusText(booking.status)}`}
+                            >
+                              {booking.time} - {booking.name}
+                            </div>
+                          ))
+                        ) : null}
                         
-                        {bookings.length > (bookingIndicators as any[]).length && (
+                        {bookings.length > (Array.isArray(bookingIndicators) ? bookingIndicators.length : 0) && (
                           <div className="text-sm text-gray-500 text-center bg-gray-100 rounded-lg py-1.5">
-                            +{bookings.length - (bookingIndicators as any[]).length} още
+                            +{bookings.length - (Array.isArray(bookingIndicators) ? bookingIndicators.length : 0)} още
                           </div>
                         )}
                       </div>
