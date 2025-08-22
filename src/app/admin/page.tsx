@@ -556,6 +556,9 @@ export default function AdminPage() {
           description: service.description,
           duration: service.duration,
           price: service.price,
+          priceCurrency: service.priceCurrency,
+          priceBgn: service.priceBgn,
+          priceEur: service.priceEur,
           isActive: service.isactive // Map from database field to interface field
         }))
         setServices(mappedServices)
@@ -1699,11 +1702,13 @@ export default function AdminPage() {
                           <p className="text-gray-500">Цена</p>
                           <p className="font-medium">
                             {service.price ? (
-                              service.priceBgn && service.priceEur ? 
-                                `${service.priceBgn} лв. / ${service.priceEur} €` :
+                              service.priceBgn && service.priceEur && 
+                              !isNaN(Number(service.priceBgn)) && !isNaN(Number(service.priceEur)) ? 
+                                `${Number(service.priceBgn).toFixed(2)} лв. / ${Number(service.priceEur).toFixed(2)} €` :
                                 `${service.price} лв.`
                             ) : '-'}
                           </p>
+
                         </div>
                       </div>
                       
@@ -1766,11 +1771,13 @@ export default function AdminPage() {
                         <td className="px-6 py-4 whitespace-nowrap">
                           <div className="text-sm text-gray-900">
                             {service.price ? (
-                              service.priceBgn && service.priceEur ? 
-                                `${service.priceBgn} лв. / ${service.priceEur} €` :
+                              service.priceBgn && service.priceEur && 
+                              !isNaN(Number(service.priceBgn)) && !isNaN(Number(service.priceEur)) ? 
+                                `${Number(service.priceBgn).toFixed(2)} лв. / ${Number(service.priceEur).toFixed(2)} €` :
                                 `${service.price} лв.`
                             ) : '-'}
                           </div>
+
                         </td>
                         <td className="px-6 py-4 whitespace-nowrap">
                           <span className={`inline-flex px-2 py-1 text-xs font-semibold rounded-full ${

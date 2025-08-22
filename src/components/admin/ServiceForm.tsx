@@ -142,7 +142,13 @@ const ServiceForm = ({ service, onSubmit, onCancel }: ServiceFormProps) => {
           type="number"
           name="duration"
           value={formData.duration}
-          onChange={(e) => setFormData({ ...formData, duration: parseInt(e.target.value) })}
+                        onChange={(e) => {
+                const value = e.target.value;
+                const parsedValue = value === '' ? 30 : parseInt(value);
+                if (!isNaN(parsedValue)) {
+                  setFormData({ ...formData, duration: parsedValue });
+                }
+              }}
           className={`mt-1 block w-full border rounded-md px-3 py-2 focus:outline-none focus:ring-primary-500 focus:border-primary-500 ${
             errors.duration ? 'border-red-500' : 'border-gray-300'
           }`}
@@ -164,7 +170,13 @@ const ServiceForm = ({ service, onSubmit, onCancel }: ServiceFormProps) => {
               type="number"
               name="price"
               value={formData.price}
-              onChange={(e) => setFormData({ ...formData, price: parseFloat(e.target.value) })}
+              onChange={(e) => {
+                const value = e.target.value;
+                const parsedValue = value === '' ? 0 : parseFloat(value);
+                if (!isNaN(parsedValue)) {
+                  setFormData({ ...formData, price: parsedValue });
+                }
+              }}
               className={`block w-full border rounded-md px-3 py-2 focus:outline-none focus:ring-primary-500 focus:border-primary-500 ${
                 errors.price ? 'border-red-500' : 'border-gray-300'
               }`}

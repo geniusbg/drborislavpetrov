@@ -14,11 +14,19 @@ export async function GET(request: NextRequest) {
     }
 
     const db = await getDatabase()
-    const result = await db.query('SELECT * FROM services ORDER BY name')
-    
-    db.release()
-    return NextResponse.json({ services: result.rows })
+    try {
+      const result = await db.query(`
+        SELECT id, name, description, duration, price, "priceCurrency", "priceBgn", "priceEur", isactive, createdat
+        FROM services 
+        ORDER BY name
+      `)
+      
+      return NextResponse.json({ services: result.rows })
+    } finally {
+      db.release()
+    }
   } catch (error) {
+    console.error('Error in GET services:', error)
     return NextResponse.json(
       { error: 'Internal server error' },
       { status: 500 }
@@ -38,26 +46,30 @@ export async function POST(request: NextRequest) {
     }
 
     const body = await request.json()
-    const { name, description, duration, price, isActive } = body
+    const { name, description, duration, price, priceCurrency, priceBgn, priceEur, isActive } = body
 
     const db = await getDatabase()
-    const result = await db.query(`
-      INSERT INTO services (name, description, duration, price, isActive)
-      VALUES ($1, $2, $3, $4, $5)
-      RETURNING *
-    `, [name, description, duration, price, isActive ?? true])
+    try {
+      const result = await db.query(`
+        INSERT INTO services (name, description, duration, price, "priceCurrency", "priceBgn", "priceEur", isactive)
+        VALUES ($1, $2, $3, $4, $5, $6, $7, $8)
+        RETURNING *
+      `, [name, description, duration, price, priceCurrency || 'BGN', priceBgn || price, priceEur || price, isActive ?? true])
 
-    const newService = result.rows[0]
-    db.release()
-    
-    // Emit WebSocket event
-    emitServiceAdded(newService)
-    
-    return NextResponse.json({ 
-      success: true, 
-      service: newService 
-    })
+      const newService = result.rows[0]
+      
+      // Emit WebSocket event
+      emitServiceAdded(newService)
+      
+      return NextResponse.json({ 
+        success: true, 
+        service: newService 
+      })
+    } finally {
+      db.release()
+    }
   } catch (error) {
+    console.error('Error in POST services:', error)
     return NextResponse.json(
       { error: 'Internal server error' },
       { status: 500 }
@@ -77,35 +89,38 @@ export async function PUT(request: NextRequest) {
     }
 
     const body = await request.json()
-    const { id, name, description, duration, price, isActive } = body
+    const { id, name, description, duration, price, priceCurrency, priceBgn, priceEur, isActive } = body
 
     const db = await getDatabase()
-    const result = await db.query(`
-      UPDATE services 
-      SET name = $1, description = $2, duration = $3, price = $4, isActive = $5
-      WHERE id = $6
-      RETURNING *
-    `, [name, description, duration, price, isActive, id])
-    
-    if (result.rowCount === 0) {
-      db.release()
-      return NextResponse.json(
-        { error: 'Service not found' },
-        { status: 404 }
-      )
-    }
+    try {
+      const result = await db.query(`
+        UPDATE services 
+        SET name = $1, description = $2, duration = $3, price = $4, "priceCurrency" = $5, "priceBgn" = $6, "priceEur" = $7, isactive = $8
+        WHERE id = $9
+        RETURNING *
+      `, [name, description, duration, price, priceCurrency || 'BGN', priceBgn || price, priceEur || price, isActive, id])
+      
+      if (result.rowCount === 0) {
+        return NextResponse.json(
+          { error: 'Service not found' },
+          { status: 404 }
+        )
+      }
 
-    const updatedService = result.rows[0]
-    db.release()
-    
-    // Emit WebSocket event
-    emitServiceUpdate(updatedService)
-    
-    return NextResponse.json({ 
-      success: true, 
-      service: updatedService 
-    })
+      const updatedService = result.rows[0]
+      
+      // Emit WebSocket event
+      emitServiceUpdate(updatedService)
+      
+      return NextResponse.json({ 
+        success: true, 
+        service: updatedService 
+      })
+    } finally {
+      db.release()
+    }
   } catch (error) {
+    console.error('Error in PUT services:', error)
     return NextResponse.json(
       { error: 'Internal server error' },
       { status: 500 }
