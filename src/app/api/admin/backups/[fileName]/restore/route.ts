@@ -15,14 +15,15 @@ function checkAdminToken(request: NextRequest) {
 // POST - Възстановяване от backup
 export async function POST(
   request: NextRequest,
-  { params }: { params: { fileName: string } }
+  { params }: { params: Promise<{ fileName: string }> }
 ) {
   try {
     if (!checkAdminToken(request)) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
     }
 
-    const fileName = decodeURIComponent(params.fileName)
+    const resolvedParams = await params
+    const fileName = decodeURIComponent(resolvedParams.fileName)
     const backupDir = path.join(process.cwd(), 'backups')
     const filePath = path.join(backupDir, fileName)
 

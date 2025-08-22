@@ -1,8 +1,7 @@
 /** @type {import('next').NextConfig} */
 const nextConfig = {
-  experimental: {
-    serverComponentsExternalPackages: ['socket.io']
-  },
+  // Server external packages for Next.js 15
+  serverExternalPackages: ['socket.io'],
   webpack: (config, { isServer }) => {
     if (!isServer) {
       config.resolve.fallback = {

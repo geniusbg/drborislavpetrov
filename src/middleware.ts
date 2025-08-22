@@ -1,17 +1,33 @@
 import { NextResponse } from 'next/server'
-import type { NextRequest } from 'next/server'
 
-// eslint-disable-next-line @typescript-eslint/no-unused-vars
-export function middleware(_request: NextRequest) {
-  // Middleware без request tracking - просто препраща заявките
+export function middleware() {
   const response = NextResponse.next()
+
+  // Защита от ботове - забранява индексиране
+  response.headers.set('X-Robots-Tag', 'noindex, nofollow, noarchive, nosnippet')
   
+  // Допълнителни security headers
+  response.headers.set('X-Content-Type-Options', 'nosniff')
+  response.headers.set('X-Frame-Options', 'DENY')
+  response.headers.set('X-XSS-Protection', '1; mode=block')
+  
+  // Cache control - не позволява кеширане
+  response.headers.set('Cache-Control', 'no-cache, no-store, must-revalidate, private')
+  response.headers.set('Pragma', 'no-cache')
+  response.headers.set('Expires', '0')
+
   return response
 }
 
-// Minimal middleware config
 export const config = {
   matcher: [
-    '/((?!_next/static|_next/image|favicon.ico).*)',
+    /*
+     * Match all request paths except for the ones starting with:
+     * - api (API routes)
+     * - _next/static (static files)
+     * - _next/image (image optimization files)
+     * - favicon.ico (favicon file)
+     */
+    '/((?!api|_next/static|_next/image|favicon.ico).*)',
   ],
 } 

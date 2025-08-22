@@ -18,39 +18,43 @@ export function useSocket(): UseSocketReturn {
   const socketRef = useRef<Socket | null>(null)
   const hasJoinedAdminRef = useRef(false)
   const connectionAttempts = useRef(0)
-  const maxAttempts = 3
+  const maxAttempts = 5 // Increased for better reliability
+  const isCreatingSocket = useRef(false) // Prevent multiple socket creation attempts
 
   const createSocket = useCallback(() => {
     // Only create socket on client side and if it doesn't exist
-    if (typeof window !== 'undefined' && !socketRef.current) {
+    if (typeof window !== 'undefined' && !socketRef.current && !isCreatingSocket.current) {
+      isCreatingSocket.current = true
       try {
         // Use dynamic URL based on current page origin
         const socketUrl = window.location.origin
         console.log('🔌 Attempting to connect to Socket.io server at:', socketUrl)
         
         const newSocket = io(socketUrl, {
-          transports: ['websocket', 'polling'],
+          transports: ['polling', 'websocket'], // Polling first, then WebSocket upgrade
           autoConnect: true,
           forceNew: false, // Changed to false to prevent multiple connections
-          timeout: 5000, // 5 second timeout
+          timeout: 30000, // 30 second timeout - increased for better reliability
           reconnection: true,
-          reconnectionAttempts: 3,
-          reconnectionDelay: 1000
+          reconnectionAttempts: 5, // Increased reconnection attempts
+          reconnectionDelay: 2000, // Increased delay between attempts
+          reconnectionDelayMax: 10000 // Maximum delay between attempts
         })
 
-        newSocket.on('connect', () => {
+        // Store event handlers for cleanup
+        const connectHandler = () => {
           console.log('✅ Connected to WebSocket server')
           setIsConnected(true)
           setIsSupported(true)
           connectionAttempts.current = 0
-        })
+        }
 
-        newSocket.on('disconnect', () => {
+        const disconnectHandler = () => {
           console.log('❌ Disconnected from WebSocket server')
           setIsConnected(false)
-        })
+        }
 
-        newSocket.on('connect_error', (error) => {
+        const connectErrorHandler = (error: Error) => {
           console.error('❌ WebSocket connection error:', error)
           setIsConnected(false)
           connectionAttempts.current++
@@ -63,15 +67,51 @@ export function useSocket(): UseSocketReturn {
               newSocket.close()
             }
           }
-        })
+        }
+
+        newSocket.on('connect', connectHandler)
+        newSocket.on('disconnect', disconnectHandler)
+        newSocket.on('connect_error', connectErrorHandler)
+
+        // Add specific handling for WebSocket transport failures
+        const errorHandler = (error: Error) => {
+          console.error('❌ Socket.io error:', error)
+          setIsConnected(false)
+        }
+
+        // Handle transport fallback
+        const upgradeHandler = () => {
+          console.log('✅ WebSocket upgrade successful')
+        }
+
+        const upgradeErrorHandler = (error: Error) => {
+          console.warn('⚠️ WebSocket upgrade failed, falling back to polling:', error)
+          // Force polling transport if WebSocket fails
+          newSocket.io.opts.transports = ['polling']
+        }
+
+        newSocket.on('error', errorHandler)
+        newSocket.on('upgrade', upgradeHandler)
+        newSocket.on('upgradeError', upgradeErrorHandler)
+
+        // Add connection timeout handling
+        setTimeout(() => {
+          if (!newSocket.connected) {
+            console.warn('⚠️ Connection timeout, forcing polling transport')
+            newSocket.io.opts.transports = ['polling']
+            newSocket.connect()
+          }
+        }, 10000) // 10 second timeout for connection
 
         setSocket(newSocket)
         socketRef.current = newSocket
+        isCreatingSocket.current = false
 
         return newSocket
       } catch (error) {
         console.error('❌ Failed to create WebSocket connection:', error)
         setIsSupported(false)
+        isCreatingSocket.current = false
         return null
       }
     }
@@ -79,13 +119,26 @@ export function useSocket(): UseSocketReturn {
   }, [])
 
   useEffect(() => {
-    // Only create socket if it doesn't exist
-    if (!socketRef.current) {
-      const newSocket = createSocket()
+    // Only create socket if it doesn't exist and not already creating
+    if (!socketRef.current && !isCreatingSocket.current) {
+      // Add small delay to prevent rapid socket creation
+      const timer = setTimeout(() => {
+        const newSocket = createSocket()
+        
+        if (newSocket) {
+          return () => {
+            if (newSocket) {
+              newSocket.close()
+              socketRef.current = null
+            }
+          }
+        }
+      }, 100) // 100ms delay
       
       return () => {
-        if (newSocket) {
-          newSocket.close()
+        clearTimeout(timer)
+        if (socketRef.current) {
+          socketRef.current.close()
           socketRef.current = null
         }
       }

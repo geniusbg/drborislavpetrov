@@ -4,7 +4,8 @@
 
 import React, { useState, useEffect, useMemo, useRef, Suspense } from 'react'
 import { useRouter, useSearchParams } from 'next/navigation'
-import { Calendar, Users, Clock, TrendingUp, ArrowLeft, Smartphone, LogOut, Plus, Edit, Trash2, BarChart3, Mic, X, Bug, HardDrive, FileText, MessageSquare, ChevronUp, ChevronDown } from 'lucide-react'
+import Link from 'next/link'
+import { Calendar, Users, Clock, TrendingUp, ArrowLeft, Smartphone, LogOut, Plus, Edit, Trash2, BarChart3, Mic, X, Bug, HardDrive, FileText, MessageSquare, ChevronUp, ChevronDown, Settings } from 'lucide-react'
 import CalendarComponent from '@/components/admin/Calendar'
 import UserHistory from '@/components/admin/UserHistory'
 import UserForm from '@/components/admin/UserForm'
@@ -19,6 +20,9 @@ import type { Booking, User as UserType, Service as ServiceType } from '@/types/
 import BugTracker from '@/components/admin/BugTracker'
 import BackupManager from '@/components/admin/BackupManager'
 import SettingsWorkingHours from '@/components/admin/SettingsWorkingHours'
+import BotProtectionSettings from '@/components/admin/BotProtectionSettings'
+import UnderConstructionSettings from '@/components/admin/UnderConstructionSettings'
+import UnderConstructionBanner from '@/components/UnderConstructionBanner'
 import QADashboard from '@/components/admin/QADashboard'
 import SupportNotes from '@/components/admin/SupportNotes'
 import QuickResponseWidget from '@/components/admin/QuickResponseWidget'
@@ -933,6 +937,9 @@ export default function AdminPage() {
       {/* Next Booking Notification */}
       {currentDateTime && <NextBookingNotification currentTime={currentDateTime} />}
       
+      {/* Under Construction Banner */}
+      <UnderConstructionBanner isAdminPage={true} />
+      
       {/* Modern Header */}
       <header className="sticky top-0 z-40 bg-gradient-to-r from-blue-600 to-blue-800 shadow">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
@@ -950,26 +957,15 @@ export default function AdminPage() {
 
             {/* Actions (Desktop) */}
             <div className="hidden sm:flex items-center space-x-3">
-              <a href="/" className="text-blue-100 hover:text-white transition-colors inline-flex items-center space-x-2">
-                <ArrowLeft className="w-4 h-4" />
-                <span>Към сайта</span>
-              </a>
+                              <Link href="/" className="text-blue-100 hover:text-white transition-colors inline-flex items-center space-x-2">
+                  <ArrowLeft className="w-4 h-4" />
+                  <span>Към сайта</span>
+                </Link>
               <a href="/siri" className="text-blue-100 hover:text-white transition-colors inline-flex items-center space-x-2">
                 <Smartphone className="w-4 h-4" />
                 <span>Siri Shortcuts</span>
               </a>
-              <div className="h-5 w-px bg-blue-300/60" />
-              {/* Settings gear opens backup/settings tab */}
-              <button
-                onClick={() => changeTab('backup')}
-                className="text-blue-100 hover:text-white transition-colors inline-flex items-center justify-center w-10 h-10 rounded-full bg-white/10 hover:bg-white/20"
-                title="Настройки"
-              >
-                <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" className="w-5 h-5">
-                  <path fillRule="evenodd" d="M11.48 3.499a.75.75 0 01.04 1.06l-.04.04a8.966 8.966 0 00-1.88 2.557.75.75 0 01-1.118.306 8.966 8.966 0 00-2.557-1.88.75.75 0 01-.1-1.244l.04-.04a.75.75 0 011.06-.04 10.463 10.463 0 012.59 1.904 10.463 10.463 0 011.904-2.59.75.75 0 011.06-.04zM20.5 11.48a.75.75 0 01-1.06.04 10.463 10.463 0 00-1.904-1.904 10.463 10.463 0 001.904-2.59.75.75 0 111.244.1l-.04.04a8.966 8.966 0 01-1.88 2.557.75.75 0 00.306 1.118 8.966 8.966 0 012.557 1.88.75.75 0 01-.04 1.06l-.04.04a.75.75 0 01-1.06.04 10.463 10.463 0 00-1.904-1.904 10.463 10.463 0 00-2.59 1.904.75.75 0 01-1.118-.306 8.966 8.966 0 00-1.88-2.557.75.75 0 01.04-1.06l.04-.04a.75.75 0 011.06-.04 10.463 10.463 0 011.904 1.904 10.463 10.463 0 011.904-2.59.75.75 0 011.06-.04l.04.04zM12 9a3 3 0 100 6 3 3 0 000-6z" clipRule="evenodd" />
-                </svg>
-              </button>
-              <div className="h-5 w-px bg-blue-300/60" />
+
               <button
                 onClick={() => setShowSupportNotes(true)}
                 className="text-blue-100 hover:text-white transition-colors inline-flex items-center space-x-2"
@@ -1143,7 +1139,7 @@ export default function AdminPage() {
                       changeTab('backup')
                       localStorage.setItem('adminActiveTab', 'backup')
                     }}
-                    className={`flex-shrink-0 px-4 py-3 text-sm font-medium rounded-lg transition-all duration-200 min-w-[120px] ${
+                    className={`flex-shrink-0 px-4 py-3 text-sm font-medium rounded-lg transition-all duration-200 ${
                       activeTab === 'backup'
                         ? 'bg-blue-600 text-white shadow-sm'
                         : 'text-gray-600 hover:text-gray-900 hover:bg-gray-50'
@@ -1155,6 +1151,22 @@ export default function AdminPage() {
                     </div>
                   </button>
                   
+                  <button
+                    onClick={() => {
+                      changeTab('settings')
+                      localStorage.setItem('adminActiveTab', 'settings')
+                    }}
+                    className={`flex-shrink-0 px-4 py-3 text-sm font-medium rounded-lg transition-all duration-200 ${
+                      activeTab === 'settings'
+                        ? 'bg-blue-600 text-white shadow-sm'
+                        : 'text-gray-600 hover:text-gray-900 hover:bg-gray-50'
+                    }`}
+                  >
+                    <div className="flex items-center justify-center space-x-2">
+                      <Settings className="w-4 h-4" />
+                      <span>Настройки</span>
+                    </div>
+                  </button>
 
                 </nav>
               </div>
@@ -1297,6 +1309,22 @@ export default function AdminPage() {
                   </div>
                 </button>
                 
+                <button
+                  onClick={() => {
+                    changeTab('settings')
+                    localStorage.setItem('adminActiveTab', 'settings')
+                  }}
+                  className={`flex-1 px-4 py-3 text-sm font-medium rounded-lg transition-all duration-200 ${
+                    activeTab === 'settings'
+                      ? 'bg-blue-600 text-white shadow-sm'
+                      : 'text-gray-600 hover:text-gray-900 hover:bg-gray-50'
+                  }`}
+                >
+                  <div className="flex items-center justify-center space-x-2">
+                    <Settings className="w-4 h-4" />
+                    <span>Настройки</span>
+                  </div>
+                </button>
 
               </nav>
             </div>
@@ -2011,12 +2039,37 @@ export default function AdminPage() {
                   <p className="text-sm text-gray-600 mt-1">Автоматични и ръчни backup-и на базата данни</p>
                 </div>
               </div>
-              <div className="p-6 space-y-6">
+              <div className="p-6">
                 <BackupManager />
+              </div>
+            </div>
+          )}
+
+          {activeTab === 'settings' && (
+            <div className="bg-white rounded-xl shadow-sm border border-gray-100">
+              <div className="px-6 py-4 border-b border-gray-200">
+                <div className="flex flex-col">
+                  <h2 className="text-xl font-semibold text-gray-900">Настройки</h2>
+                  <p className="text-sm text-gray-600 mt-1">Конфигурация на работно време и защита от ботове</p>
+                </div>
+              </div>
+              <div className="p-6 space-y-6">
                 {/* Settings: Default Working Hours */}
-                <div className="mt-6">
-                  <h3 className="text-lg font-semibold text-gray-900 mb-2">Настройки</h3>
+                <div>
+                  <h3 className="text-lg font-semibold text-gray-900 mb-2">Работно време</h3>
                   <SettingsWorkingHours />
+                </div>
+                
+                {/* Bot Protection Settings */}
+                <div>
+                  <h3 className="text-lg font-semibold text-gray-900 mb-2">Защита от ботове</h3>
+                  <BotProtectionSettings />
+                </div>
+
+                {/* Under Construction Settings */}
+                <div>
+                  <h3 className="text-lg font-semibold text-gray-900 mb-2">Under Construction Режим</h3>
+                  <UnderConstructionSettings />
                 </div>
               </div>
             </div>

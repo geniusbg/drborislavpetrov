@@ -25,7 +25,7 @@ export function middleware(request: NextRequest) {
   }
 
   // Rate Limiting with different tiers
-  const clientIP = request.ip || request.headers.get('x-forwarded-for') || 'unknown'
+  const clientIP = request.headers.get('x-forwarded-for') || request.headers.get('x-real-ip') || 'unknown'
   const now = Date.now()
   
   // Different limits for different routes

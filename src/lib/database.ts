@@ -4,6 +4,8 @@ let pool: Pool | null = null
 
 export async function getDatabase(): Promise<PoolClient> {
   if (!pool) {
+    // WARNING: Fallback values used only for development/build
+    // Production should ALWAYS use environment variables from .env file
     pool = new Pool({
       host: process.env.DB_HOST || '192.168.1.134',
       port: parseInt(process.env.DB_PORT || '5432'),

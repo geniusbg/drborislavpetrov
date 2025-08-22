@@ -15,6 +15,14 @@ const handle = app.getRequestHandler()
 app.prepare().then(() => {
   const server = createServer(async (req, res) => {
     try {
+      // Check if request is for Socket.io
+      if (req.url && req.url.startsWith('/socket.io/')) {
+        // Let Socket.io handle this request - don't call handle()
+        console.log('🔌 Socket.io request:', req.url)
+        // Socket.io will handle this automatically
+        return
+      }
+      
       const parsedUrl = parse(req.url, true)
       await handle(req, res, parsedUrl)
     } catch (err) {
@@ -49,24 +57,50 @@ app.prepare().then(() => {
     cors: {
       origin: process.env.NODE_ENV === 'production' 
         ? [siteDomain, siteDomain.replace('://www.', '://'), siteDomain.replace('://', '://www.')] 
-        : ["http://localhost:3000", "http://127.0.0.1:3000"],
+        : ["http://localhost:3000", "http://127.0.0.1:3000", "http://172.16.1.167:3000"], // Added local network IP
       methods: ["GET", "POST"],
       credentials: true,
       allowedHeaders: ["Content-Type", "Authorization"]
     },
-    transports: ['websocket', 'polling'],
+    transports: ['polling', 'websocket'], // Polling first, then WebSocket upgrade
     // Add rate limiting for better security
     maxHttpBufferSize: 1e6, // 1MB max message size
-    pingTimeout: 60000, // 60 seconds
-    pingInterval: 25000 // 25 seconds
+    pingTimeout: 120000, // 2 minutes - increased for better reliability
+    pingInterval: 50000, // 50 seconds - increased for better reliability
+    connectTimeout: 30000, // 30 seconds connection timeout
+    upgradeTimeout: 30000, // 30 seconds upgrade timeout
+    allowEIO3: true, // Allow Engine.IO v3 clients
+    allowUpgrades: true, // Allow transport upgrades
+    maxHttpBufferSize: 1e6 // 1MB max message size
   })
 
   // Store global io instance for API routes
   global.io = io
 
+  // Socket.io error handling
+  io.engine.on('connection_error', (err) => {
+    console.error('❌ Socket.io connection error:', err)
+  })
+
+  io.engine.on('initial_headers', (headers, req) => {
+    console.log('🔌 Socket.io initial headers for:', req.url)
+  })
+
+  // Socket.io request logging
+  io.engine.on('request', (req, res) => {
+    console.log('🔌 Socket.io engine request:', req.url)
+  })
+
+  io.engine.on('response', (req, res) => {
+    console.log('🔌 Socket.io engine response for:', req.url)
+  })
+
   // Socket.io event handlers
   io.on('connection', (socket) => {
     console.log('🔌 Client connected:', socket.id)
+    console.log('🔌 Client IP:', socket.handshake.address)
+    console.log('🔌 Client User-Agent:', socket.handshake.headers['user-agent'])
+    console.log('🔌 Transport:', socket.conn.transport.name)
 
     socket.on('join-admin', () => {
       socket.join('admin')

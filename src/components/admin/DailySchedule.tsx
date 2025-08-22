@@ -1179,7 +1179,7 @@ const DailySchedule = ({ date, onClose, onEditWorkingHours, onEditBooking, onDel
                       
                       return (
                         <div
-                          key={`booking-${booking.id}-${booking.time}-${booking.serviceDuration || 30}`}
+                          key={`timeline-booking-${booking.id}-${date}-${booking.time}`}
                           className={`absolute ${colors.bg} ${booking.status === 'cancelled' ? 'h-full opacity-60' : 'h-full'} rounded cursor-pointer ${colors.hover} transition-all duration-300 shadow-lg border-2 ${colors.border} transform hover:scale-[1.02] hover:shadow-xl ${booking.status === 'cancelled' ? 'z-10' : 'z-30'}`}
                           style={{
                             left: `${slotStart}%`,
@@ -1341,7 +1341,7 @@ const DailySchedule = ({ date, onClose, onEditWorkingHours, onEditBooking, onDel
                   {schedule.bookings.length > 0 ? (
                     schedule.bookings.map((booking) => (
                       <div
-                        key={booking.id}
+                        key={`list-booking-${booking.id}-${date}-${booking.time}`}
                         className={`p-3 rounded-lg border ${
                           booking.status === 'cancelled' 
                             ? 'bg-red-50 border-red-200' 

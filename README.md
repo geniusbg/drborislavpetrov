@@ -66,11 +66,11 @@ ADMIN_EMAIL=admin@example.com
 ```
 
 ### База данни
-Приложението използва PostgreSQL база данни на отдалечен сървър:
-- **Host**: 192.168.1.134
-- **Port**: 5432
-- **Database**: drborislavpetrov
-- **User**: drborislavpetrov
+Приложението използва PostgreSQL база данни. Настройките се задават в `.env` файла:
+- **Host**: Зададен в DB_HOST
+- **Port**: Зададен в DB_PORT
+- **Database**: Зададен в DB_NAME
+- **User**: Зададен в DB_USER
 
 За подробности вижте `DATABASE.md`.
 

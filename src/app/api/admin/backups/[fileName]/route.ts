@@ -13,14 +13,15 @@ function checkAdminToken(request: NextRequest) {
 // DELETE - Изтриване на backup файл
 export async function DELETE(
   request: NextRequest,
-  { params }: { params: { fileName: string } }
+  { params }: { params: Promise<{ fileName: string }> }
 ) {
   try {
     if (!checkAdminToken(request)) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
     }
 
-    const fileName = decodeURIComponent(params.fileName)
+    const resolvedParams = await params
+    const fileName = decodeURIComponent(resolvedParams.fileName)
     const filePath = path.join(BACKUP_DIR, fileName)
 
     // Проверка дали файлът съществува
