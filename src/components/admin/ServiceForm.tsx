@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from 'react'
 import type { Service as ServiceType } from '@/types/global'
+import { getDualPrice, formatDualPrice, validatePrice } from '@/lib/currency'
 
 interface ServiceFormProps {
   service: ServiceType | null
@@ -15,6 +16,7 @@ const ServiceForm = ({ service, onSubmit, onCancel }: ServiceFormProps) => {
     description: service?.description || '',
     duration: service?.duration || 30,
     price: service?.price || 0,
+    priceCurrency: (service?.priceCurrency as 'BGN' | 'EUR') || 'BGN',
     isActive: service?.isActive ?? true
   })
   const [errors, setErrors] = useState<{ [key: string]: string }>({})
@@ -28,6 +30,7 @@ const ServiceForm = ({ service, onSubmit, onCancel }: ServiceFormProps) => {
         description: service.description || '',
         duration: service.duration || 30,
         price: service.price || 0,
+        priceCurrency: (service?.priceCurrency as 'BGN' | 'EUR') || 'BGN',
         isActive: service.isActive ?? true
       })
     } else {
@@ -37,6 +40,7 @@ const ServiceForm = ({ service, onSubmit, onCancel }: ServiceFormProps) => {
         description: '',
         duration: 30,
         price: 0,
+        priceCurrency: 'BGN',
         isActive: true
       })
     }
@@ -74,6 +78,10 @@ const ServiceForm = ({ service, onSubmit, onCancel }: ServiceFormProps) => {
       newErrors.price = 'Цената не може да бъде отрицателна!'
     }
     
+    if (!validatePrice(formData.price, formData.priceCurrency)) {
+      newErrors.price = 'Цената е твърде висока или твърде ниска!'
+    }
+    
     if (Object.keys(newErrors).length > 0) {
       setErrors(newErrors)
       setIsSubmitting(false)
@@ -81,7 +89,16 @@ const ServiceForm = ({ service, onSubmit, onCancel }: ServiceFormProps) => {
     }
     
     try {
-      await onSubmit(formData)
+      // Автоматично превалутиране при запазване
+      const dualPrice = getDualPrice({ amount: formData.price, currency: formData.priceCurrency })
+      
+      const serviceData = {
+        ...formData,
+        priceBgn: dualPrice.bgn,
+        priceEur: dualPrice.eur
+      }
+      
+      await onSubmit(serviceData)
       setIsSubmitting(false)
     } catch (error) {
       setErrors({ submit: 'Грешка при запазване на услугата!' })
@@ -138,21 +155,44 @@ const ServiceForm = ({ service, onSubmit, onCancel }: ServiceFormProps) => {
         )}
       </div>
       
-      <div>
-        <label className="block text-sm font-medium text-gray-700">Цена (лв.)</label>
-        <input
-          type="number"
-          name="price"
-          value={formData.price}
-          onChange={(e) => setFormData({ ...formData, price: parseFloat(e.target.value) })}
-          className={`mt-1 block w-full border rounded-md px-3 py-2 focus:outline-none focus:ring-primary-500 focus:border-primary-500 ${
-            errors.price ? 'border-red-500' : 'border-gray-300'
-          }`}
-          min="0"
-          step="0.01"
-        />
+      <div className="space-y-2">
+        <label className="block text-sm font-medium text-gray-700">Цена</label>
+        
+        <div className="flex space-x-2">
+          <div className="flex-1">
+            <input
+              type="number"
+              name="price"
+              value={formData.price}
+              onChange={(e) => setFormData({ ...formData, price: parseFloat(e.target.value) })}
+              className={`block w-full border rounded-md px-3 py-2 focus:outline-none focus:ring-primary-500 focus:border-primary-500 ${
+                errors.price ? 'border-red-500' : 'border-gray-300'
+              }`}
+              min="0"
+              step="0.01"
+              placeholder="0.00"
+            />
+          </div>
+          
+          <select
+            value={formData.priceCurrency}
+            onChange={(e) => setFormData({ ...formData, priceCurrency: e.target.value as 'BGN' | 'EUR' })}
+            className="border border-gray-300 rounded-md px-3 py-2 focus:outline-none focus:ring-primary-500 focus:border-primary-500"
+          >
+            <option value="BGN">лв.</option>
+            <option value="EUR">€</option>
+          </select>
+        </div>
+        
+        {/* Показване на двойната цена */}
+        {formData.price > 0 && (
+          <div className="text-sm text-gray-600 bg-gray-50 p-2 rounded border">
+            <span className="font-medium">Двойна цена:</span> {formatDualPrice(getDualPrice({ amount: formData.price, currency: formData.priceCurrency }))}
+          </div>
+        )}
+        
         {errors.price && (
-          <p className="mt-1 text-sm text-red-600">{errors.price}</p>
+          <p className="text-sm text-red-600">{errors.price}</p>
         )}
       </div>
       

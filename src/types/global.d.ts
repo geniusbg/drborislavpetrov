@@ -66,6 +66,9 @@ export interface Service {
   description?: string
   duration: number
   price?: number
+  priceCurrency?: 'BGN' | 'EUR'
+  priceBgn?: number
+  priceEur?: number
   isActive: boolean
 }
 

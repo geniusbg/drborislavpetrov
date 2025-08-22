@@ -1698,7 +1698,11 @@ export default function AdminPage() {
                         <div>
                           <p className="text-gray-500">Цена</p>
                           <p className="font-medium">
-                            {service.price ? `${service.price} лв.` : '-'}
+                            {service.price ? (
+                              service.priceBgn && service.priceEur ? 
+                                `${service.priceBgn} лв. / ${service.priceEur} €` :
+                                `${service.price} лв.`
+                            ) : '-'}
                           </p>
                         </div>
                       </div>
@@ -1761,7 +1765,11 @@ export default function AdminPage() {
                         </td>
                         <td className="px-6 py-4 whitespace-nowrap">
                           <div className="text-sm text-gray-900">
-                            {service.price ? `${service.price} лв.` : '-'}
+                            {service.price ? (
+                              service.priceBgn && service.priceEur ? 
+                                `${service.priceBgn} лв. / ${service.priceEur} €` :
+                                `${service.price} лв.`
+                            ) : '-'}
                           </div>
                         </td>
                         <td className="px-6 py-4 whitespace-nowrap">
