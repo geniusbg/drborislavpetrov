@@ -80,15 +80,27 @@ export default function RootLayout({
                 if ('serviceWorker' in navigator && !window.serviceWorkerRegistered) {
                   window.serviceWorkerRegistered = true
                   window.addEventListener('load', function() {
-                    console.log('[SW] Registering...');
-                    navigator.serviceWorker.register('/sw.js')
+                    console.log('[SW] Attempting to register...');
+                    
+                    // Check if service worker file exists before registering
+                    fetch('/sw.js', { method: 'HEAD' })
+                      .then(function(response) {
+                        if (response.ok) {
+                          console.log('[SW] Service worker file found, registering...');
+                          return navigator.serviceWorker.register('/sw.js');
+                        } else {
+                          console.warn('[SW] Service worker file not found (404), skipping registration');
+                          return Promise.reject('Service worker file not found');
+                        }
+                      })
                       .then(function(registration) {
-                        console.log('[SW] Registered:', registration.scope);
+                        console.log('[SW] Registered successfully:', registration.scope);
                       })
                       .catch(function(error) {
-                        console.error('[SW] Registration failed:', error);
+                        console.warn('[SW] Registration failed or skipped:', error);
                       });
                   });
+                  
                   navigator.serviceWorker.addEventListener('message', function(event) {
                     console.log('[SW] message:', event.data);
                   });
