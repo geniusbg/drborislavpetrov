@@ -57,8 +57,8 @@ export default function HomePage() {
       {!hideOverlay && (
         <div
           aria-hidden
-          className="fixed inset-0 z-[9999] flex items-center justify-center bg-white transition-opacity duration-[1200ms]"
-          style={{ opacity: isClosing ? 0 : 1 }}
+                  className="fixed inset-0 z-[9999] flex items-center justify-center bg-white transition-opacity duration-[1200ms]"
+        style={{ opacity: isClosing ? 0 : 1 }}
         >
           <div
             className="text-center transform-gpu transition-transform duration-[1200ms]"

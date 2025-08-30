@@ -202,11 +202,11 @@ app.prepare().then(() => {
         const hoursSince = last ? (Date.now() - last) / (1000 * 60 * 60) : Infinity
         if (hoursSince < cfg.backupInterval) return
 
-        const host = process.env.PGHOST
-        const port = process.env.PGPORT || '5432'
-        const db = process.env.PGDATABASE
-        const user = process.env.PGUSER
-        const pass = process.env.PGPASSWORD
+        const host = process.env.DB_HOST || process.env.PGHOST
+        const port = process.env.DB_PORT || process.env.PGPORT || '5432'
+        const db = process.env.DB_NAME || process.env.PGDATABASE
+        const user = process.env.DB_USER || process.env.PGUSER
+        const pass = process.env.DB_PASSWORD || process.env.PGPASSWORD
         if (!host || !db || !user || !pass) {
           console.warn('Auto-backup skipped: missing PG env vars')
           return

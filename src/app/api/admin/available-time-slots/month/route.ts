@@ -23,6 +23,7 @@ function loadDefaultSettings() {
 }
 
 export async function GET(req: NextRequest) {
+  let db
   try {
     const adminToken = req.headers.get('x-admin-token')
     if (!adminToken || (adminToken !== 'test' && adminToken !== 'mock-token')) {
@@ -40,7 +41,7 @@ export async function GET(req: NextRequest) {
 
     console.log('🕒 Getting available time slots for month:', { month, limit })
 
-    const db = await getDatabase()
+    db = await getDatabase()
 
     // Parse month
     const [year, monthNum] = month.split('-').map(Number)
@@ -96,17 +97,28 @@ export async function GET(req: NextRequest) {
       }
 
       if (!isWorkingDay) {
+        console.log(`🕒 ${dateStr}: Not a working day`)
         continue
       }
 
-      // Get existing bookings for this date
+      console.log(`🕒 ${dateStr}: Working day, hours: ${workingStart}-${workingEnd}, break: ${breakStart}-${breakEnd}`)
+
+      // Get existing bookings for this date (with correct service duration)
       const bookingsQuery = `
-        SELECT time, COALESCE(serviceduration, 30) as duration 
-        FROM bookings 
-        WHERE date = $1 AND status != 'cancelled'
+        SELECT b.time, b.service, b.serviceduration, s.duration, s.name
+        FROM bookings b
+        LEFT JOIN services s ON CASE 
+          WHEN b.service ~ '^[0-9]+$' THEN (b.service::integer = s.id)
+          ELSE false
+        END
+        WHERE b.date = $1 AND b.status != 'cancelled'
       `
       const bookingsResult = await db.query(bookingsQuery, [dateStr])
-      const existingBookings = bookingsResult.rows
+      console.log(`🕒 ${dateStr}: Bookings result:`, bookingsResult.rows)
+      const existingBookings = bookingsResult.rows.map(row => ({
+        time: row.time,
+        duration: row.serviceduration || row.duration || 30
+      }))
 
       // Generate all possible 15-minute time slots within working hours
       const allTimeSlots: string[] = []
@@ -179,11 +191,21 @@ export async function GET(req: NextRequest) {
 
     console.log('🕒 Monthly available slots:', limitedSlots.length)
 
-    db.release()
+    // Properly release the database connection
+    if (db) {
+      db.release()
+    }
+    
     return NextResponse.json({ availableSlots: limitedSlots })
 
   } catch (error) {
     console.error('Error getting monthly available time slots:', error)
+    
+    // Make sure to release the database connection even on error
+    if (db) {
+      db.release()
+    }
+    
     return NextResponse.json({ error: 'Internal server error' }, { status: 500 })
   }
 }

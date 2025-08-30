@@ -300,7 +300,7 @@ export async function POST(request: NextRequest) {
         
         try {
           const availabilityResult = await db.query(
-            'SELECT time FROM bookings WHERE date = $1 ORDER BY time',
+            'SELECT id, time FROM bookings WHERE date = $1 AND status != \'cancelled\' ORDER BY time',
             [body.date]
           )
           
@@ -450,7 +450,7 @@ export async function POST(request: NextRequest) {
         console.log('Checking availability for date:', parsedCommand.date)
         
         const availabilityResult = await db.query(
-          'SELECT time FROM bookings WHERE date = $1 ORDER BY time',
+          'SELECT id, time FROM bookings WHERE date = $1 AND status != \'cancelled\' ORDER BY time',
           [parsedCommand.date]
         )
         

@@ -20,6 +20,16 @@ interface SupportNotesProps {
 }
 
 export default function SupportNotes({ onClose }: SupportNotesProps) {
+  // Drag state for main modal
+  const [isDragging, setIsDragging] = useState(false)
+  const [dragOffset, setDragOffset] = useState({ x: 0, y: 0 })
+  const [modalPosition, setModalPosition] = useState({ x: 0, y: 0 })
+
+  // Drag state for add/edit modal
+  const [isAddModalDragging, setIsAddModalDragging] = useState(false)
+  const [addModalDragOffset, setAddModalDragOffset] = useState({ x: 0, y: 0 })
+  const [addModalPosition, setAddModalPosition] = useState({ x: 0, y: 0 })
+
   const [notes, setNotes] = useState<SupportNote[]>([])
   const [isLoading, setIsLoading] = useState(false)
   const [showAddModal, setShowAddModal] = useState(false)
@@ -46,6 +56,76 @@ export default function SupportNotes({ onClose }: SupportNotesProps) {
     document.addEventListener('keydown', handleEscape)
     return () => document.removeEventListener('keydown', handleEscape)
   }, [onClose])
+
+  // Drag functions for main modal
+  const handleMouseDown = (e: React.MouseEvent) => {
+    if (e.target === e.currentTarget) {
+      setIsDragging(true)
+      setDragOffset({
+        x: e.clientX - modalPosition.x,
+        y: e.clientY - modalPosition.y
+      })
+    }
+  }
+
+  const handleMouseMove = (e: MouseEvent) => {
+    if (isDragging) {
+      setModalPosition({
+        x: e.clientX - dragOffset.x,
+        y: e.clientY - dragOffset.y
+      })
+    }
+  }
+
+  const handleMouseUp = () => {
+    setIsDragging(false)
+  }
+
+  // Drag functions for add/edit modal
+  const handleAddModalMouseDown = (e: React.MouseEvent) => {
+    if (e.target === e.currentTarget) {
+      setIsAddModalDragging(true)
+      setAddModalDragOffset({
+        x: e.clientX - addModalPosition.x,
+        y: e.clientY - addModalPosition.y
+      })
+    }
+  }
+
+  const handleAddModalMouseMove = (e: MouseEvent) => {
+    if (isAddModalDragging) {
+      setAddModalPosition({
+        x: e.clientX - addModalDragOffset.x,
+        y: e.clientY - addModalDragOffset.y
+      })
+    }
+  }
+
+  const handleAddModalMouseUp = () => {
+    setIsAddModalDragging(false)
+  }
+
+  useEffect(() => {
+    if (isDragging) {
+      document.addEventListener('mousemove', handleMouseMove)
+      document.addEventListener('mouseup', handleMouseUp)
+      return () => {
+        document.removeEventListener('mousemove', handleMouseMove)
+        document.removeEventListener('mouseup', handleMouseUp)
+      }
+    }
+  }, [isDragging, dragOffset])
+
+  useEffect(() => {
+    if (isAddModalDragging) {
+      document.addEventListener('mousemove', handleAddModalMouseMove)
+      document.addEventListener('mouseup', handleAddModalMouseUp)
+      return () => {
+        document.removeEventListener('mousemove', handleAddModalMouseMove)
+        document.removeEventListener('mouseup', handleAddModalMouseUp)
+      }
+    }
+  }, [isAddModalDragging, addModalDragOffset])
 
   const loadSupportNotes = async () => {
     try {
@@ -233,10 +313,21 @@ export default function SupportNotes({ onClose }: SupportNotesProps) {
   }
 
   return (
-    <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50" onClick={onClose}>
-      <div className="bg-white rounded-lg shadow-xl max-w-6xl w-full mx-4 max-h-[90vh] overflow-y-auto" onClick={(e) => e.stopPropagation()}>
+          <div className="fixed inset-0 bg-black bg-opacity-50 z-50" onClick={onClose}>
+      <div 
+        className="bg-white rounded-lg shadow-xl max-w-6xl w-full mx-4 max-h-[90vh] overflow-y-auto cursor-move" 
+        onClick={(e) => e.stopPropagation()} 
+        style={{ 
+          position: 'fixed',
+          left: '50%',
+          top: '50%',
+          transform: `translate(-50%, -50%) translate(${modalPosition.x}px, ${modalPosition.y}px)`,
+          cursor: isDragging ? 'grabbing' : 'grab'
+        }}
+        onMouseDown={handleMouseDown}
+      >
         {/* Header */}
-        <div className="flex items-center justify-between p-6 border-b">
+        <div className="flex items-center justify-between p-6 border-b" onMouseDown={(e) => e.stopPropagation()}>
           <div className="flex items-center space-x-4">
             <MessageSquare className="w-6 h-6 text-blue-600" />
             <div>
@@ -403,14 +494,24 @@ export default function SupportNotes({ onClose }: SupportNotesProps) {
 
         {/* Add/Edit Modal */}
         {showAddModal && (
-          <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-60">
-            <div className="bg-white rounded-lg shadow-xl max-w-md w-full mx-4">
-              <div className="p-6">
-                <h3 className="text-lg font-medium text-gray-900 mb-4">
-                  {editingNote ? 'Редактирай бележка' : 'Добави бележка'}
-                </h3>
-                
-                <form onSubmit={handleSubmit} className="space-y-4">
+          <div className="fixed inset-0 bg-black bg-opacity-50 z-60">
+            <div 
+              className="bg-white rounded-lg shadow-xl max-w-md w-full mx-4 cursor-move" 
+              style={{ 
+                position: 'fixed',
+                left: '50%',
+                top: '50%',
+                transform: `translate(-50%, -50%) translate(${addModalPosition.x}px, ${addModalPosition.y}px)`,
+                cursor: isAddModalDragging ? 'grabbing' : 'grab'
+              }}
+              onMouseDown={handleAddModalMouseDown}
+            >
+                              <div className="p-6" onMouseDown={(e) => e.stopPropagation()}>
+                  <h3 className="text-lg font-medium text-gray-900 mb-4">
+                    {editingNote ? 'Редактирай бележка' : 'Добави бележка'}
+                  </h3>
+                  
+                  <form onSubmit={handleSubmit} className="space-y-4" onMouseDown={(e) => e.stopPropagation()}>
                   <div>
                     <label className="block text-sm font-medium text-gray-700 mb-1">
                       Заглавие

@@ -1,7 +1,7 @@
 {
-  "retentionDays": 5,
+  "retentionDays": 7,
   "backupInterval": 1,
-  "backupFormat": "sql",
+  "backupFormat": "json",
   "backupLocation": "./backups/",
   "autoBackup": true,
   "compression": false

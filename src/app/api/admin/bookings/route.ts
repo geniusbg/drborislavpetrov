@@ -54,12 +54,8 @@ async function checkTimeSlotAvailability(db: PoolClient, date: string, time: str
       const breakStartMinutes = breakStartHour * 60 + breakStartMinute
       const breakEndMinutes = breakEndHour * 60 + breakEndMinute
       
-      // Провери дали има припокриване с почивка
-      if (
-        (startTimeMinutes >= breakStartMinutes && startTimeMinutes < breakEndMinutes) ||
-        (endTimeMinutes > breakStartMinutes && endTimeMinutes <= breakEndMinutes) ||
-        (startTimeMinutes <= breakStartMinutes && endTimeMinutes >= breakEndMinutes)
-      ) {
+      // Провери дали има припокриване с почивка (включително докосване)
+      if (startTimeMinutes < breakEndMinutes && endTimeMinutes > breakStartMinutes) {
         return { 
           available: false, 
           error: `Time slot conflicts with break time (${breakItem.start_time} - ${breakItem.end_time})` 
@@ -86,12 +82,8 @@ async function checkTimeSlotAvailability(db: PoolClient, date: string, time: str
       const bookingDuration = booking.serviceduration || 30
       const bookingEndMinutes = bookingStartMinutes + bookingDuration
       
-      // Провери дали има припокриване
-      if (
-        (startTimeMinutes >= bookingStartMinutes && startTimeMinutes < bookingEndMinutes) ||
-        (endTimeMinutes > bookingStartMinutes && endTimeMinutes <= bookingEndMinutes) ||
-        (startTimeMinutes <= bookingStartMinutes && endTimeMinutes >= bookingEndMinutes)
-      ) {
+      // Провери дали има припокриване (включително докосване)
+      if (startTimeMinutes < bookingEndMinutes && endTimeMinutes > bookingStartMinutes) {
         return { 
           available: false, 
           error: `Time slot conflicts with existing booking at ${booking.time}` 

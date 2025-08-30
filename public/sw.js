@@ -8,8 +8,9 @@ const urlsToCache = [
 
 // Helper function to check if request can be cached
 function canCacheRequest(request) {
-  // Only cache HTTP/HTTPS requests
-  return request.url.startsWith('http://') || request.url.startsWith('https://');
+  // Only cache GET requests and HTTP/HTTPS requests
+  return request.method === 'GET' && 
+         (request.url.startsWith('http://') || request.url.startsWith('https://'));
 }
 
 // Service Worker loaded

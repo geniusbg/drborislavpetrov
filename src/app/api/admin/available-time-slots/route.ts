@@ -41,23 +41,34 @@ export async function GET(req: NextRequest) {
       return NextResponse.json({ error: 'Date is required' }, { status: 400 })
     }
 
-    console.log('🕒 Getting available time slots for:', { date, service, serviceDuration, excludeBookingId })
+
 
     const db = await getDatabase()
 
-    // Step 1: Get working hours for this date
+    // Step 1: Get working hours and breaks for this date (matching DailySchedule API)
     const workingHoursQuery = `
-      SELECT start_time, end_time, is_working_day, break_start, break_end 
-      FROM working_hours 
-      WHERE date = $1
+      SELECT wh.start_time, wh.end_time, wh.is_working_day,
+             COALESCE(
+               json_agg(
+                 json_build_object(
+                   'startTime', wb.start_time,
+                   'endTime', wb.end_time,
+                   'description', wb.description
+                 )
+               ) FILTER (WHERE wb.id IS NOT NULL), 
+               '[]'::json
+             ) as breaks
+      FROM working_hours wh
+      LEFT JOIN working_breaks wb ON wh.id = wb.working_hours_id
+      WHERE wh.date = $1
+      GROUP BY wh.id, wh.start_time, wh.end_time, wh.is_working_day
     `
     const workingHoursResult = await db.query(workingHoursQuery, [date])
     
     let workingStart = '09:00'
     let workingEnd = '18:00'
     let isWorkingDay = false
-    let breakStart = null
-    let breakEnd = null
+    let breaks: Array<{startTime: string, endTime: string}> = []
 
     if (workingHoursResult.rows.length > 0) {
       const workingHours = workingHoursResult.rows[0]
@@ -65,8 +76,7 @@ export async function GET(req: NextRequest) {
         isWorkingDay = true
         workingStart = workingHours.start_time || '09:00'
         workingEnd = workingHours.end_time || '18:00'
-        breakStart = workingHours.break_start
-        breakEnd = workingHours.break_end
+        breaks = workingHours.breaks || []
       } else {
         isWorkingDay = false
       }
@@ -79,22 +89,29 @@ export async function GET(req: NextRequest) {
         isWorkingDay = true
         workingStart = defaults?.startTime || '09:00'
         workingEnd = defaults?.endTime || '18:00'
-        breakStart = defaults?.breakStart || null
-        breakEnd = defaults?.breakEnd || null
+        // Add default break if specified
+        if (defaults?.breakStart && defaults?.breakEnd) {
+          breaks = [{
+            startTime: defaults.breakStart,
+            endTime: defaults.breakEnd
+          }]
+        }
       } else {
         isWorkingDay = false
       }
     }
 
-    console.log('🕒 Working hours:', { isWorkingDay, workingStart, workingEnd, breakStart, breakEnd })
 
-    if (!isWorkingDay) {
-      return NextResponse.json({ availableSlots: [] })
-    }
 
-    // Step 2: Get existing bookings for this date
+
+    // Admin-ите могат да добавят резервации дори в почивните дни
+    // if (!isWorkingDay) {
+    //   return NextResponse.json({ availableSlots: [] })
+    // }
+
+    // Step 2: Get existing bookings for this date (temporary fix - use booking serviceduration field)
     let bookingsQuery = `
-      SELECT time, COALESCE(serviceduration, 30) as duration 
+      SELECT id, time, COALESCE(serviceduration, 30) as duration 
       FROM bookings 
       WHERE date = $1 AND status != 'cancelled'
     `
@@ -104,12 +121,14 @@ export async function GET(req: NextRequest) {
     if (excludeBookingId) {
       bookingsQuery += ` AND id != $2`
       queryParams.push(excludeBookingId)
+
     }
 
     const bookingsResult = await db.query(bookingsQuery, queryParams)
     const existingBookings = bookingsResult.rows
+    
 
-    console.log('🕒 Existing bookings:', existingBookings)
+
 
     // Step 3: Generate all possible 15-minute time slots within working hours
     const allTimeSlots: string[] = []
@@ -132,17 +151,19 @@ export async function GET(req: NextRequest) {
       }
     }
 
-    console.log('🕒 All possible slots:', allTimeSlots.length)
+    
+
+
 
     // Step 4: Filter out slots that conflict with existing bookings and break time
     const availableSlots = allTimeSlots.filter(slot => {
       const slotStartInMinutes = convertTimeToMinutes(slot)
       const slotEndInMinutes = slotStartInMinutes + serviceDuration
 
-      // Check if this slot conflicts with break time (single window)
-      if (breakStart && breakEnd) {
-        const breakStartInMinutes = convertTimeToMinutes(breakStart)
-        const breakEndInMinutes = convertTimeToMinutes(breakEnd)
+      // Check if this slot conflicts with any break times
+      for (const breakItem of breaks) {
+        const breakStartInMinutes = convertTimeToMinutes(breakItem.startTime)
+        const breakEndInMinutes = convertTimeToMinutes(breakItem.endTime)
         if (slotStartInMinutes < breakEndInMinutes && slotEndInMinutes > breakStartInMinutes) {
           return false // Conflicts with break time
         }
@@ -153,16 +174,21 @@ export async function GET(req: NextRequest) {
         const bookingStartInMinutes = convertTimeToMinutes(booking.time)
         const bookingEndInMinutes = bookingStartInMinutes + booking.duration
 
-        // Check for overlap
+        // Check for overlap (including touching times)
         if (slotStartInMinutes < bookingEndInMinutes && slotEndInMinutes > bookingStartInMinutes) {
           return false // Conflict found
         }
       }
 
+
       return true // No conflict
     })
 
-    console.log('🕒 Available slots:', availableSlots.length, availableSlots)
+    
+
+
+
+
 
     // Apply limit if specified
     const limitedSlots = limit > 0 ? availableSlots.slice(0, limit) : availableSlots

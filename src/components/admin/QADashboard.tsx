@@ -577,7 +577,7 @@ export default function QADashboard() {
       {/* Report Modal */}
       {showReport && (
         <div className="fixed inset-0 bg-gray-600 bg-opacity-50 overflow-y-auto h-full w-full z-50">
-          <div className="relative top-4 sm:top-20 mx-auto p-4 sm:p-5 border w-full max-w-4xl shadow-lg rounded-md bg-white m-4">
+          <div className="relative top-4 sm:top-20 mx-auto p-4 sm:p-5 border w-full max-w-4xl shadow-lg rounded-md bg-white m-4" style={{ top: '50%', transform: 'translateY(-50%)' }}>
             <div className="mt-3">
               <div className="flex items-center justify-between mb-4">
                 <h3 className="text-lg font-medium text-gray-900">QA Отчет</h3>
@@ -619,8 +619,8 @@ export default function QADashboard() {
 
       {/* Loading Overlay */}
       {isLoading && (
-        <div className="fixed inset-0 bg-gray-600 bg-opacity-50 flex items-center justify-center z-50">
-          <div className="bg-white rounded-lg p-6 flex items-center space-x-3">
+        <div className="fixed inset-0 bg-gray-600 bg-opacity-50 z-50">
+          <div className="bg-white rounded-lg p-6 flex items-center space-x-3 mx-4" style={{ top: '50%', transform: 'translateY(-50%)' }}>
             <RefreshCw className="w-6 h-6 text-blue-600 animate-spin" />
             <span className="text-gray-900">
               {selectedTest ? `Стартиране на ${selectedTest}...` : 'Стартиране на тест...'}

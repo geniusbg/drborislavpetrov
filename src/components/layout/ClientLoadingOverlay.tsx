@@ -36,7 +36,7 @@ export const ClientLoadingOverlay = () => {
   if (!isMounted || !isVisible) return null
 
   const overlay = (
-    <div className="fixed inset-0 bg-white z-[9999] flex items-center justify-center">
+            <div className="fixed inset-0 bg-white z-[9999] flex items-center justify-center">
       <div className="text-center">
         <div className="mb-8">
           <h1 className="text-3xl font-bold text-blue-600 mb-2">Д-р Борислав Петров</h1>

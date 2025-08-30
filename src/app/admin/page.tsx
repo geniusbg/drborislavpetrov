@@ -15,6 +15,7 @@ import NextBookingNotification from '@/components/admin/NextBookingNotification'
 
 import AnalyticsDashboard from '@/components/admin/AnalyticsDashboard'
 import VoiceInterface from '@/components/admin/VoiceInterface'
+import VoiceAssistant from '@/components/admin/VoiceAssistant'
 import { useSocket } from '@/hooks/useSocket'
 import type { Booking, User as UserType, Service as ServiceType } from '@/types/global'
 import BugTracker from '@/components/admin/BugTracker'
@@ -26,6 +27,7 @@ import UnderConstructionBanner from '@/components/UnderConstructionBanner'
 import QADashboard from '@/components/admin/QADashboard'
 import SupportNotes from '@/components/admin/SupportNotes'
 import QuickResponseWidget from '@/components/admin/QuickResponseWidget'
+import Pagination from '@/components/admin/Pagination'
 
 import { getBulgariaTime, formatBulgariaDate } from '@/lib/bulgaria-time'
 
@@ -69,6 +71,8 @@ export default function AdminPage() {
   const [userSearchTerm, setUserSearchTerm] = useState('')
   const [bookingSearchTerm, setBookingSearchTerm] = useState('')
   const [showVoiceInterface, setShowVoiceInterface] = useState(false)
+  const [isVoiceListening, setIsVoiceListening] = useState(false)
+  const [isMobileOrIOS, setIsMobileOrIOS] = useState(false)
   const [currentDateTime, setCurrentDateTime] = useState<Date | null>(null)
   const [isLoadingServices, setIsLoadingServices] = useState(false)
   const [loadingActions, setLoadingActions] = useState<{ [key: string]: boolean }>({})
@@ -107,6 +111,28 @@ export default function AdminPage() {
       localStorage.setItem('adminBookingSort', JSON.stringify(sortState))
     }
   }, [sortState])
+
+  // Detect iOS/mobile (for VoiceAssistant fallback)
+  useEffect(() => {
+    if (typeof window !== 'undefined') {
+      const ua = navigator.userAgent
+      const isIOS = /iPhone|iPad|iPod/i.test(ua)
+      const isMobile = /Android|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(ua)
+      setIsMobileOrIOS(isIOS || isMobile)
+    }
+  }, [])
+
+  // Request microphone access (used before opening VoiceAssistant on iOS/mobile)
+  const startMic = async () => {
+    try {
+      const stream = await navigator.mediaDevices.getUserMedia({ audio: true })
+      // Stop tracks immediately; we just need the permission grant
+      stream.getTracks().forEach(t => t.stop())
+      console.log('Микрофонът е достъпен')
+    } catch (err) {
+      console.error('Достъпът до микрофона е отказан:', err)
+    }
+  }
 
   // Sort function
   const sortBookings = (bookings: Booking[], sort: SortState) => {
@@ -856,6 +882,18 @@ export default function AdminPage() {
     })
   }, [users, userSearchTerm])
 
+  // Pagination state for bookings
+  const [currentPage, setCurrentPage] = useState(1)
+  const [itemsPerPage, setItemsPerPage] = useState(20)
+  
+  // Pagination state for users
+  const [currentUsersPage, setCurrentUsersPage] = useState(1)
+  const [usersPerPage, setUsersPerPage] = useState(20)
+  
+  // Pagination state for services
+  const [currentServicesPage, setCurrentServicesPage] = useState(1)
+  const [servicesPerPage, setServicesPerPage] = useState(20)
+
   // Filter and sort bookings
   const filteredBookings = useMemo(() => {
     const searchTerm = bookingSearchTerm.toLowerCase()
@@ -873,6 +911,39 @@ export default function AdminPage() {
     // Apply sorting
     return sortBookings(filtered, sortState)
   }, [bookings, bookingSearchTerm, services, sortState])
+
+  // Calculate pagination for bookings
+  const totalPages = Math.ceil(filteredBookings.length / itemsPerPage)
+  const startIndex = (currentPage - 1) * itemsPerPage
+  const endIndex = startIndex + itemsPerPage
+  const paginatedBookings = filteredBookings.slice(startIndex, endIndex)
+
+  // Calculate pagination for users
+  const totalUsersPages = Math.ceil(filteredUsers.length / usersPerPage)
+  const usersStartIndex = (currentUsersPage - 1) * usersPerPage
+  const usersEndIndex = usersStartIndex + usersPerPage
+  const paginatedUsers = filteredUsers.slice(usersStartIndex, usersEndIndex)
+
+  // Calculate pagination for services
+  const totalServicesPages = Math.ceil(services.length / servicesPerPage)
+  const servicesStartIndex = (currentServicesPage - 1) * servicesPerPage
+  const servicesEndIndex = servicesStartIndex + servicesPerPage
+  const paginatedServices = services.slice(servicesStartIndex, servicesEndIndex)
+
+  // Reset to first page when filters change
+  useEffect(() => {
+    setCurrentPage(1)
+  }, [bookingSearchTerm])
+
+  // Reset users page when search changes
+  useEffect(() => {
+    setCurrentUsersPage(1)
+  }, [userSearchTerm])
+
+  // Reset services page when search changes
+  useEffect(() => {
+    setCurrentServicesPage(1)
+  }, [])
 
   const handleAddBooking = (date: Date) => {
     const newBooking = {
@@ -945,7 +1016,7 @@ export default function AdminPage() {
       
       {/* Modern Header */}
       <header className="sticky top-0 z-40 bg-gradient-to-r from-blue-600 to-blue-800 shadow">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+        <div className="max-w-7xl mx-auto px-2 sm:px-2.5 md:px-4 lg:px-8">
           <div className="flex items-center justify-between py-4">
             {/* Brand + Breadcrumb */}
             <div className="flex items-center space-x-4">
@@ -959,24 +1030,33 @@ export default function AdminPage() {
             </div>
 
             {/* Actions (Desktop) */}
-            <div className="hidden sm:flex items-center space-x-3">
-                              <Link href="/" className="text-blue-100 hover:text-white transition-colors inline-flex items-center space-x-2">
-                  <ArrowLeft className="w-4 h-4" />
-                  <span>Към сайта</span>
-                </Link>
-              <a href="/siri" className="text-blue-100 hover:text-white transition-colors inline-flex items-center space-x-2">
+            <div className="hidden sm:flex items-center space-x-2 md:space-x-2.5 lg:space-x-3 flex-wrap overflow-x-auto scrollbar-hide">
+              <Link href="/" className="text-blue-100 hover:text-white transition-colors inline-flex items-center space-x-2 flex-shrink-0">
+                <ArrowLeft className="w-4 h-4" />
+                <span className="hidden lg:inline">Към сайта</span>
+              </Link>
+              <a href="/siri" className="text-blue-100 hover:text-white transition-colors inline-flex items-center space-x-2 flex-shrink-0">
                 <Smartphone className="w-4 h-4" />
-                <span>Siri Shortcuts</span>
+                <span className="hidden lg:inline">Siri Shortcuts</span>
               </a>
 
               <button
                 onClick={() => setShowSupportNotes(true)}
-                className="text-blue-100 hover:text-white transition-colors inline-flex items-center space-x-2"
+                className="text-blue-100 hover:text-white transition-colors inline-flex items-center space-x-2 flex-shrink-0"
               >
                 <MessageSquare className="w-4 h-4" />
-                <span>Поддръжка</span>
+                <span className="hidden lg:inline">Поддръжка</span>
               </button>
-              <div className="h-5 w-px bg-blue-300/60" />
+              
+              <button
+                onClick={() => changeTab('settings')}
+                className="text-blue-100 hover:text-white transition-colors inline-flex items-center space-x-2 flex-shrink-0"
+              >
+                <Settings className="w-4 h-4" />
+                <span className="hidden lg:inline">Настройки</span>
+              </button>
+              
+              <div className="h-5 w-px bg-blue-300/60 flex-shrink-0" />
               <button
                 onClick={() => {
                   if (typeof window !== 'undefined') {
@@ -984,15 +1064,21 @@ export default function AdminPage() {
                     window.location.href = '/admin/login'
                   }
                 }}
-                className="text-blue-100 hover:text-white transition-colors inline-flex items-center space-x-2"
+                className="text-blue-100 hover:text-white transition-colors inline-flex items-center space-x-2 flex-shrink-0"
               >
                 <LogOut className="w-4 h-4" />
-                <span>Изход</span>
+                <span className="hidden lg:inline">Изход</span>
               </button>
             </div>
 
-            {/* Mobile logout */}
-            <div className="sm:hidden">
+            {/* Mobile actions */}
+            <div className="sm:hidden flex items-center space-x-2">
+              <button
+                onClick={() => changeTab('settings')}
+                className="p-2 text-blue-100 hover:text-white transition-colors"
+              >
+                <Settings className="w-5 h-5" />
+              </button>
               <button
                 onClick={() => {
                   if (typeof window !== 'undefined') {
@@ -1025,22 +1111,22 @@ export default function AdminPage() {
 
       {/* Content */}
       {!isLoading && (
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4 sm:py-8">
+        <div className="max-w-7xl mx-auto px-2 sm:px-2.5 md:px-4 lg:px-8 py-4 sm:py-8">
           
 
 
           {/* Tabs - Mobile Optimized Design */}
           <div className="bg-white rounded-xl shadow-sm border border-gray-100 mb-8">
-            <div className="p-1">
+            <div className="p-1 sm:p-1.5 md:p-2">
               {/* Mobile: Horizontal Scrollable Tabs */}
               <div className="sm:hidden overflow-x-auto scrollbar-hide">
-                <nav className="flex space-x-1 min-w-max">
+                <nav className="flex space-x-1">
                   <button
                     onClick={() => {
                       changeTab('bookings')
                       localStorage.setItem('adminActiveTab', 'bookings')
                     }}
-                    className={`flex-shrink-0 px-4 py-3 text-sm font-medium rounded-lg transition-all duration-200 min-w-[120px] ${
+                    className={`flex-shrink-0 px-3 py-3 text-sm font-medium rounded-lg transition-all duration-200 min-w-[100px] ${
                       activeTab === 'bookings'
                         ? 'bg-blue-600 text-white shadow-sm'
                         : 'text-gray-600 hover:text-gray-900 hover:bg-gray-50'
@@ -1057,7 +1143,7 @@ export default function AdminPage() {
                       changeTab('calendar')
                       localStorage.setItem('adminActiveTab', 'calendar')
                     }}
-                    className={`flex-shrink-0 px-4 py-3 text-sm font-medium rounded-lg transition-all duration-200 min-w-[120px] ${
+                    className={`flex-shrink-0 px-3 py-3 text-sm font-medium rounded-lg transition-all duration-200 min-w-[100px] ${
                       activeTab === 'calendar'
                         ? 'bg-blue-600 text-white shadow-sm'
                         : 'text-gray-600 hover:text-gray-900 hover:bg-gray-50'
@@ -1074,7 +1160,7 @@ export default function AdminPage() {
                       changeTab('users')
                       localStorage.setItem('adminActiveTab', 'users')
                     }}
-                    className={`flex-shrink-0 px-4 py-3 text-sm font-medium rounded-lg transition-all duration-200 min-w-[120px] ${
+                    className={`flex-shrink-0 px-3 py-3 text-sm font-medium rounded-lg transition-all duration-200 min-w-[100px] ${
                       activeTab === 'users'
                         ? 'bg-blue-600 text-white shadow-sm'
                         : 'text-gray-600 hover:text-gray-900 hover:bg-gray-50'
@@ -1091,7 +1177,7 @@ export default function AdminPage() {
                       changeTab('services')
                       localStorage.setItem('adminActiveTab', 'services')
                     }}
-                    className={`flex-shrink-0 px-4 py-3 text-sm font-medium rounded-lg transition-all duration-200 min-w-[120px] ${
+                    className={`flex-shrink-0 px-3 py-3 text-sm font-medium rounded-lg transition-all duration-200 min-w-[100px] ${
                       activeTab === 'services'
                         ? 'bg-blue-600 text-white shadow-sm'
                         : 'text-gray-600 hover:text-gray-900 hover:bg-gray-50'
@@ -1108,7 +1194,7 @@ export default function AdminPage() {
                       changeTab('analytics')
                       localStorage.setItem('adminActiveTab', 'analytics')
                     }}
-                    className={`flex-shrink-0 px-4 py-3 text-sm font-medium rounded-lg transition-all duration-200 min-w-[120px] ${
+                    className={`flex-shrink-0 px-3 py-3 text-sm font-medium rounded-lg transition-all duration-200 min-w-[100px] ${
                       activeTab === 'analytics'
                         ? 'bg-blue-600 text-white shadow-sm'
                         : 'text-gray-600 hover:text-gray-900 hover:bg-gray-50'
@@ -1125,7 +1211,7 @@ export default function AdminPage() {
                       changeTab('qa')
                       localStorage.setItem('adminActiveTab', 'qa')
                     }}
-                    className={`flex-shrink-0 px-4 py-3 text-sm font-medium rounded-lg transition-all duration-200 min-w-[120px] ${
+                    className={`flex-shrink-0 px-3 py-3 text-sm font-medium rounded-lg transition-all duration-200 min-w-[100px] ${
                       activeTab === 'qa'
                         ? 'bg-blue-600 text-white shadow-sm'
                         : 'text-gray-600 hover:text-gray-900 hover:bg-gray-50'
@@ -1137,51 +1223,21 @@ export default function AdminPage() {
                     </div>
                   </button>
                   
-                  <button
-                    onClick={() => {
-                      changeTab('backup')
-                      localStorage.setItem('adminActiveTab', 'backup')
-                    }}
-                    className={`flex-shrink-0 px-4 py-3 text-sm font-medium rounded-lg transition-all duration-200 ${
-                      activeTab === 'backup'
-                        ? 'bg-blue-600 text-white shadow-sm'
-                        : 'text-gray-600 hover:text-gray-900 hover:bg-gray-50'
-                    }`}
-                  >
-                    <div className="flex items-center justify-center space-x-2">
-                      <HardDrive className="w-4 h-4" />
-                      <span>Backup</span>
-                    </div>
-                  </button>
+
                   
-                  <button
-                    onClick={() => {
-                      changeTab('settings')
-                      localStorage.setItem('adminActiveTab', 'settings')
-                    }}
-                    className={`flex-shrink-0 px-4 py-3 text-sm font-medium rounded-lg transition-all duration-200 ${
-                      activeTab === 'settings'
-                        ? 'bg-blue-600 text-white shadow-sm'
-                        : 'text-gray-600 hover:text-gray-900 hover:bg-gray-50'
-                    }`}
-                  >
-                    <div className="flex items-center justify-center space-x-2">
-                      <Settings className="w-4 h-4" />
-                      <span>Настройки</span>
-                    </div>
-                  </button>
+
 
                 </nav>
               </div>
               
-              {/* Desktop: Full Width Tabs */}
-              <nav className="hidden sm:flex space-x-1">
+              {/* Desktop: Responsive Tabs */}
+              <nav className="hidden sm:flex space-x-1 md:space-x-1.5 overflow-x-auto scrollbar-hide">
                 <button
                   onClick={() => {
                     changeTab('bookings')
                     localStorage.setItem('adminActiveTab', 'bookings')
                   }}
-                  className={`flex-1 px-4 py-3 text-sm font-medium rounded-lg transition-all duration-200 ${
+                  className={`flex-shrink-0 px-3 py-3 text-sm font-medium rounded-lg transition-all duration-200 min-w-[100px] ${
                     activeTab === 'bookings'
                       ? 'bg-blue-600 text-white shadow-sm'
                       : 'text-gray-600 hover:text-gray-900 hover:bg-gray-50'
@@ -1198,7 +1254,7 @@ export default function AdminPage() {
                     changeTab('calendar')
                     localStorage.setItem('adminActiveTab', 'calendar')
                   }}
-                  className={`flex-1 px-4 py-3 text-sm font-medium rounded-lg transition-all duration-200 ${
+                  className={`flex-shrink-0 px-3 py-3 text-sm font-medium rounded-lg transition-all duration-200 min-w-[100px] ${
                     activeTab === 'calendar'
                       ? 'bg-blue-600 text-white shadow-sm'
                       : 'text-gray-600 hover:text-gray-900 hover:bg-gray-50'
@@ -1215,7 +1271,7 @@ export default function AdminPage() {
                     changeTab('users')
                     localStorage.setItem('adminActiveTab', 'users')
                   }}
-                  className={`flex-1 px-4 py-3 text-sm font-medium rounded-lg transition-all duration-200 ${
+                  className={`flex-shrink-0 px-3 py-3 text-sm font-medium rounded-lg transition-all duration-200 min-w-[100px] ${
                     activeTab === 'users'
                       ? 'bg-blue-600 text-white shadow-sm'
                       : 'text-gray-600 hover:text-gray-900 hover:bg-gray-50'
@@ -1232,7 +1288,7 @@ export default function AdminPage() {
                     changeTab('services')
                     localStorage.setItem('adminActiveTab', 'services')
                   }}
-                  className={`flex-1 px-4 py-3 text-sm font-medium rounded-lg transition-all duration-200 ${
+                  className={`flex-shrink-0 px-3 py-3 text-sm font-medium rounded-lg transition-all duration-200 min-w-[100px] ${
                     activeTab === 'services'
                       ? 'bg-blue-600 text-white shadow-sm'
                       : 'text-gray-600 hover:text-gray-900 hover:bg-gray-50'
@@ -1249,7 +1305,7 @@ export default function AdminPage() {
                     changeTab('analytics')
                     localStorage.setItem('adminActiveTab', 'analytics')
                   }}
-                  className={`flex-1 px-4 py-3 text-sm font-medium rounded-lg transition-all duration-200 ${
+                  className={`flex-shrink-0 px-3 py-3 text-sm font-medium rounded-lg transition-all duration-200 min-w-[100px] ${
                     activeTab === 'analytics'
                       ? 'bg-blue-600 text-white shadow-sm'
                       : 'text-gray-600 hover:text-gray-900 hover:bg-gray-50'
@@ -1266,7 +1322,7 @@ export default function AdminPage() {
                     changeTab('bugTracker')
                     localStorage.setItem('adminActiveTab', 'bugTracker')
                   }}
-                  className={`flex-1 px-4 py-3 text-sm font-medium rounded-lg transition-all duration-200 ${
+                  className={`flex-shrink-0 px-3 py-3 text-sm font-medium rounded-lg transition-all duration-200 min-w-[100px] ${
                     activeTab === 'bugTracker'
                       ? 'bg-blue-600 text-white shadow-sm'
                       : 'text-gray-600 hover:text-gray-900 hover:bg-gray-50'
@@ -1283,7 +1339,7 @@ export default function AdminPage() {
                     changeTab('qa')
                     localStorage.setItem('adminActiveTab', 'qa')
                   }}
-                  className={`flex-1 px-4 py-3 text-sm font-medium rounded-lg transition-all duration-200 ${
+                  className={`flex-shrink-0 px-3 py-3 text-sm font-medium rounded-lg transition-all duration-200 min-w-[100px] ${
                     activeTab === 'qa'
                       ? 'bg-blue-600 text-white shadow-sm'
                       : 'text-gray-600 hover:text-gray-900 hover:bg-gray-50'
@@ -1295,39 +1351,9 @@ export default function AdminPage() {
                   </div>
                 </button>
                 
-                <button
-                  onClick={() => {
-                    changeTab('backup')
-                    localStorage.setItem('adminActiveTab', 'backup')
-                  }}
-                  className={`flex-1 px-4 py-3 text-sm font-medium rounded-lg transition-all duration-200 ${
-                    activeTab === 'backup'
-                      ? 'bg-blue-600 text-white shadow-sm'
-                      : 'text-gray-600 hover:text-gray-900 hover:bg-gray-50'
-                  }`}
-                >
-                  <div className="flex items-center justify-center space-x-2">
-                    <HardDrive className="w-4 h-4" />
-                    <span>Backup</span>
-                  </div>
-                </button>
+
                 
-                <button
-                  onClick={() => {
-                    changeTab('settings')
-                    localStorage.setItem('adminActiveTab', 'settings')
-                  }}
-                  className={`flex-1 px-4 py-3 text-sm font-medium rounded-lg transition-all duration-200 ${
-                    activeTab === 'settings'
-                      ? 'bg-blue-600 text-white shadow-sm'
-                      : 'text-gray-600 hover:text-gray-900 hover:bg-gray-50'
-                  }`}
-                >
-                  <div className="flex items-center justify-center space-x-2">
-                    <Settings className="w-4 h-4" />
-                    <span>Настройки</span>
-                  </div>
-                </button>
+
 
               </nav>
             </div>
@@ -1336,7 +1362,7 @@ export default function AdminPage() {
           {/* Content */}
           {activeTab === 'bookings' && !isLoading && (
             <div className="bg-white rounded-xl shadow-sm border border-gray-100">
-              <div className="px-6 py-4 border-b border-gray-200 flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
+              <div className="px-2 sm:px-2.5 md:px-4 lg:px-6 py-4 border-b border-gray-200 flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
                 <div className="flex flex-col">
                   <h2 className="text-xl font-semibold text-gray-900">Резервации</h2>
                   <p className="text-sm text-gray-600 mt-1">
@@ -1400,7 +1426,7 @@ export default function AdminPage() {
               {/* Mobile: Card Layout, Desktop: Table Layout */}
               <div className="block sm:hidden">
                 <div className="space-y-3 p-4">
-                  {filteredBookings.map((booking) => (
+                  {paginatedBookings.map((booking) => (
                     <div key={booking.id} className="bg-gray-50 rounded-lg p-4 border border-gray-200">
                       <div className="flex justify-between items-start mb-3">
                         <div className="flex-1">
@@ -1491,11 +1517,11 @@ export default function AdminPage() {
               </div>
               
               {/* Desktop: Table Layout */}
-              <div className="hidden sm:block overflow-x-auto">
-                <table className="min-w-full divide-y divide-gray-200">
+              <div className="hidden sm:block">
+                <table className="w-full divide-y divide-gray-200 table-auto">
                   <thead className="bg-gray-50">
                     <tr>
-                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                      <th className="px-2 sm:px-2.5 md:px-4 lg:px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                         <button
                           onClick={() => handleSort('name')}
                           className="flex items-center space-x-1 hover:text-gray-700 transition-colors"
@@ -1504,7 +1530,7 @@ export default function AdminPage() {
                           {getSortIcon('name')}
                         </button>
                       </th>
-                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                      <th className="px-2 sm:px-2.5 md:px-4 lg:px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                         <button
                           onClick={() => handleSort('service')}
                           className="flex items-center space-x-1 hover:text-gray-700 transition-colors"
@@ -1513,7 +1539,7 @@ export default function AdminPage() {
                           {getSortIcon('service')}
                         </button>
                       </th>
-                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                      <th className="px-2 sm:px-2.5 md:px-4 lg:px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                         <button
                           onClick={() => handleSort('date')}
                           className="flex items-center space-x-1 hover:text-gray-700 transition-colors"
@@ -1522,7 +1548,7 @@ export default function AdminPage() {
                           {getSortIcon('date')}
                         </button>
                       </th>
-                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                      <th className="px-2 sm:px-2.5 md:px-4 lg:px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                         <button
                           onClick={() => handleSort('status')}
                           className="flex items-center space-x-1 hover:text-gray-700 transition-colors"
@@ -1531,45 +1557,45 @@ export default function AdminPage() {
                           {getSortIcon('status')}
                         </button>
                       </th>
-                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                      <th className="px-2 sm:px-2.5 md:px-4 lg:px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                         Действия
                       </th>
                     </tr>
                   </thead>
                   <tbody className="bg-white divide-y divide-gray-200">
-                    {filteredBookings.map((booking) => (
+                    {paginatedBookings.map((booking) => (
                       <tr key={booking.id} className="hover:bg-gray-50">
-                        <td className="px-6 py-4 whitespace-nowrap">
-                          <div>
-                            <div className="text-sm font-medium text-gray-900">{booking.name}</div>
+                        <td className="px-2 sm:px-2.5 md:px-4 lg:px-6 py-4 max-w-0">
+                          <div className="truncate">
+                            <div className="text-sm font-medium text-gray-900 truncate">{booking.name}</div>
                             {booking.phone && (
-                              <div className="text-sm text-gray-500">{booking.phone}</div>
+                              <div className="text-sm text-gray-500 truncate">{booking.phone}</div>
                             )}
                             {booking.email && (
-                              <div className="text-sm text-gray-500">{booking.email}</div>
+                              <div className="text-sm text-gray-500 truncate">{booking.email}</div>
                             )}
                             {booking.userName && booking.userName !== booking.name && (
-                              <div className="text-xs text-blue-600">Потребител: {booking.userName}</div>
+                              <div className="text-xs text-blue-600 truncate">Потребител: {booking.userName}</div>
                             )}
                           </div>
                         </td>
-                        <td className="px-6 py-4 whitespace-nowrap">
-                          <div className="text-sm text-gray-900">{getServiceLabel(booking.service)}</div>
+                        <td className="px-2 sm:px-2.5 md:px-4 lg:px-6 py-4 max-w-0">
+                          <div className="text-sm text-gray-900 truncate">{getServiceLabel(booking.service)}</div>
                         </td>
-                        <td className="px-6 py-4 whitespace-nowrap">
+                        <td className="px-2 sm:px-2.5 md:px-4 lg:px-6 py-4 max-w-0">
                           <div className="text-sm text-gray-900">
-                            {formatBulgariaDate(new Date(booking.date))}
+                            <div className="truncate">{formatBulgariaDate(new Date(booking.date))}</div>
+                            <div className="text-sm text-gray-500 truncate">{booking.time}</div>
                           </div>
-                          <div className="text-sm text-gray-500">{booking.time}</div>
                         </td>
-                        <td className="px-6 py-4 whitespace-nowrap">
+                        <td className="px-2 sm:px-2.5 md:px-4 lg:px-6 py-4 max-w-0">
                           <span className={`inline-flex px-2 py-1 text-xs font-semibold rounded-full ${getStatusColor(booking.status)}`}>
                             {booking.status === 'pending' && 'Чакаща'}
                             {booking.status === 'confirmed' && 'Потвърдена'}
                             {booking.status === 'cancelled' && 'Отменена'}
                           </span>
                         </td>
-                        <td className="px-6 py-4 whitespace-nowrap text-sm font-medium">
+                        <td className="px-2 sm:px-2.5 md:px-4 lg:px-6 py-4 max-w-0 text-sm font-medium">
                           <div className="flex space-x-2">
                             <button
                               onClick={() => openModal('booking', booking.id)}
@@ -1625,12 +1651,25 @@ export default function AdminPage() {
                   </tbody>
                 </table>
               </div>
+              
+              {/* Pagination Controls */}
+              <Pagination
+                currentPage={currentPage}
+                totalPages={totalPages}
+                totalItems={filteredBookings.length}
+                startIndex={startIndex}
+                endIndex={endIndex}
+                itemsPerPage={itemsPerPage}
+                onPageChange={setCurrentPage}
+                onItemsPerPageChange={setItemsPerPage}
+                label="резервации"
+              />
             </div>
           )}
 
           {activeTab === 'calendar' && !isLoading && (
             <div className="bg-white rounded-xl shadow-sm border border-gray-100">
-              <div className="px-6 py-4 border-b border-gray-200 flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
+              <div className="px-2 sm:px-2.5 md:px-4 lg:px-6 py-4 border-b border-gray-200 flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
                 <div>
                   <h2 className="text-xl font-semibold text-gray-900">Календар на резервациите</h2>
                   <p className="text-sm text-gray-600 mt-1">Преглед и управление на резервациите по дни</p>
@@ -1643,7 +1682,7 @@ export default function AdminPage() {
                   <span>Добави резервация</span>
                 </button>
               </div>
-              <div className="p-6">
+              <div className="p-2 sm:p-2.5 md:p-4 lg:p-6">
                 <CalendarComponent 
                   bookings={bookings}
                   onBookingClick={(booking) => {
@@ -1660,7 +1699,7 @@ export default function AdminPage() {
 
           {activeTab === 'services' && !isLoading && (
             <div className="bg-white rounded-xl shadow-sm border border-gray-100">
-              <div className="px-6 py-4 border-b border-gray-200 flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
+              <div className="px-2 sm:px-2.5 md:px-4 lg:px-6 py-4 border-b border-gray-200 flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
                 <div>
                   <h2 className="text-xl font-semibold text-gray-900">Услуги</h2>
                   <p className="text-sm text-gray-600 mt-1">Управление на стоматологичните услуги</p>
@@ -1677,7 +1716,7 @@ export default function AdminPage() {
               {/* Mobile: Card Layout */}
               <div className="block sm:hidden">
                 <div className="space-y-3 p-4">
-                  {services.map((service) => (
+                  {paginatedServices.map((service) => (
                     <div key={service.id} className="bg-gray-50 rounded-lg p-4 border border-gray-200">
                       <div className="flex justify-between items-start mb-3">
                         <div className="flex-1">
@@ -1701,14 +1740,15 @@ export default function AdminPage() {
                         <div>
                           <p className="text-gray-500">Цена</p>
                           <p className="font-medium">
-                            {service.price ? (
-                              service.priceBgn && service.priceEur && 
-                              !isNaN(Number(service.priceBgn)) && !isNaN(Number(service.priceEur)) ? 
+                            {service.priceBgn && !isNaN(Number(service.priceBgn)) ? (
+                              service.priceEur && !isNaN(Number(service.priceEur)) ? 
                                 `${Number(service.priceBgn).toFixed(2)} лв. / ${Number(service.priceEur).toFixed(2)} €` :
-                                `${service.price} лв.`
-                            ) : '-'}
+                                `${Number(service.priceBgn).toFixed(2)} лв.`
+                            ) : service.price ? 
+                              `${service.price} лв.` : 
+                              '-'
+                            }
                           </p>
-
                         </div>
                       </div>
                       
@@ -1732,61 +1772,62 @@ export default function AdminPage() {
               </div>
               
               {/* Desktop: Table Layout */}
-              <div className="hidden sm:block overflow-x-auto">
-                <table className="min-w-full divide-y divide-gray-200">
+              <div className="hidden sm:block">
+                <table className="w-full divide-y divide-gray-200 table-auto">
                   <thead className="bg-gray-50">
                     <tr>
-                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                      <th className="px-2 sm:px-2.5 md:px-4 lg:px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                         Услуга
                       </th>
-                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                      <th className="px-2 sm:px-2.5 md:px-4 lg:px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                         Описание
                       </th>
-                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                      <th className="px-2 sm:px-2.5 md:px-4 lg:px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                         Продължителност
                       </th>
-                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                      <th className="px-2 sm:px-2.5 md:px-4 lg:px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                         Цена
                       </th>
-                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                      <th className="px-2 sm:px-2.5 md:px-4 lg:px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                         Статус
                       </th>
-                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                      <th className="px-2 sm:px-2.5 md:px-4 lg:px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                         Действия
                       </th>
                     </tr>
                   </thead>
                   <tbody className="bg-white divide-y divide-gray-200">
-                    {services.map((service) => (
+                    {paginatedServices.map((service) => (
                       <tr key={service.id} className="hover:bg-gray-50">
-                        <td className="px-6 py-4 whitespace-nowrap">
+                        <td className="px-2 sm:px-2.5 md:px-4 lg:px-6 py-4">
                           <div className="text-sm font-medium text-gray-900">{service.name}</div>
                         </td>
-                        <td className="px-6 py-4">
+                        <td className="px-2 sm:px-2.5 md:px-4 lg:px-6 py-4">
                           <div className="text-sm text-gray-900">{service.description || '-'}</div>
                         </td>
-                        <td className="px-6 py-4 whitespace-nowrap">
+                        <td className="px-2 sm:px-2.5 md:px-4 lg:px-6 py-4">
                           <div className="text-sm text-gray-900">{service.duration}</div>
                         </td>
-                        <td className="px-6 py-4 whitespace-nowrap">
+                        <td className="px-2 sm:px-2.5 md:px-4 lg:px-6 py-4">
                           <div className="text-sm text-gray-900">
-                            {service.price ? (
-                              service.priceBgn && service.priceEur && 
-                              !isNaN(Number(service.priceBgn)) && !isNaN(Number(service.priceEur)) ? 
-                                `${Number(service.priceBgn).toFixed(2)} лв. / ${Number(service.priceEur).toFixed(2)} €` :
-                                `${service.price} лв.`
-                            ) : '-'}
+                            {service.priceBgn && !isNaN(Number(service.priceBgn)) ? (
+                              service.priceEur && !isNaN(Number(service.priceEur)) ? 
+                                `${Number(service.priceBgn).toFixed(2)} лв. / ${Number(service.priceBgn).toFixed(2)} €` :
+                                `${Number(service.priceBgn).toFixed(2)} лв.`
+                            ) : service.price ? 
+                              `${service.price} лв.` : 
+                              '-'
+                            }
                           </div>
-
                         </td>
-                        <td className="px-6 py-4 whitespace-nowrap">
+                        <td className="px-2 sm:px-2.5 md:px-4 lg:px-6 py-4">
                           <span className={`inline-flex px-2 py-1 text-xs font-semibold rounded-full ${
                             service.isActive ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800'
                           }`}>
                             {service.isActive ? 'Активна' : 'Неактивна'}
                           </span>
                         </td>
-                        <td className="px-6 py-4 whitespace-nowrap text-sm font-medium">
+                        <td className="px-2 sm:px-2.5 md:px-4 lg:px-6 py-4 text-sm font-medium">
                           <div className="flex space-x-2">
                             <button
                               onClick={() => openServiceModal(service.id)}
@@ -1807,12 +1848,25 @@ export default function AdminPage() {
                   </tbody>
                 </table>
               </div>
+              
+              {/* Pagination Controls for Services */}
+              <Pagination
+                currentPage={currentServicesPage}
+                totalPages={totalServicesPages}
+                totalItems={services.length}
+                startIndex={servicesStartIndex}
+                endIndex={servicesEndIndex}
+                itemsPerPage={servicesPerPage}
+                onPageChange={setCurrentServicesPage}
+                onItemsPerPageChange={setServicesPerPage}
+                label="услуги"
+              />
             </div>
           )}
 
           {activeTab === 'users' && !isLoading && (
             <div className="bg-white rounded-xl shadow-sm border border-gray-100">
-              <div className="px-6 py-4 border-b border-gray-200 flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
+              <div className="px-2 sm:px-2.5 md:px-4 lg:px-6 py-4 border-b border-gray-200 flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
                 <div className="flex flex-col">
                   <h2 className="text-xl font-semibold text-gray-900">Потребители</h2>
                   <p className="text-sm text-gray-600 mt-1">
@@ -1851,7 +1905,7 @@ export default function AdminPage() {
               {/* Mobile: Card Layout */}
               <div className="block sm:hidden">
                 <div className="space-y-3 p-4">
-                  {filteredUsers.map((user) => (
+                  {paginatedUsers.map((user) => (
                     <div key={user.id} className="bg-gray-50 rounded-lg p-4 border border-gray-200">
                       <div className="flex justify-between items-start mb-3">
                         <div className="flex-1">
@@ -1908,49 +1962,57 @@ export default function AdminPage() {
               </div>
               
               {/* Desktop: Table Layout */}
-              <div className="hidden sm:block overflow-x-auto">
-                <table className="min-w-full divide-y divide-gray-200">
+              <div className="hidden sm:block">
+                <table className="w-full divide-y divide-gray-200 table-auto">
                   <thead className="bg-gray-50">
                     <tr>
-                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                      <th className="px-2 sm:px-2.5 md:px-4 lg:px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                         Име
                       </th>
-                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                      <th className="px-2 sm:px-2.5 md:px-4 lg:px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                         Имейл
                       </th>
-                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                      <th className="px-2 sm:px-2.5 md:px-4 lg:px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                         Телефон
                       </th>
-                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                      <th className="px-2 sm:px-2.5 md:px-4 lg:px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                         Създаден на
                       </th>
-                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                      <th className="px-2 sm:px-2.5 md:px-4 lg:px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                         Действия
                       </th>
                     </tr>
                   </thead>
                   <tbody className="bg-white divide-y divide-gray-200">
-                    {filteredUsers.map((user) => (
+                    {paginatedUsers.map((user) => (
                       <tr key={user.id} className="hover:bg-gray-50">
-                        <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">{user.name}</td>
-                        <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">{user.email || '-'}</td>
-                        <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">{user.phone}</td>
-                        <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                          {user.createdat ? new Date(user.createdat).toLocaleDateString('bg-BG', {
-                            year: 'numeric',
-                            month: '2-digit',
-                            day: '2-digit',
-                            hour: '2-digit',
-                            minute: '2-digit'
-                          }) : user.createdat ? new Date(user.createdat).toLocaleDateString('bg-BG', {
-                            year: 'numeric',
-                            month: '2-digit',
-                            day: '2-digit',
-                            hour: '2-digit',
-                            minute: '2-digit'
-                          }) : '-'}
+                        <td className="px-2 sm:px-2.5 md:px-4 lg:px-6 py-4 max-w-0 text-sm font-medium text-gray-900">
+                          <div className="truncate">{user.name}</div>
                         </td>
-                        <td className="px-6 py-4 whitespace-nowrap text-sm font-medium">
+                        <td className="px-2 sm:px-2.5 md:px-4 lg:px-6 py-4 max-w-0 text-sm text-gray-900">
+                          <div className="truncate">{user.email || '-'}</div>
+                        </td>
+                        <td className="px-2 sm:px-2.5 md:px-4 lg:px-6 py-4 max-w-0 text-sm text-gray-900">
+                          <div className="truncate">{user.phone}</div>
+                        </td>
+                        <td className="px-2 sm:px-2.5 md:px-4 lg:px-6 py-4 max-w-0 text-sm text-gray-500">
+                          <div className="truncate">
+                            {user.createdat ? new Date(user.createdat).toLocaleDateString('bg-BG', {
+                              year: 'numeric',
+                              month: '2-digit',
+                              day: '2-digit',
+                              hour: '2-digit',
+                              minute: '2-digit'
+                            }) : user.createdat ? new Date(user.createdat).toLocaleDateString('bg-BG', {
+                              year: 'numeric',
+                              month: '2-digit',
+                              day: '2-digit',
+                              hour: '2-digit',
+                              minute: '2-digit'
+                            }) : '-'}
+                          </div>
+                        </td>
+                        <td className="px-2 sm:px-2.5 md:px-4 lg:px-6 py-4 max-w-0 text-sm font-medium">
                           <div className="flex space-x-2">
                             <button
                               onClick={() => user.id && openModal('userHistory', user.id.toString())}
@@ -2001,18 +2063,31 @@ export default function AdminPage() {
                   </tbody>
                 </table>
               </div>
+              
+              {/* Pagination Controls for Users */}
+              <Pagination
+                currentPage={currentUsersPage}
+                totalPages={totalUsersPages}
+                totalItems={filteredUsers.length}
+                startIndex={usersStartIndex}
+                endIndex={usersEndIndex}
+                itemsPerPage={usersPerPage}
+                onPageChange={setCurrentUsersPage}
+                onItemsPerPageChange={setUsersPerPage}
+                label="потребители"
+              />
             </div>
           )}
 
           {activeTab === 'analytics' && !isLoading && (
             <div className="bg-white rounded-xl shadow-sm border border-gray-100">
-              <div className="px-6 py-4 border-b border-gray-200">
+              <div className="px-2 sm:px-2.5 md:px-4 lg:px-6 py-4 border-b border-gray-200">
                 <div className="flex flex-col">
                   <h2 className="text-xl font-semibold text-gray-900">Аналитикс Табло</h2>
                   <p className="text-sm text-gray-600 mt-1">Статистики и анализи на резервациите</p>
                 </div>
               </div>
-              <div className="p-6">
+              <div className="p-2 sm:p-2.5 md:p-4 lg:p-6">
                 <AnalyticsDashboard />
               </div>
             </div>
@@ -2020,13 +2095,13 @@ export default function AdminPage() {
 
           {activeTab === 'bugTracker' && (
             <div className="bg-white rounded-xl shadow-sm border border-gray-100">
-              <div className="px-6 py-4 border-b border-gray-200">
+              <div className="px-2 sm:px-2.5 md:px-4 lg:px-6 py-4 border-b border-gray-200">
                 <div className="flex flex-col">
                   <h2 className="text-xl font-semibold text-gray-900">Баг Тракър</h2>
                   <p className="text-sm text-gray-600 mt-1">Откриване и управление на бъгове</p>
                 </div>
               </div>
-              <div className="p-6">
+              <div className="p-2 sm:p-2.5 md:p-4 lg:p-6">
                 <BugTracker onClose={() => changeTab('bookings')} />
               </div>
             </div>
@@ -2034,41 +2109,29 @@ export default function AdminPage() {
 
           {activeTab === 'qa' && (
             <div className="bg-white rounded-xl shadow-sm border border-gray-100">
-              <div className="px-6 py-4 border-b border-gray-200">
+              <div className="px-2 sm:px-2.5 md:px-4 lg:px-6 py-4 border-b border-gray-200">
                 <div className="flex flex-col">
                   <h2 className="text-xl font-semibold text-gray-900">QA Dashboard</h2>
                   <p className="text-sm text-gray-600 mt-1">Управление на качеството и тестове</p>
                 </div>
               </div>
-              <div className="p-6">
+              <div className="p-2 sm:p-2.5 md:p-4 lg:p-6">
                 <QADashboard />
               </div>
             </div>
           )}
 
-          {activeTab === 'backup' && (
-            <div className="bg-white rounded-xl shadow-sm border border-gray-100">
-              <div className="px-6 py-4 border-b border-gray-200">
-                <div className="flex flex-col">
-                  <h2 className="text-xl font-semibold text-gray-900">Backup Управление</h2>
-                  <p className="text-sm text-gray-600 mt-1">Автоматични и ръчни backup-и на базата данни</p>
-                </div>
-              </div>
-              <div className="p-6">
-                <BackupManager />
-              </div>
-            </div>
-          )}
+
 
           {activeTab === 'settings' && (
             <div className="bg-white rounded-xl shadow-sm border border-gray-100">
-              <div className="px-6 py-4 border-b border-gray-200">
+              <div className="px-2 sm:px-2.5 md:px-4 lg:px-6 py-4 border-b border-gray-200">
                 <div className="flex flex-col">
                   <h2 className="text-xl font-semibold text-gray-900">Настройки</h2>
                   <p className="text-sm text-gray-600 mt-1">Конфигурация на работно време и защита от ботове</p>
                 </div>
               </div>
-              <div className="p-6 space-y-6">
+              <div className="p-2 sm:p-2.5 md:p-4 lg:p-6 space-y-6">
                 {/* Settings: Default Working Hours */}
                 <div>
                   <h3 className="text-lg font-semibold text-gray-900 mb-2">Работно време</h3>
@@ -2086,6 +2149,13 @@ export default function AdminPage() {
                   <h3 className="text-lg font-semibold text-gray-900 mb-2">Under Construction Режим</h3>
                   <UnderConstructionSettings />
                 </div>
+
+                {/* Backup Management */}
+                <div>
+                  <h3 className="text-lg font-semibold text-gray-900 mb-2">Backup Управление</h3>
+                  <p className="text-sm text-gray-600 mb-4">Автоматични и ръчни backup-и на базата данни</p>
+                  <BackupManager />
+                </div>
               </div>
             </div>
           )}
@@ -2097,7 +2167,7 @@ export default function AdminPage() {
       {/* Booking Modal */}
       {showBookingModal && (
         <div className="fixed inset-0 bg-gray-600 bg-opacity-50 overflow-y-auto h-full w-full z-50">
-          <div className="relative top-4 sm:top-20 mx-auto p-4 sm:p-5 border w-full max-w-2xl shadow-lg rounded-md bg-white m-4">
+          <div className="relative top-4 sm:top-20 mx-auto p-4 sm:p-5 border w-full max-w-2xl shadow-lg rounded-md bg-white m-4" style={{ top: '50%', transform: 'translateY(-50%)' }}>
             <div className="mt-3">
               <h3 className="text-lg font-medium text-gray-900 mb-4">
                 {editingBooking?.id ? 'Редактирай резервация' : 'Добави резервация'}
@@ -2143,7 +2213,7 @@ export default function AdminPage() {
       {/* Service Modal */}
       {showServiceModal && (
         <div className="fixed inset-0 bg-gray-600 bg-opacity-50 overflow-y-auto h-full w-full z-50">
-          <div className="relative top-4 sm:top-20 mx-auto p-4 sm:p-5 border w-full max-w-md shadow-lg rounded-md bg-white m-4">
+          <div className="relative top-4 sm:top-20 mx-auto p-4 sm:p-5 border w-full max-w-md shadow-lg rounded-md bg-white m-4" style={{ top: '50%', transform: 'translateY(-50%)' }}>
             <div className="mt-3">
               <h3 className="text-lg font-medium text-gray-900 mb-4">
                 {editingService ? 'Редактирай услуга' : 'Добави услуга'}
@@ -2163,7 +2233,7 @@ export default function AdminPage() {
       {/* User Modal */}
       {showUserModal && (
         <div className="fixed inset-0 bg-gray-600 bg-opacity-50 overflow-y-auto h-full w-full z-50">
-          <div className="relative top-4 sm:top-20 mx-auto p-4 sm:p-5 border w-full max-w-md shadow-lg rounded-md bg-white m-4">
+          <div className="relative top-4 sm:top-20 mx-auto p-4 sm:p-5 border w-full max-w-md shadow-lg rounded-md bg-white m-4" style={{ top: '50%', transform: 'translateY(-50%)' }}>
             <div className="mt-3">
               <h3 className="text-lg font-medium text-gray-900 mb-4">
                 {editingUser ? 'Редактирай потребител' : 'Добави потребител'}
@@ -2239,23 +2309,44 @@ export default function AdminPage() {
       )}
 
       {/* Floating Voice Button */}
-      <div className="fixed z-50 right-4 bottom-20 sm:bottom-4">
-        <button
-          onClick={() => setShowVoiceInterface(!showVoiceInterface)}
-          className="bg-blue-600 hover:bg-blue-700 text-white p-3 sm:p-4 rounded-full shadow-lg transition-all duration-200 hover:scale-110"
-          title="Гласови команди"
-          aria-label="Гласови команди"
-        >
-          <Mic className="w-5 h-5 sm:w-6 sm:h-6" />
-        </button>
-      </div>
+      {!showVoiceInterface && (
+        <div className="fixed z-50 right-4 bottom-20 sm:bottom-4">
+          <button
+            onClick={async () => {
+              if (
+                isMobileOrIOS &&
+                typeof navigator !== 'undefined' &&
+                navigator.mediaDevices &&
+                typeof navigator.mediaDevices.getUserMedia === 'function'
+              ) {
+                await startMic()
+              }
+              setShowVoiceInterface(true)
+            }}
+            className="bg-blue-600 hover:bg-blue-700 text-white p-3 sm:p-4 rounded-full shadow-lg transition-all duration-200 hover:scale-110"
+            title="Гласови команди"
+            aria-label="Гласови команди"
+          >
+            <Mic className="w-5 h-5 sm:w-6 sm:h-6" />
+          </button>
+        </div>
+      )}
 
       {/* Voice Interface */}
       {showVoiceInterface && (
-        <VoiceInterface 
-          onCommand={handleVoiceCommand}
-          onClose={() => setShowVoiceInterface(false)}
-        />
+        isMobileOrIOS ? (
+          <VoiceAssistant
+            onCommand={handleVoiceCommand}
+            isListening={isVoiceListening}
+            setIsListening={setIsVoiceListening}
+            onClose={() => setShowVoiceInterface(false)}
+          />
+        ) : (
+          <VoiceInterface 
+            onCommand={handleVoiceCommand}
+            onClose={() => setShowVoiceInterface(false)}
+          />
+        )
       )}
 
       {/* Support Notes Modal */}

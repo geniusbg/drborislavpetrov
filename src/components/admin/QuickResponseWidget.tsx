@@ -188,6 +188,12 @@ const QuickResponseWidget: React.FC<QuickResponseWidgetProps> = ({ onClose, onCr
 
   // Load monthly calendar view
   const loadMonthlyCalendar = useCallback(async () => {
+    // Ensure selectedServiceDuration is a valid number
+    if (typeof selectedServiceDuration !== 'number' || isNaN(selectedServiceDuration)) {
+      console.log('📅 QuickResponse: Invalid service duration:', selectedServiceDuration)
+      return
+    }
+    
     setIsLoading(true)
     try {
       const adminToken = localStorage.getItem('adminToken')
@@ -216,7 +222,7 @@ const QuickResponseWidget: React.FC<QuickResponseWidgetProps> = ({ onClose, onCr
     } finally {
       setIsLoading(false)
     }
-  }, [selectedMonth, selectedServiceDuration])
+  }, [selectedMonth, selectedServiceDuration, selectedServiceId])
 
   // Reload lists when service filter changes for non-month tabs
   // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -229,15 +235,18 @@ const QuickResponseWidget: React.FC<QuickResponseWidgetProps> = ({ onClose, onCr
       loadAvailableSlots(getTomorrowDate(), 0)
     } else if (activeTab === 'next20') {
       loadNextAvailableSlots(20)
+    } else if (activeTab === 'month') {
+      // Reload monthly calendar when service changes
+      loadMonthlyCalendar()
     }
-  }, [selectedServiceDuration])
+  }, [selectedServiceDuration, selectedServiceId])
 
 
 
   // Load monthly calendar when month tab is activated
   // eslint-disable-next-line react-hooks/exhaustive-deps
   useEffect(() => {
-    if (activeTab === 'month') {
+    if (activeTab === 'month' && services.length > 0) {
       loadMonthlyCalendar()
     }
   }, [activeTab]) // Only depend on activeTab
@@ -245,7 +254,7 @@ const QuickResponseWidget: React.FC<QuickResponseWidgetProps> = ({ onClose, onCr
   // Load monthly calendar when selectedMonth changes
   // eslint-disable-next-line react-hooks/exhaustive-deps
   useEffect(() => {
-    if (activeTab === 'month') {
+    if (activeTab === 'month' && selectedMonth && services.length > 0) {
       setMonthlyCalendar([]) // Clear calendar to trigger reload
       loadMonthlyCalendar()
     }
@@ -320,7 +329,10 @@ const QuickResponseWidget: React.FC<QuickResponseWidgetProps> = ({ onClose, onCr
     } else if (tab === 'next20') {
       loadNextAvailableSlots(20)
     } else if (tab === 'month') {
-      loadMonthlyCalendar()
+      // Only load monthly calendar if services are ready
+      if (services.length > 0) {
+        loadMonthlyCalendar()
+      }
     }
   }
 
@@ -398,17 +410,10 @@ const QuickResponseWidget: React.FC<QuickResponseWidgetProps> = ({ onClose, onCr
 
   // eslint-disable-next-line react-hooks/exhaustive-deps
   useEffect(() => {
-    if (isOpen) {
+    if (isOpen && services.length > 0) {
       handleTabChange(activeTab)
     }
   }, [isOpen])
-
-  // Load monthly calendar when selectedMonth changes
-  useEffect(() => {
-    if (activeTab === 'month' && selectedMonth) {
-      loadMonthlyCalendar()
-    }
-  }, [selectedMonth, activeTab, loadMonthlyCalendar])
 
   // (debug removed)
 
@@ -473,7 +478,7 @@ const QuickResponseWidget: React.FC<QuickResponseWidgetProps> = ({ onClose, onCr
       {/* Modal */}
       {isOpen && (
         <div className="fixed inset-0 bg-gray-600 bg-opacity-50 overflow-y-auto h-full w-full z-50">
-          <div className="relative top-4 sm:top-20 mx-auto p-4 sm:p-5 border w-full max-w-2xl shadow-lg rounded-md bg-white m-4">
+          <div className="relative top-4 sm:top-20 mx-auto p-4 sm:p-5 border w-full max-w-2xl shadow-lg rounded-md bg-white m-4" style={{ top: '50%', transform: 'translateY(-50%)' }}>
             <div className="mt-3">
               {/* Header */}
               <div className="flex items-center justify-between mb-4">

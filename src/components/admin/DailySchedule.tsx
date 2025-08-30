@@ -13,7 +13,7 @@ import { getBulgariaTime, formatBulgariaDate, getBulgariaDateStringDB } from '@/
 interface DailyScheduleProps {
   date: string
   onClose: () => void
-  onEditWorkingHours: () => void
+  onEditWorkingHours: (workingHours: WorkingHours) => void
   onEditBooking?: (booking: Booking) => void
   onDeleteBooking?: (bookingId: string) => void
 }
@@ -29,6 +29,7 @@ const DailySchedule = ({ date, onClose, onEditWorkingHours, onEditBooking, onDel
   const [showBookingForm, setShowBookingForm] = useState(false)
   const [editingBooking, setEditingBooking] = useState<Booking | null>(null)
   const [isModalClosing, setIsModalClosing] = useState(false)
+  const [hasUnsavedChanges, setHasUnsavedChanges] = useState(false)
   const modalOpenCount = useRef(0)
   const [services, setServices] = useState<{id: number, name: string}[]>([])
   const [currentTime, setCurrentTime] = useState<Date | null>(null)
@@ -43,7 +44,6 @@ const DailySchedule = ({ date, onClose, onEditWorkingHours, onEditBooking, onDel
       const adminToken = localStorage.getItem('adminToken')
       
       console.log('📅 DailySchedule: loadDailySchedule called with date:', date, 'at:', getBulgariaTime().toISOString())
-      console.log('📅 DailySchedule: Stack trace:', new Error().stack)
       console.log('📅 DailySchedule: showBookingForm:', showBookingForm)
       
       // Load both schedule and services
@@ -83,15 +83,16 @@ const DailySchedule = ({ date, onClose, onEditWorkingHours, onEditBooking, onDel
   const LOAD_DEBOUNCE_DELAY = 2000 // 2 seconds
 
   useEffect(() => {
-    // Don't reload schedule if booking form is open or closing
-    if (!showBookingForm && !isModalClosing) {
+    // Only reload if date changed or no schedule exists
+    // WebSocket handles real-time updates, no need to reload after changes
+    if (!showBookingForm && !isModalClosing && !schedule) {
       const now = Date.now()
       if (now - lastLoadTime > LOAD_DEBOUNCE_DELAY) {
         setLastLoadTime(now)
         loadDailySchedule()
       }
     }
-  }, [date, showBookingForm, isModalClosing, lastLoadTime, loadDailySchedule])
+  }, [date, showBookingForm, isModalClosing, lastLoadTime, loadDailySchedule, schedule])
 
   // Update current time every second
   useEffect(() => {
@@ -121,6 +122,21 @@ const DailySchedule = ({ date, onClose, onEditWorkingHours, onEditBooking, onDel
     return () => document.removeEventListener('keydown', handleEscape)
   }, [showBookingForm, onClose])
 
+  // Modal positioned relative to current viewport
+  const [modalTop, setModalTop] = useState(0)
+
+  useEffect(() => {
+    // Position modal higher in the viewport - at 10% from top instead of 30%
+    if (typeof window !== 'undefined') {
+      const headerHeight = 80 // Приблизителна височина на горния банер
+      const topPosition = Math.max(
+        window.scrollY + (window.innerHeight * 0.1), // 10% отгоре на viewport-а
+        window.scrollY + headerHeight + 20 // Минимум 20px под банер
+      )
+      setModalTop(topPosition)
+    }
+  }, [])
+
 
 
   // WebSocket event listeners for real-time updates
@@ -146,8 +162,9 @@ const DailySchedule = ({ date, onClose, onEditWorkingHours, onEditBooking, onDel
           }
         })
 
-        if (showBookingForm) {
-          console.log('📅 DailySchedule: Closing modal after booking added via WebSocket')
+        // Only close modal if the added booking is the one we're currently editing
+        if (showBookingForm && editingBooking && newBooking.id === editingBooking.id) {
+          console.log('📅 DailySchedule: Closing modal after booking updated via WebSocket')
           setIsModalClosing(true)
           setShowBookingForm(false)
           setEditingBooking(null)
@@ -188,16 +205,23 @@ const DailySchedule = ({ date, onClose, onEditWorkingHours, onEditBooking, onDel
         loadDailySchedule()
       }
 
+      const handleWorkingHoursDeleted = () => {
+        // Reload the schedule when working hours are deleted
+        loadDailySchedule()
+      }
+
       socket.on('booking-added', handleBookingAdded)
       socket.on('booking-updated', handleBookingUpdated)
       socket.on('booking-deleted', handleBookingDeleted)
       socket.on('working-hours-updated', handleWorkingHoursUpdated)
+      socket.on('working-hours-deleted', handleWorkingHoursDeleted)
 
       return () => {
         socket.off('booking-added', handleBookingAdded)
         socket.off('booking-updated', handleBookingUpdated)
         socket.off('booking-deleted', handleBookingDeleted)
         socket.off('working-hours-updated', handleWorkingHoursUpdated)
+        socket.off('working-hours-deleted', handleWorkingHoursDeleted)
       }
     }
   }, [socket, isConnected, isSupported, date, joinAdmin, loadDailySchedule])
@@ -210,31 +234,36 @@ const DailySchedule = ({ date, onClose, onEditWorkingHours, onEditBooking, onDel
     const endTime = schedule.workingHours.endTime || '18:00'
     const breaks = schedule.workingHours.breaks || []
     
-    const startHour = parseInt(startTime.split(':')[0])
-    const startMinute = parseInt(startTime.split(':')[1])
-    const endHour = parseInt(endTime.split(':')[0])
-    const endMinute = parseInt(endTime.split(':')[1])
+    // Convert to minutes for easier comparison
+    const [startHour, startMinute] = startTime.split(':').map(Number)
+    const [endHour, endMinute] = endTime.split(':').map(Number)
+    
+    const startTotalMinutes = startHour * 60 + startMinute
+    const endTotalMinutes = endHour * 60 + endMinute
+    
 
-    let currentHour = startHour
-    let currentMinute = startMinute
+    
+    let currentTotalMinutes = startTotalMinutes
 
-    while (
-      currentHour < endHour || 
-      (currentHour === endHour && currentMinute < endMinute)
-    ) {
+    while (currentTotalMinutes < endTotalMinutes) {
+      const currentHour = Math.floor(currentTotalMinutes / 60)
+      const currentMinute = currentTotalMinutes % 60
       const timeString = `${currentHour.toString().padStart(2, '0')}:${currentMinute.toString().padStart(2, '0')}`
       
       // Check if this time is during any break
       const isBreak = breaks.some(breakItem => {
-        const breakStartHour = parseInt(breakItem.startTime.split(':')[0])
-        const breakStartMinute = parseInt(breakItem.startTime.split(':')[1])
-        const breakEndHour = parseInt(breakItem.endTime.split(':')[0])
-        const breakEndMinute = parseInt(breakItem.endTime.split(':')[1])
+        const [breakStartHour, breakStartMinute] = breakItem.startTime.split(':').map(Number)
+        const [breakEndHour, breakEndMinute] = breakItem.endTime.split(':').map(Number)
         
-        return (
-          (currentHour > breakStartHour || (currentHour === breakStartHour && currentMinute >= breakStartMinute)) &&
-          (currentHour < breakEndHour || (currentHour === breakEndHour && currentMinute < breakEndMinute))
-        )
+        const breakStartTotal = breakStartHour * 60 + breakStartMinute
+        const breakEndTotal = breakEndHour * 60 + breakEndMinute
+        
+        // Ако почивката е 0 минути (start === end), не я считай за почивка
+        if (breakStartTotal === breakEndTotal) {
+          return false
+        }
+        
+        return currentTotalMinutes >= breakStartTotal && currentTotalMinutes < breakEndTotal
       })
 
       // Find booking that starts at this time or covers this time slot
@@ -249,11 +278,12 @@ const DailySchedule = ({ date, onClose, onEditWorkingHours, onEditBooking, onDel
         const bookingDuration = b.serviceDuration || 30
         const bookingEndMinutes = bookingStartMinutes + bookingDuration
         
-        const [slotHour, slotMinute] = timeString.split(':').map(Number)
-        const slotMinutes = slotHour * 60 + slotMinute
-        
         // Check if this slot is within the booking's time range
-        return slotMinutes >= bookingStartMinutes && slotMinutes < bookingEndMinutes
+        const isCovered = currentTotalMinutes >= bookingStartMinutes && currentTotalMinutes < bookingEndMinutes
+        
+
+        
+        return isCovered
       })
       
       slots.push({
@@ -263,12 +293,9 @@ const DailySchedule = ({ date, onClose, onEditWorkingHours, onEditBooking, onDel
       })
 
       // Move to next 15-minute slot
-      currentMinute += 15
-      if (currentMinute >= 60) {
-        currentMinute = 0
-        currentHour++
-      }
+      currentTotalMinutes += 15
     }
+
 
     return slots
   }
@@ -329,8 +356,11 @@ const DailySchedule = ({ date, onClose, onEditWorkingHours, onEditBooking, onDel
     const endTime = schedule.workingHours.endTime || '18:00'
     const startTimeMinutes = parseInt(startTime.split(':')[0]) * 60 + parseInt(startTime.split(':')[1])
     const totalDurationMinutes = parseInt(endTime.split(':')[0]) * 60 + parseInt(endTime.split(':')[1]) - startTimeMinutes
+    
+    // For times before working hours, calculate the percentage as if they were at the start
+    // This allows us to show the overlapping part correctly
     const slotStartPercentage = ((totalMinutes - startTimeMinutes) / totalDurationMinutes) * 100
-    return slotStartPercentage
+    return Math.max(0, Math.min(slotStartPercentage, 100)) // Ensure 0-100%
   }
 
   const getSlotEndPercentage = (time: string) => {
@@ -341,8 +371,11 @@ const DailySchedule = ({ date, onClose, onEditWorkingHours, onEditBooking, onDel
     const endTime = schedule.workingHours.endTime || '18:00'
     const startTimeMinutes = parseInt(startTime.split(':')[0]) * 60 + parseInt(startTime.split(':')[1])
     const totalDurationMinutes = parseInt(endTime.split(':')[0]) * 60 + parseInt(endTime.split(':')[1]) - startTimeMinutes
+    
+    // For times before working hours, calculate the percentage as if they were at the start
+    // This allows us to show the overlapping part correctly
     const slotEndPercentage = ((totalMinutes - startTimeMinutes) / totalDurationMinutes) * 100
-    return slotEndPercentage
+    return Math.max(0, Math.min(slotEndPercentage, 100)) // Ensure 0-100%
   }
 
   const getBreakStartPercentage = (breakStartTime?: string) => {
@@ -353,8 +386,10 @@ const DailySchedule = ({ date, onClose, onEditWorkingHours, onEditBooking, onDel
     const [hour, minute] = breakStart.split(':').map(Number)
     const startTimeMinutes = parseInt(startTime.split(':')[0]) * 60 + parseInt(startTime.split(':')[1])
     const totalDurationMinutes = parseInt(endTime.split(':')[0]) * 60 + parseInt(endTime.split(':')[1]) - startTimeMinutes
+    
+    // Calculate the percentage as if the break time was relative to working hours
     const breakStartPercentage = ((hour * 60 + minute - startTimeMinutes) / totalDurationMinutes) * 100
-    return breakStartPercentage
+    return Math.max(0, Math.min(breakStartPercentage, 100)) // Ensure 0-100%
   }
 
   const getBreakEndPercentage = (breakEndTime?: string) => {
@@ -365,8 +400,10 @@ const DailySchedule = ({ date, onClose, onEditWorkingHours, onEditBooking, onDel
     const [hour, minute] = breakEnd.split(':').map(Number)
     const startTimeMinutes = parseInt(startTime.split(':')[0]) * 60 + parseInt(startTime.split(':')[1])
     const totalDurationMinutes = parseInt(endTime.split(':')[0]) * 60 + parseInt(endTime.split(':')[1]) - startTimeMinutes
+    
+    // Calculate the percentage as if the break time was relative to working hours
     const breakEndPercentage = ((hour * 60 + minute - startTimeMinutes) / totalDurationMinutes) * 100
-    return breakEndPercentage
+    return Math.max(0, Math.min(breakEndPercentage, 100)) // Ensure 0-100%
   }
 
   const handleEditBooking = (booking: Booking) => {
@@ -606,6 +643,7 @@ const DailySchedule = ({ date, onClose, onEditWorkingHours, onEditBooking, onDel
         }
         
         console.log('📅 DailySchedule: Closing modal after successful submission')
+        setHasUnsavedChanges(true) // Mark that data was changed
         setIsModalClosing(true)
         setShowBookingForm(false)
         setEditingBooking(null)
@@ -622,6 +660,7 @@ const DailySchedule = ({ date, onClose, onEditWorkingHours, onEditBooking, onDel
   }
 
   const handleBookingCancel = () => {
+    console.log('📅 DailySchedule: handleBookingCancel called - no data reload needed')
     setIsModalClosing(true)
     setShowBookingForm(false)
     setEditingBooking(null)
@@ -724,9 +763,23 @@ const DailySchedule = ({ date, onClose, onEditWorkingHours, onEditBooking, onDel
   const getAvailableTimeSlots = () => {
     if (!schedule?.workingHours) return []
     
+
+    
     const slots = []
-    const startTime = schedule.workingHours.startTime || '09:00'
-    const endTime = schedule.workingHours.endTime || '18:00'
+    
+    // За почивните дни използваме default работно време
+    let startTime = '09:00'
+    let endTime = '18:00'
+    
+    // Ако има зададено работно време, използваме го
+    if (schedule.workingHours.startTime) {
+      startTime = schedule.workingHours.startTime
+    }
+    if (schedule.workingHours.endTime) {
+      endTime = schedule.workingHours.endTime
+    }
+    
+
     
     const [startHour, startMinute] = startTime.split(':').map(Number)
     const [endHour, endMinute] = endTime.split(':').map(Number)
@@ -749,6 +802,7 @@ const DailySchedule = ({ date, onClose, onEditWorkingHours, onEditBooking, onDel
       }
     }
     
+
     return slots
   }
 
@@ -828,8 +882,8 @@ const DailySchedule = ({ date, onClose, onEditWorkingHours, onEditBooking, onDel
 
   if (loading) {
     return (
-      <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
-        <div className="bg-white rounded-lg p-6">
+      <div className="fixed inset-0 bg-black bg-opacity-50 z-50">
+        <div className="bg-white rounded-lg p-6 mx-4" style={{ top: '50%', transform: 'translateY(-50%)' }}>
           <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary-600 mx-auto"></div>
           <p className="text-center mt-2">Зареждане...</p>
         </div>
@@ -839,8 +893,8 @@ const DailySchedule = ({ date, onClose, onEditWorkingHours, onEditBooking, onDel
 
   if (!schedule) {
     return (
-      <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
-        <div className="bg-white rounded-lg p-6">
+      <div className="fixed inset-0 bg-black bg-opacity-50 z-50">
+        <div className="bg-white rounded-lg p-6 mx-4" style={{ top: '50%', transform: 'translateY(-50%)' }}>
           <p className="text-center">Грешка при зареждане на графика</p>
           <button
             onClick={onClose}
@@ -854,8 +908,8 @@ const DailySchedule = ({ date, onClose, onEditWorkingHours, onEditBooking, onDel
   }
   
   return (
-    <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
-      <div className="bg-white rounded-lg p-6 w-full mx-4 max-h-[90vh] overflow-y-auto">
+    <div className="fixed inset-0 bg-black bg-opacity-50 z-50">
+      <div className="bg-white rounded-lg shadow-2xl p-6 w-full max-w-7xl mx-4" style={{ marginTop: `${modalTop}px` }}>
         <div className="flex items-center justify-between mb-6">
           <div>
             <h2 className="text-2xl font-bold text-gray-900">
@@ -872,7 +926,7 @@ const DailySchedule = ({ date, onClose, onEditWorkingHours, onEditBooking, onDel
           </div>
           <div className="flex space-x-2">
             <button
-              onClick={onEditWorkingHours}
+              onClick={() => onEditWorkingHours(schedule.workingHours)}
               className="px-3 py-2 text-sm font-medium text-primary-700 bg-primary-100 rounded-md hover:bg-primary-200 flex items-center space-x-2"
             >
               <Edit className="w-4 h-4" />
@@ -896,6 +950,20 @@ const DailySchedule = ({ date, onClose, onEditWorkingHours, onEditBooking, onDel
               {schedule.workingHours.notes && (
                 <p className="text-gray-600">{schedule.workingHours.notes}</p>
               )}
+              
+              {/* Emergency Booking Button */}
+              <div className="mt-6">
+                <button
+                  onClick={handleAddNewBooking}
+                  className="px-6 py-3 text-base font-medium text-white bg-orange-600 rounded-lg hover:bg-orange-700 flex items-center space-x-3 mx-auto transition-all duration-200 shadow-lg hover:shadow-xl"
+                >
+                  <Plus className="w-5 h-5" />
+                  <span>Добави извънредна резервация</span>
+                </button>
+                <p className="text-sm text-gray-500 mt-2">
+                  Показва наличните часове според стандартното работното време зададено в настройките
+                </p>
+              </div>
             </div>
             
             {/* Извънредни резервации */}
@@ -903,13 +971,6 @@ const DailySchedule = ({ date, onClose, onEditWorkingHours, onEditBooking, onDel
               <div>
                 <div className="flex items-center justify-between mb-4">
                   <h4 className="text-lg font-semibold text-gray-900">Извънредни резервации</h4>
-                  <button
-                    onClick={handleAddNewBooking}
-                    className="px-3 py-1 text-sm font-medium text-white bg-green-600 rounded-md hover:bg-green-700 flex items-center space-x-2 transition-colors"
-                  >
-                    <Plus className="w-4 h-4" />
-                    <span>Добави резервация</span>
-                  </button>
                 </div>
                 
                 <div className="space-y-3">
@@ -996,7 +1057,7 @@ const DailySchedule = ({ date, onClose, onEditWorkingHours, onEditBooking, onDel
         ) : (
           <div className="space-y-4">
             {/* Time slots */}
-            <div className="space-y-4 max-h-80 overflow-y-auto overscroll-contain">
+            <div className="space-y-4">
               {/* Timeline with Hour Markers */}
               <div className="relative">
                 {/* Timeline Bar */}
@@ -1123,7 +1184,7 @@ const DailySchedule = ({ date, onClose, onEditWorkingHours, onEditBooking, onDel
                           title={`Почивка: ${breakItem.startTime} - ${breakItem.endTime}. Кликнете за редактиране`}
                           onClick={() => {
                             // Open working hours form to edit breaks
-                            onEditWorkingHours()
+                            onEditWorkingHours(schedule.workingHours)
                           }}
                         >
                           {/* Gradient overlay for breaks */}
@@ -1141,26 +1202,28 @@ const DailySchedule = ({ date, onClose, onEditWorkingHours, onEditBooking, onDel
                     // Get all bookings including cancelled ones to show as markers
                     const allBookings = schedule.bookings
                     
-                    return allBookings.map((booking) => {
-                      // Check if booking is within working hours
+                    return allBookings.map((booking, index) => {
+                      // Check if booking has any overlap with working hours
                       const [bookingHour, bookingMinute] = booking.time.split(':').map(Number)
-                      const [startHour, startMinute] = (schedule.workingHours.startTime || '09:00').split(':').map(Number)
-                      const [endHour, endMinute] = (schedule.workingHours.endTime || '18:00').split(':').map(Number)
+                      const bookingDuration = booking.serviceDuration || 30
+                      const workingStartTime = schedule.workingHours.startTime || '09:00'
+                      const [workingStartHour, workingStartMinute] = workingStartTime.split(':').map(Number)
+                      const workingStartMinutes = workingStartHour * 60 + workingStartMinute
                       
-                      const bookingTimeMinutes = bookingHour * 60 + bookingMinute
-                      const startTimeMinutes = startHour * 60 + startMinute
-                      const endTimeMinutes = endHour * 60 + endMinute
+                      const bookingStartMinutes = bookingHour * 60 + bookingMinute
+                      const bookingEndMinutes = bookingStartMinutes + bookingDuration
                       
-                      // Skip bookings outside working hours
-                      if (bookingTimeMinutes < startTimeMinutes || bookingTimeMinutes >= endTimeMinutes) {
+                      // Only show bookings that overlap with working hours
+                      if (bookingEndMinutes <= workingStartMinutes) {
+                        // Booking ends before working hours start - don't show
                         return null
                       }
                       
                       const slotStart = getSlotStartPercentage(booking.time)
                       
                       // Calculate end time based on service duration
-                      const startTime = new Date(`2000-01-01T${booking.time}`)
-                      const endTime = new Date(startTime.getTime() + (booking.serviceDuration || 30) * 60000)
+                      const bookingStartTime = new Date(`2000-01-01T${booking.time}`)
+                      const endTime = new Date(bookingStartTime.getTime() + (booking.serviceDuration || 30) * 60000)
                       const endTimeString = endTime.toTimeString().slice(0, 5)
                       
                       // Calculate the actual end position based on service duration
@@ -1179,15 +1242,23 @@ const DailySchedule = ({ date, onClose, onEditWorkingHours, onEditBooking, onDel
                       
                       return (
                         <div
-                          key={`timeline-booking-${booking.id}-${date}-${booking.time}`}
+                          key={`timeline-booking-${booking.id}-${date}-${booking.time}-${index}`}
                           className={`absolute ${colors.bg} ${booking.status === 'cancelled' ? 'h-full opacity-60' : 'h-full'} rounded cursor-pointer ${colors.hover} transition-all duration-300 shadow-lg border-2 ${colors.border} transform hover:scale-[1.02] hover:shadow-xl ${booking.status === 'cancelled' ? 'z-10' : 'z-30'}`}
                           style={{
                             left: `${slotStart}%`,
                             width: `${actualEndPercentage - slotStart}%`
                           }}
                           title={booking.status === 'cancelled' 
-                            ? `ОТМЕНЕНА: ${booking.name} - ${getServiceName(booking.service || '')}. Начало: ${booking.time}. Край: ${endTimeString}. Кликнете за нова резервация на това място`
-                            : `${booking.name} - ${getServiceName(booking.service || '')}. Начало: ${booking.time}. Край: ${endTimeString}. Кликнете за редактиране`
+                            ? `ОТМЕНЕНА: ${booking.name} - ${getServiceName(booking.service || '')}. Начало: ${booking.time}. Край: ${(() => {
+                                const endTime = new Date(`2000-01-01T${booking.time}`)
+                                endTime.setMinutes(endTime.getMinutes() + (booking.serviceDuration || 30))
+                                return endTime.toTimeString().slice(0, 5)
+                              })()}. Кликнете за нова резервация на това място`
+                            : `${booking.name} - ${getServiceName(booking.service || '')}. Начало: ${booking.time}. Край: ${(() => {
+                                const endTime = new Date(`2000-01-01T${booking.time}`)
+                                endTime.setMinutes(endTime.getMinutes() + (booking.serviceDuration || 30))
+                                return endTime.toTimeString().slice(0, 5)
+                              })()}. Кликнете за редактиране`
                           }
                           onClick={(e) => {
                             e.stopPropagation()
@@ -1244,7 +1315,11 @@ const DailySchedule = ({ date, onClose, onEditWorkingHours, onEditBooking, onDel
                                  {booking.name}
                                </div>
                                <div className="text-xs opacity-90 text-center">
-                                 {endTimeString}
+                                 {(() => {
+                                   const endTime = new Date(`2000-01-01T${booking.time}`)
+                                   endTime.setMinutes(endTime.getMinutes() + (booking.serviceDuration || 30))
+                                   return endTime.toTimeString().slice(0, 5)
+                                 })()}
                                </div>
                                
                                {/* Status Change Buttons - Only show for active bookings */}
@@ -1284,10 +1359,19 @@ const DailySchedule = ({ date, onClose, onEditWorkingHours, onEditBooking, onDel
                  })()}
                   
                                      {/* Available Time Slots - Show clickable areas */}
-                   {timeSlots.map((slot) => {
+                   {timeSlots.map((slot, index) => {
                      if (!slot.booking && !slot.isBreak) {
                        const slotStart = getSlotStartPercentage(slot.time)
-                       const slotEnd = getSlotEndPercentage(slot.time)
+                       // Calculate end position for next 15-minute slot
+                       const nextSlotIndex = index + 1
+                       let slotEnd = 100 // Default to end of timeline
+                       
+                       if (nextSlotIndex < timeSlots.length) {
+                         const nextSlot = timeSlots[nextSlotIndex]
+                         slotEnd = getSlotStartPercentage(nextSlot.time)
+                       }
+                       
+
                        
                        return (
                          <div
@@ -1320,8 +1404,16 @@ const DailySchedule = ({ date, onClose, onEditWorkingHours, onEditBooking, onDel
                    )}
                 </div>
                 
-                {/* Space for time labels */}
-                <div className="h-12"></div>
+                {/* Time Labels */}
+                <div className="h-12 flex items-end justify-between px-2">
+                  {timeSlots.filter((_, index) => index % 4 === 0).map((slot) => (
+                    <div key={`time-label-${slot.time}`} className="text-xs text-gray-600 font-mono">
+                      {slot.time}
+                    </div>
+                  ))}
+                </div>
+                
+
 
               </div>
               
@@ -1339,9 +1431,9 @@ const DailySchedule = ({ date, onClose, onEditWorkingHours, onEditBooking, onDel
                 </div>
                 <div className="space-y-2">
                   {schedule.bookings.length > 0 ? (
-                    schedule.bookings.map((booking) => (
+                    schedule.bookings.map((booking, index) => (
                       <div
-                        key={`list-booking-${booking.id}-${date}-${booking.time}`}
+                        key={`list-booking-${booking.id}-${date}-${booking.time}-${index}`}
                         className={`p-3 rounded-lg border ${
                           booking.status === 'cancelled' 
                             ? 'bg-red-50 border-red-200' 
@@ -1425,8 +1517,8 @@ const DailySchedule = ({ date, onClose, onEditWorkingHours, onEditBooking, onDel
 
       {/* Booking Form Modal */}
       {showBookingForm && (
-        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
-          <div className="bg-white rounded-lg p-6 w-full max-w-2xl mx-4 max-h-[90vh] overflow-y-auto">
+        <div className="fixed inset-0 bg-black bg-opacity-50 z-50">
+          <div className="bg-white rounded-lg shadow-2xl p-6 w-full max-w-2xl mx-4" data-modal="booking-form" style={{ top: '50%', transform: 'translateY(-50%)' }}>
             <div className="flex items-center justify-between mb-6">
               <h2 className="text-xl font-bold text-gray-900">
                 {editingBooking ? 'Редактирай резервация' : 'Нова резервация'}

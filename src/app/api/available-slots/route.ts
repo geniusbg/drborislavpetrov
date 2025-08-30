@@ -83,12 +83,12 @@ export async function GET(req: NextRequest) {
       return NextResponse.json({ availableSlots: [] })
     }
 
-    // existing bookings on date
+    // existing bookings on date (with correct service duration)
     const bkRes = await db.query(
-      `SELECT time, COALESCE(serviceduration, 30) as duration FROM bookings WHERE date = $1 AND status != 'cancelled'`,
+      `SELECT b.id, b.time, COALESCE(b.serviceduration, s.duration, 30) as duration FROM bookings b LEFT JOIN services s ON b.service::integer = s.id WHERE b.date = $1 AND b.status != 'cancelled'`,
       [date]
     )
-    const existing = bkRes.rows as Array<{ time: string; duration: number }>
+    const existing = bkRes.rows as Array<{ id: number; time: string; duration: number }>
 
     const all: string[] = []
     const [sh, sm] = workingStart.split(':').map(Number)

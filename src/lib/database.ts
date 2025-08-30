@@ -4,18 +4,28 @@ let pool: Pool | null = null
 
 export async function getDatabase(): Promise<PoolClient> {
   if (!pool) {
-    // WARNING: Fallback values used only for development/build
-    // Production should ALWAYS use environment variables from .env file
+    // Database connection configuration
+    // All values must be provided via environment variables
+    const host = process.env.DB_HOST
+    const port = process.env.DB_PORT
+    const database = process.env.DB_NAME
+    const user = process.env.DB_USER
+    const password = process.env.DB_PASSWORD
+
+    if (!host || !database || !user || !password) {
+      throw new Error('Missing required database environment variables: DB_HOST, DB_NAME, DB_USER, DB_PASSWORD')
+    }
+
     pool = new Pool({
-      host: process.env.DB_HOST || '192.168.1.134',
-      port: parseInt(process.env.DB_PORT || '5432'),
-      database: process.env.DB_NAME || 'drborislavpetrov',
-      user: process.env.DB_USER || 'drborislavpetrov',
-      password: process.env.DB_PASSWORD || 'Xander123)(*',
-      max: 30, // Увеличаваме от 20 на 30
-      min: 2, // Добавяме минимален брой връзки
-      idleTimeoutMillis: 60000, // Увеличаваме от 30s на 60s
-      connectionTimeoutMillis: 30000, // Увеличаваме от 10s на 30s
+      host,
+      port: parseInt(port || '5432'),
+      database,
+      user,
+      password,
+      max: 30,
+      min: 2,
+      idleTimeoutMillis: 60000,
+      connectionTimeoutMillis: 30000,
     })
     
     // Добавяме error handling за pool

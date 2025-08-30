@@ -54,9 +54,9 @@ const BookingForm = ({ booking, onSubmit, onCancel, onDelete }: BookingFormProps
   // Load available time slots when date, service, or serviceDuration changes
   useEffect(() => {
     const loadAvailableTimeSlots = async () => {
-      console.log('🔍 [BookingForm] Loading time slots for:', { date: formData.date, service: formData.service, serviceDuration: formData.serviceDuration })
+      
       if (!formData.date || !formData.service) {
-        console.log('🔍 [BookingForm] Missing date or service, clearing slots')
+
         setAvailableTimeSlots([])
         return
       }
@@ -77,7 +77,10 @@ const BookingForm = ({ booking, onSubmit, onCancel, onDelete }: BookingFormProps
           params.append('excludeBookingId', booking.id.toString())
         }
 
-        const response = await fetch(`/api/admin/available-time-slots?${params}`, {
+        const apiUrl = `/api/admin/available-time-slots?${params}`
+
+        
+        const response = await fetch(apiUrl, {
           headers: {
             'x-admin-token': adminToken || 'mock-token'
           }
@@ -85,7 +88,7 @@ const BookingForm = ({ booking, onSubmit, onCancel, onDelete }: BookingFormProps
         
         if (response.ok) {
           const data = await response.json()
-          console.log('🔍 [BookingForm] Available time slots loaded:', data.availableSlots)
+
           setAvailableTimeSlots(data.availableSlots || [])
         } else {
           console.error('Failed to load available time slots')
@@ -149,11 +152,6 @@ const BookingForm = ({ booking, onSubmit, onCancel, onDelete }: BookingFormProps
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
     setIsSubmitting(true)
-    
-    try {
-      console.log('🔍 [BookingForm] handleSubmit called with formData:', formData)
-    console.log('🔍 [BookingForm] Time value specifically:', formData.time)
-    console.log('🔍 [BookingForm] Time value type:', typeof formData.time)
     
     // Check if this is only a status update by comparing with original booking
     const isStatusOnlyUpdate = booking ? 
@@ -241,64 +239,8 @@ const BookingForm = ({ booking, onSubmit, onCancel, onDelete }: BookingFormProps
       }
     }
     
-    // Провери дали часът е свободен (за нови резервации и редактиране)
-    // Пропусни проверката ако е само промяна на статус
-    if (formData.date && formData.time && formData.service && !isStatusOnlyUpdate) {
-      try {
-        const adminToken = localStorage.getItem('adminToken')
-        console.log('📝 BookingForm: Checking availability for date:', formData.date, 'at:', getBulgariaTime().toISOString())
-        console.log('📝 BookingForm: Making API call to /api/admin/bookings?date=' + formData.date)
-        
-        const response = await fetch(`/api/admin/bookings?date=${formData.date}`, {
-          headers: {
-            'x-admin-token': adminToken || 'test'
-          }
-        })
-        
-        if (response.ok) {
-          const data = await response.json()
-          const selectedService = services.find(s => s.id.toString() === formData.service)
-          const serviceDuration = selectedService?.duration || 30
-          
-          // Провери за конфликти
-          const [hours, minutes] = formData.time.split(':').map(Number)
-          const startTimeMinutes = hours * 60 + minutes
-          const endTimeMinutes = startTimeMinutes + serviceDuration
-          
-          for (const bookedSlot of data.bookedSlots) {
-            // Пропусни текущата резервация ако редактираме
-            if (booking?.id && bookedSlot.id === booking.id) {
-              console.log('📝 BookingForm: Skipping current booking for conflict check:', booking.id)
-              continue
-            }
-            
-            const [bookingHours, bookingMinutes] = bookedSlot.time.split(':').map(Number)
-            const bookingStartMinutes = bookingHours * 60 + bookingMinutes
-            // Използвай правилното поле за продължителност
-            const bookingDuration = bookedSlot.serviceDuration || bookedSlot.serviceduration || 30
-            const bookingEndMinutes = bookingStartMinutes + bookingDuration
-            
-            console.log('📝 BookingForm: Checking conflict:', {
-              newBooking: { start: startTimeMinutes, end: endTimeMinutes, time: formData.time },
-              existingBooking: { start: bookingStartMinutes, end: bookingEndMinutes, time: bookedSlot.time, id: bookedSlot.id }
-            })
-            
-            // Провери дали има припокриване
-            if (
-              (startTimeMinutes >= bookingStartMinutes && startTimeMinutes < bookingEndMinutes) ||
-              (endTimeMinutes > bookingStartMinutes && endTimeMinutes <= bookingEndMinutes) ||
-              (startTimeMinutes <= bookingStartMinutes && endTimeMinutes >= bookingEndMinutes)
-            ) {
-              alert(`Избраният час ${formData.time} конфликтира с съществуваща резервация в ${bookedSlot.time}. Моля, изберете друг час.`)
-              return
-            }
-          }
-        }
-      } catch (error) {
-        console.error('Error checking time slot availability:', error)
-        // Продължи с запазването ако не може да провери
-      }
-    }
+    // API /api/admin/available-time-slots вече проверява за конфликти
+    // Само наличните часове се показват в dropdown-а
     
     // Convert empty phone to undefined (per user requirement: phone should be UNIQUE OR NULL)
     const submissionData = {
@@ -306,8 +248,8 @@ const BookingForm = ({ booking, onSubmit, onCancel, onDelete }: BookingFormProps
       phone: formData.phone && formData.phone.trim() !== '' ? formData.phone.trim() : undefined
     }
     
-                  console.log('🔍 [BookingForm] Calling onSubmit with:', submissionData, 'isStatusOnly:', isStatusOnlyUpdate)
-      onSubmit(submissionData, isStatusOnlyUpdate)
+    try {
+      await onSubmit(submissionData, isStatusOnlyUpdate)
     } catch (error) {
       console.error('Error submitting booking:', error)
     } finally {

@@ -121,4 +121,14 @@ export function emitWorkingHoursUpdated(workingHours: unknown) {
   } else {
     console.warn('⚠️ Socket.io not available for working-hours-updated event')
   }
+}
+
+export function emitWorkingHoursDeleted(date: string) {
+  const socketIO = getIO()
+  if (socketIO) {
+    console.log('📡 Emitting working-hours-deleted event:', date)
+    socketIO.to('admin').emit('working-hours-deleted', date)
+  } else {
+    console.warn('⚠️ Socket.io not available for working-hours-deleted event')
+  }
 } 

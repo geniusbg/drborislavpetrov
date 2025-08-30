@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { getDatabase } from '@/lib/database'
+import { emitWorkingHoursDeleted } from '@/lib/socket'
 
 export async function GET(request: NextRequest) {
   try {
@@ -178,6 +179,9 @@ export async function DELETE(request: NextRequest) {
     }
     
     db.release()
+
+    // Emit WebSocket event for real-time updates
+    emitWorkingHoursDeleted(date)
 
     return NextResponse.json({
       message: 'Working hours deleted successfully'

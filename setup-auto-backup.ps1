@@ -1,118 +1,154 @@
-# Auto Backup Scheduler Setup
-# Този скрипт настройва автоматичен backup чрез API endpoint
+# Setup Auto Backup Script for Windows Development
+# Този скрипт настройва автоматичните backup-и
 
 param(
-    [string]$ProjectPath = $PSScriptRoot,
-    [string]$ApiUrl = "http://localhost:3000/api/admin/backups/auto",
-    [int]$IntervalHours = 1
+    [string]$ApiUrl = "http://localhost:3000/api/admin/backups",
+    [string]$AdminToken = "auto-backup-token",
+    [string]$BackupDir = "./backups",
+    [switch]$Install,
+    [switch]$Uninstall,
+    [switch]$Test
 )
 
-Write-Host "Setting up Auto Backup Scheduler..." -ForegroundColor Green
-Write-Host "Project Path: $ProjectPath" -ForegroundColor Yellow
-Write-Host "API URL: $ApiUrl" -ForegroundColor Yellow
-Write-Host "Backup Interval: $IntervalHours hour(s)" -ForegroundColor Yellow
+Write-Host "🔧 Setup Auto Backup Script" -ForegroundColor Cyan
+Write-Host "================================" -ForegroundColor Cyan
 
-# Проверка дали auto-backup.ps1 съществува
-$autoBackupScript = Join-Path $ProjectPath "auto-backup.ps1"
-if (-not (Test-Path $autoBackupScript)) {
-    Write-Host "Auto backup script not found: $autoBackupScript" -ForegroundColor Red
-    exit 1
+function Write-Status {
+    param([string]$Message, [string]$Type = "INFO")
+    $timestamp = Get-Date -Format "yyyy-MM-dd HH:mm:ss"
+    $statusMessage = "[$timestamp] [$Type] $Message"
+    
+    switch ($Type) {
+        "ERROR" { Write-Host $statusMessage -ForegroundColor Red }
+        "SUCCESS" { Write-Host $statusMessage -ForegroundColor Green }
+        "WARN" { Write-Host $statusMessage -ForegroundColor Yellow }
+        default { Write-Host $statusMessage -ForegroundColor White }
+    }
 }
 
-Write-Host "✅ Auto backup script found: $autoBackupScript" -ForegroundColor Green
+function Test-BackupAPI {
+    Write-Status "🧪 Testing backup API..." "INFO"
+    
+    try {
+        $response = Invoke-WebRequest -Uri $ApiUrl -Method GET -TimeoutSec 10 -ErrorAction Stop
+        if ($response.StatusCode -eq 200) {
+            Write-Status "✅ Backup API is accessible" "SUCCESS"
+            return $true
+        } else {
+            Write-Status "⚠️ Backup API responded with status: $($response.StatusCode)" "WARN"
+            return $false
+        }
+    } catch {
+        Write-Status "❌ Backup API test failed: $($_.Exception.Message)" "ERROR"
+        return $false
+    }
+}
 
-# Създаване на PowerShell скрипт за backup
-$backupScriptContent = @"
-# Auto Backup Script
-# Автоматично изпълнява backup чрез API endpoint
+function Test-AutomaticBackup {
+    Write-Status "🧪 Testing automatic backup endpoint..." "INFO"
+    
+    try {
+        $headers = @{
+            "x-admin-token" = $AdminToken
+            "Content-Type" = "application/json"
+        }
+        
+        $response = Invoke-RestMethod -Uri $ApiUrl -Method PUT -Headers $headers -TimeoutSec 60
+        
+        if ($response.success) {
+            Write-Status "✅ Automatic backup test successful!" "SUCCESS"
+            Write-Status "📄 File: $($response.file)" "INFO"
+            Write-Status "🔧 Method: $($response.method)" "INFO"
+            return $true
+        } else {
+            Write-Status "❌ Automatic backup test failed: $($response.error)" "ERROR"
+            return $false
+        }
+    } catch {
+        Write-Status "❌ Automatic backup test failed: $($_.Exception.Message)" "ERROR"
+        return $false
+    }
+}
 
-`$ApiUrl = "$ApiUrl"
-`$AdminToken = "auto-backup-token"
-`$LogFile = Join-Path `$PSScriptRoot "auto-backup.log"
-
-Write-Host "🔄 Starting automatic backup..." -ForegroundColor Yellow
-Write-Host "⏰ Time: `$(Get-Date -Format 'yyyy-MM-dd HH:mm:ss')" -ForegroundColor Yellow
-
-try {
-    # Извикване на API endpoint-а
-    `$headers = @{
-        "x-admin-token" = `$AdminToken
-        "Content-Type" = "application/json"
+function Install-AutoBackup {
+    Write-Status "📦 Installing automatic backup..." "INFO"
+    
+    # Create backup directory
+    if (!(Test-Path $BackupDir)) {
+        New-Item -ItemType Directory -Path $BackupDir -Force | Out-Null
+        Write-Status "📁 Created backup directory: $BackupDir" "SUCCESS"
     }
     
-    `$response = Invoke-RestMethod -Uri `$ApiUrl -Method POST -Headers `$headers -TimeoutSec 300
+    # Create log file
+    $logFile = Join-Path $BackupDir "auto-backup.log"
+    if (!(Test-Path $logFile)) {
+        New-Item -ItemType File -Path $logFile -Force | Out-Null
+        Write-Status "📝 Created log file: $logFile" "SUCCESS"
+    }
     
-    if (`$response.success) {
-        `$logEntry = "`$(Get-Date -Format 'yyyy-MM-dd HH:mm:ss') - Auto backup completed successfully"
-        Add-Content -Path `$LogFile -Value `$logEntry
-        Write-Host "✅ Auto backup completed successfully!" -ForegroundColor Green
+    # Test PowerShell execution policy
+    $executionPolicy = Get-ExecutionPolicy
+    if ($executionPolicy -eq "Restricted") {
+        Write-Status "⚠️ PowerShell execution policy is restricted. You may need to run:" "WARN"
+        Write-Host "   Set-ExecutionPolicy -ExecutionPolicy RemoteSigned -Scope CurrentUser" -ForegroundColor Yellow
+    }
+    
+    # Test backup functionality
+    if (Test-BackupAPI) {
+        if (Test-AutomaticBackup) {
+            Write-Status "✅ Automatic backup installation completed successfully!" "SUCCESS"
+            Write-Status "💡 You can now run: .\auto-backup.ps1" "INFO"
+            Write-Status "💡 Or use: .\auto-backup.bat" "INFO"
+        } else {
+            Write-Status "⚠️ Installation completed but automatic backup test failed" "WARN"
+        }
     } else {
-        `$logEntry = "`$(Get-Date -Format 'yyyy-MM-dd HH:mm:ss') - Auto backup failed: `$(`$response.error)"
-        Add-Content -Path `$LogFile -Value `$logEntry
-        Write-Host "❌ Auto backup failed: `$(`$response.error)" -ForegroundColor Red
+        Write-Status "❌ Installation failed - backup API not accessible" "ERROR"
     }
-} catch {
-    `$logEntry = "`$(Get-Date -Format 'yyyy-MM-dd HH:mm:ss') - Auto backup error: `$(`$_.Exception.Message)"
-    Add-Content -Path `$LogFile -Value `$logEntry
-    Write-Host "❌ Error calling backup API: `$(`$_.Exception.Message)" -ForegroundColor Red
-}
-"@
-
-$backupScriptPath = Join-Path $ProjectPath "run-auto-backup.ps1"
-$backupScriptContent | Out-File -FilePath $backupScriptPath -Encoding UTF8
-Write-Host "✅ Created auto backup runner script: $backupScriptPath" -ForegroundColor Green
-
-# Създаване на Scheduled Task
-$taskName = "DrBorislavPetrov-AutoBackup"
-$taskDescription = "Automatic database backup via API for Dr. Borislav Petrov application"
-
-# Изтриване на съществуващата задача ако има такава
-try {
-    Unregister-ScheduledTask -TaskName $taskName -Confirm:$false -ErrorAction SilentlyContinue
-    Write-Host "🗑️ Removed existing scheduled task: $taskName" -ForegroundColor Yellow
-} catch {
-    # Task doesn't exist, continue
 }
 
-# Създаване на новата задача
-$action = New-ScheduledTaskAction -Execute "powershell.exe" -Argument "-ExecutionPolicy Bypass -File `"$backupScriptPath`""
-$trigger = New-ScheduledTaskTrigger -Once -At (Get-Date) -RepetitionInterval (New-TimeSpan -Hours $IntervalHours) -RepetitionDuration (New-TimeSpan -Days 365)
-$settings = New-ScheduledTaskSettingsSet -AllowStartIfOnBatteries -DontStopIfGoingOnBatteries -StartWhenAvailable -RunOnlyIfNetworkAvailable
-
-try {
-    Register-ScheduledTask -TaskName $taskName -Action $action -Trigger $trigger -Settings $settings -Description $taskDescription -User "SYSTEM"
-    Write-Host "✅ Scheduled task created successfully!" -ForegroundColor Green
-    Write-Host "📋 Task Name: $taskName" -ForegroundColor Yellow
-    Write-Host "⏰ Schedule: Every $IntervalHours hour(s)" -ForegroundColor Yellow
-    Write-Host "🌐 API URL: $ApiUrl" -ForegroundColor Yellow
-    Write-Host "📁 Log File: $(Join-Path $ProjectPath 'auto-backup.log')" -ForegroundColor Yellow
-} catch {
-    Write-Host "❌ Failed to create scheduled task: $($_.Exception.Message)" -ForegroundColor Red
-    Write-Host "💡 Try running PowerShell as Administrator" -ForegroundColor Yellow
-    exit 1
+function Uninstall-AutoBackup {
+    Write-Status "🗑️ Uninstalling automatic backup..." "INFO"
+    
+    # Remove log file
+    $logFile = Join-Path $BackupDir "auto-backup.log"
+    if (Test-Path $logFile) {
+        Remove-Item $logFile -Force
+        Write-Status "🗑️ Removed log file: $logFile" "SUCCESS"
+    }
+    
+    # Note: We don't remove the backup directory as it may contain important backups
+    Write-Status "⚠️ Backup directory '$BackupDir' was not removed (may contain important data)" "WARN"
+    Write-Status "✅ Automatic backup uninstallation completed" "SUCCESS"
 }
 
-# Тестване на auto backup скрипта
-Write-Host "🧪 Testing auto backup script..." -ForegroundColor Yellow
-try {
-    & powershell.exe -ExecutionPolicy Bypass -File $backupScriptPath
-    Write-Host "✅ Auto backup test completed!" -ForegroundColor Green
-} catch {
-    Write-Host "❌ Auto backup test failed: $($_.Exception.Message)" -ForegroundColor Red
+function Show-Configuration {
+    Write-Status "📋 Current Configuration:" "INFO"
+    Write-Host "   API URL: $ApiUrl" -ForegroundColor Cyan
+    Write-Host "   Admin Token: $AdminToken" -ForegroundColor Cyan
+    Write-Host "   Backup Directory: $BackupDir" -ForegroundColor Cyan
+    Write-Host "   PowerShell Execution Policy: $(Get-ExecutionPolicy)" -ForegroundColor Cyan
 }
 
-# Показване на информация за управление
-Write-Host ""
-Write-Host "🎉 Auto backup scheduler setup completed!" -ForegroundColor Green
-Write-Host ""
-Write-Host "📋 Management Commands:" -ForegroundColor Cyan
-Write-Host "   View task: Get-ScheduledTask -TaskName '$taskName'" -ForegroundColor White
-Write-Host "   Start task: Start-ScheduledTask -TaskName '$taskName'" -ForegroundColor White
-Write-Host "   Stop task: Stop-ScheduledTask -TaskName '$taskName'" -ForegroundColor White
-Write-Host "   Delete task: Unregister-ScheduledTask -TaskName '$taskName'" -ForegroundColor White
-Write-Host "   View logs: Get-Content '$(Join-Path $ProjectPath 'auto-backup.log')'" -ForegroundColor White
-Write-Host ""
-Write-Host "🌐 API Endpoint: $ApiUrl" -ForegroundColor Cyan
-Write-Host "🔑 Token: auto-backup-token" -ForegroundColor Cyan
-Write-Host "📁 Backup files location: $(Join-Path $ProjectPath 'backups')" -ForegroundColor Cyan
-Write-Host "🔄 Manual auto backup: powershell.exe -ExecutionPolicy Bypass -File $backupScriptPath" -ForegroundColor Cyan 
+# Main execution
+if ($Install) {
+    Install-AutoBackup
+} elseif ($Uninstall) {
+    Uninstall-AutoBackup
+} elseif ($Test) {
+    Write-Status "🧪 Running tests only..." "INFO"
+    if (Test-BackupAPI) {
+        Test-AutomaticBackup
+    }
+} else {
+    Write-Status "ℹ️ No action specified. Use -Install, -Uninstall, or -Test" "INFO"
+    Write-Host ""
+    Write-Host "Usage:" -ForegroundColor Yellow
+    Write-Host "  .\setup-auto-backup.ps1 -Install    # Install automatic backup" -ForegroundColor White
+    Write-Host "  .\setup-auto-backup.ps1 -Uninstall  # Uninstall automatic backup" -ForegroundColor White
+    Write-Host "  .\setup-auto-backup.ps1 -Test       # Test backup functionality" -ForegroundColor White
+    Write-Host "  .\setup-auto-backup.ps1 -Help       # Show this help" -ForegroundColor White
+    Write-Host ""
+    
+    Show-Configuration
+} 

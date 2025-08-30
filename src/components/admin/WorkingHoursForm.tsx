@@ -14,6 +14,10 @@ interface WorkingHoursFormProps {
 }
 
 const WorkingHoursForm = ({ selectedDate, onSave, onCancel, onDelete, initialData }: WorkingHoursFormProps) => {
+  // Drag state
+  const [isDragging, setIsDragging] = useState(false)
+  const [dragOffset, setDragOffset] = useState({ x: 0, y: 0 })
+  const [modalPosition, setModalPosition] = useState({ x: 0, y: 0 })
   
   const [isSubmitting, setIsSubmitting] = useState(false)
   const [formData, setFormData] = useState<WorkingHours>({
@@ -41,9 +45,7 @@ const WorkingHoursForm = ({ selectedDate, onSave, onCancel, onDelete, initialDat
         startTime: initialData.startTime || '09:00',
         endTime: initialData.endTime || '18:00',
         notes: initialData.notes || '',
-        breaks: initialData.breaks && initialData.breaks.length > 0 
-          ? initialData.breaks 
-          : [{ startTime: '12:00', endTime: '13:00', description: 'Почивка' }]
+        breaks: initialData.breaks || []
       })
     } else {
       // Reset to defaults when no initial data
@@ -103,6 +105,41 @@ const WorkingHoursForm = ({ selectedDate, onSave, onCancel, onDelete, initialDat
     }))
   }
 
+  // Drag functions
+  const handleMouseDown = (e: React.MouseEvent) => {
+    if (e.target === e.currentTarget) {
+      setIsDragging(true)
+      setDragOffset({
+        x: e.clientX - modalPosition.x,
+        y: e.clientY - modalPosition.y
+      })
+    }
+  }
+
+  const handleMouseMove = (e: MouseEvent) => {
+    if (isDragging) {
+      setModalPosition({
+        x: e.clientX - dragOffset.x,
+        y: e.clientY - dragOffset.y
+      })
+    }
+  }
+
+  const handleMouseUp = () => {
+    setIsDragging(false)
+  }
+
+  useEffect(() => {
+    if (isDragging) {
+      document.addEventListener('mousemove', handleMouseMove)
+      document.addEventListener('mouseup', handleMouseUp)
+      return () => {
+        document.removeEventListener('mousemove', handleMouseMove)
+        document.removeEventListener('mouseup', handleMouseUp)
+      }
+    }
+  }, [isDragging, dragOffset])
+
   // Handle Escape key for closing modal
   useEffect(() => {
     const handleEscape = (event: KeyboardEvent) => {
@@ -116,11 +153,25 @@ const WorkingHoursForm = ({ selectedDate, onSave, onCancel, onDelete, initialDat
   }, [onCancel])
 
   return (
-    <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-[70]">
-      <div className="bg-white rounded-lg p-6 w-full max-w-md mx-4">
-        <div className="flex items-center justify-between mb-4">
+          <div className="fixed inset-0 bg-black bg-opacity-50 z-[70]">
+      <div 
+        className="bg-white rounded-lg p-6 w-full max-w-md mx-4 cursor-move" 
+        style={{ 
+          position: 'fixed',
+          left: '50%',
+          top: '50%',
+          transform: `translate(-50%, -50%) translate(${modalPosition.x}px, ${modalPosition.y}px)`,
+          cursor: isDragging ? 'grabbing' : 'grab'
+        }}
+        onMouseDown={handleMouseDown}
+      >
+        <div className="flex items-center justify-between mb-4" onMouseDown={(e) => e.stopPropagation()}>
           <h3 className="text-lg font-semibold text-gray-900">
-            Работно време за {new Date(selectedDate).toLocaleDateString('bg-BG')}
+            Работно време за {(() => {
+              const [year, month, day] = selectedDate.split('-').map(Number)
+              const date = new Date(year, month - 1, day)
+              return date.toLocaleDateString('bg-BG')
+            })()}
           </h3>
           <button
             onClick={onCancel}
@@ -130,7 +181,7 @@ const WorkingHoursForm = ({ selectedDate, onSave, onCancel, onDelete, initialDat
           </button>
         </div>
 
-        <form onSubmit={handleSubmit} className="space-y-4">
+        <form onSubmit={handleSubmit} className="space-y-4" onMouseDown={(e) => e.stopPropagation()}>
           {isSunday(selectedDate) && (
             <div className="bg-orange-50 border border-orange-200 rounded-lg p-3 mb-4">
               <div className="flex items-center space-x-2">
@@ -195,13 +246,24 @@ const WorkingHoursForm = ({ selectedDate, onSave, onCancel, onDelete, initialDat
                   <label className="block text-sm font-medium text-gray-700">
                     Почивки
                   </label>
-                  <button
-                    type="button"
-                    onClick={addBreak}
-                    className="px-2 py-1 text-xs bg-blue-500 text-white rounded hover:bg-blue-600"
-                  >
-                    + Добави почивка
-                  </button>
+                  <div className="flex space-x-2">
+                    {formData.breaks.length > 0 && (
+                      <button
+                        type="button"
+                        onClick={() => setFormData(prev => ({ ...prev, breaks: [] }))}
+                        className="px-2 py-1 text-xs bg-red-500 text-white rounded hover:bg-red-600"
+                      >
+                        Премахни всички
+                      </button>
+                    )}
+                    <button
+                      type="button"
+                      onClick={addBreak}
+                      className="px-2 py-1 text-xs bg-blue-500 text-white rounded hover:bg-blue-600"
+                    >
+                      + Добави почивка
+                    </button>
+                  </div>
                 </div>
                 
                 {formData.breaks.map((breakItem, index) => (
@@ -210,15 +272,13 @@ const WorkingHoursForm = ({ selectedDate, onSave, onCancel, onDelete, initialDat
                       <span className="text-sm font-medium text-gray-700">
                         Почивка {index + 1}
                       </span>
-                      {formData.breaks.length > 1 && (
-                        <button
-                          type="button"
-                          onClick={() => removeBreak(index)}
-                          className="text-red-500 hover:text-red-700 text-sm"
-                        >
-                          Премахни
-                        </button>
-                      )}
+                      <button
+                        type="button"
+                        onClick={() => removeBreak(index)}
+                        className="text-red-500 hover:text-red-700 text-sm"
+                      >
+                        Премахни
+                      </button>
                     </div>
                     
                     <div className="grid grid-cols-3 gap-3">

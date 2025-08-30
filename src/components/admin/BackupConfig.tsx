@@ -26,6 +26,11 @@ interface BackupConfigProps {
 }
 
 export default function BackupConfig({ onConfigChange, onClose }: BackupConfigProps) {
+  // Drag state
+  const [isDragging, setIsDragging] = useState(false)
+  const [dragOffset, setDragOffset] = useState({ x: 0, y: 0 })
+  const [modalPosition, setModalPosition] = useState({ x: 0, y: 0 })
+
   const [config, setConfig] = useState<BackupConfig>({
     retentionDays: 5,
     backupInterval: 1,
@@ -112,11 +117,56 @@ export default function BackupConfig({ onConfigChange, onClose }: BackupConfigPr
     return () => document.removeEventListener('keydown', handleEscape)
   }, [onClose])
 
+  // Drag functions
+  const handleMouseDown = (e: React.MouseEvent) => {
+    if (e.target === e.currentTarget) {
+      setIsDragging(true)
+      setDragOffset({
+        x: e.clientX - modalPosition.x,
+        y: e.clientY - modalPosition.y
+      })
+    }
+  }
+
+  const handleMouseMove = (e: MouseEvent) => {
+    if (isDragging) {
+      setModalPosition({
+        x: e.clientX - dragOffset.x,
+        y: e.clientY - dragOffset.y
+      })
+    }
+  }
+
+  const handleMouseUp = () => {
+    setIsDragging(false)
+  }
+
+  useEffect(() => {
+    if (isDragging) {
+      document.addEventListener('mousemove', handleMouseMove)
+      document.addEventListener('mouseup', handleMouseUp)
+      return () => {
+        document.removeEventListener('mousemove', handleMouseMove)
+        document.removeEventListener('mouseup', handleMouseUp)
+      }
+    }
+  }, [isDragging, dragOffset])
+
   return (
-    <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
-      <div className="bg-white rounded-lg shadow-xl max-w-2xl w-full mx-4 max-h-[90vh] overflow-y-auto">
+            <div className="fixed inset-0 bg-black bg-opacity-50 z-50">
+      <div 
+        className="bg-white rounded-lg shadow-xl max-w-2xl w-full mx-4 max-h-[90vh] overflow-y-auto cursor-move" 
+        style={{ 
+          position: 'fixed',
+          left: '50%',
+          top: '50%',
+          transform: `translate(-50%, -50%) translate(${modalPosition.x}px, ${modalPosition.y}px)`,
+          cursor: isDragging ? 'grabbing' : 'grab'
+        }}
+        onMouseDown={handleMouseDown}
+      >
         {/* Header */}
-        <div className="flex items-center justify-between p-6 border-b">
+        <div className="flex items-center justify-between p-6 border-b" onMouseDown={(e) => e.stopPropagation()}>
           <div className="flex items-center space-x-3">
             <Settings className="w-6 h-6 text-blue-600" />
             <h2 className="text-2xl font-bold text-gray-900">Backup Конфигурация</h2>
@@ -305,7 +355,7 @@ export default function BackupConfig({ onConfigChange, onClose }: BackupConfigPr
         </div>
 
         {/* Footer */}
-        <div className="flex items-center justify-end space-x-3 p-6 border-t">
+        <div className="flex items-center justify-end space-x-3 p-6 border-t" onMouseDown={(e) => e.stopPropagation()}>
           <button
             onClick={onClose}
             className="px-4 py-2 text-gray-700 bg-gray-100 rounded-lg hover:bg-gray-200 transition-colors"

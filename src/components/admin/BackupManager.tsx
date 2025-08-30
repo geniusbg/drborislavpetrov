@@ -71,22 +71,21 @@ export default function BackupManager() {
       if (!response.ok) throw new Error('Failed to load backups')
       
       const data = await response.json()
+      console.log('🔍 Backup API Response:', data) // Debug logging
+      
       const files = (data.backups as BackupFile[] | undefined) || []
+      console.log('📁 Files found:', files.length) // Debug logging
+      
       setBackups(files.map(({ name, size, date, age }) => ({ name, size, date, age })))
       
-      // Update stats but preserve the retentionDays from config
+      // Update stats with fresh data from API
       if (data.stats) {
-        setStats(prev => {
-          // Only update if stats don't exist or if retentionDays changed
-          if (!prev || prev.retentionDays !== config.retentionDays) {
-            return {
-              ...data.stats,
-              retentionDays: config.retentionDays
-            }
-          }
-          // Keep existing stats to prevent flickering
-          return prev
+        console.log('📊 Stats from API:', data.stats) // Debug logging
+        setStats({
+          ...data.stats,
+          retentionDays: config.retentionDays
         })
+        console.log('✅ Stats updated with retentionDays:', config.retentionDays) // Debug logging
       }
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Unknown error')

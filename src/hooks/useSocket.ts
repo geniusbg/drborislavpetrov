@@ -31,14 +31,14 @@ export function useSocket(): UseSocketReturn {
         console.log('🔌 Attempting to connect to Socket.io server at:', socketUrl)
         
         const newSocket = io(socketUrl, {
-          transports: ['polling', 'websocket'], // Polling first, then WebSocket upgrade
+          transports: ['websocket', 'polling'], // WebSocket first, polling as fallback
           autoConnect: true,
-          forceNew: false, // Changed to false to prevent multiple connections
-          timeout: 30000, // 30 second timeout - increased for better reliability
+          forceNew: false, // Prevent multiple connections
+          timeout: 10000, // 10 second timeout - reduced for faster fallback
           reconnection: true,
-          reconnectionAttempts: 5, // Increased reconnection attempts
-          reconnectionDelay: 2000, // Increased delay between attempts
-          reconnectionDelayMax: 10000 // Maximum delay between attempts
+          reconnectionAttempts: 3, // Reduced reconnection attempts
+          reconnectionDelay: 1000, // Reduced delay between attempts
+          reconnectionDelayMax: 5000 // Maximum delay between attempts
         })
 
         // Store event handlers for cleanup

@@ -14,6 +14,7 @@ interface VoiceAssistantProps {
   onCommand: (command: string) => void
   isListening: boolean
   setIsListening: (listening: boolean) => void
+  onClose?: () => void
 }
 
 interface ParsedCommand {
@@ -28,7 +29,7 @@ interface ParsedCommand {
   originalCommand: string
 }
 
-const VoiceAssistant: React.FC<VoiceAssistantProps> = ({ onCommand, isListening, setIsListening }) => {
+const VoiceAssistant: React.FC<VoiceAssistantProps> = ({ onCommand, isListening, setIsListening, onClose }) => {
   const [transcript, setTranscript] = useState('')
   const [isProcessing, setIsProcessing] = useState(false)
   const [error, setError] = useState('')
@@ -39,9 +40,12 @@ const VoiceAssistant: React.FC<VoiceAssistantProps> = ({ onCommand, isListening,
   const [showSuggestions, setShowSuggestions] = useState(false)
   const [selectedSuggestion, setSelectedSuggestion] = useState(0)
   const recognitionRef = useRef<any>(null)
+  const [isHolding, setIsHolding] = useState(false)
+  const [statusLabel, setStatusLabel] = useState('')
 
   // Simple device detection
   const isMobile = typeof window !== 'undefined' && /Android|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent)
+  const supportsMediaRecorder = typeof window !== 'undefined' && typeof (window as any).MediaRecorder === 'function'
   
   // Command templates for quick access
   const commandTemplates = [
@@ -115,6 +119,9 @@ const VoiceAssistant: React.FC<VoiceAssistantProps> = ({ onCommand, isListening,
   // Check microphone permissions
   const checkMicrophonePermission = useCallback(async () => {
     try {
+      if (typeof window !== 'undefined' && window.isSecureContext === false) {
+        setError('За да записвам аудио, е нужен защитен контекст (https или localhost).')
+      }
       const stream = await navigator.mediaDevices.getUserMedia({ audio: true })
       stream.getTracks().forEach(track => track.stop())
       return true
@@ -164,14 +171,24 @@ const VoiceAssistant: React.FC<VoiceAssistantProps> = ({ onCommand, isListening,
 
   // iOS-friendly: hold-to-record button using MediaRecorder, sending to /api/stt
   const startRecording = useCallback(async () => {
+    if (!supportsMediaRecorder) {
+      setError('Този браузър не поддържа запис от микрофона. Използвайте текстов режим или обновете iOS.')
+      return
+    }
     if (typeof window === 'undefined' || !navigator.mediaDevices) return
     try {
+      setError('')
+      setSuccess('')
+      setIsProcessing(false)
+      setStatusLabel('Запис...')
+      setIsHolding(true)
       const stream = await navigator.mediaDevices.getUserMedia({ audio: true })
       const mediaRecorder = new MediaRecorder(stream)
       const chunks: BlobPart[] = []
       mediaRecorder.ondataavailable = (e) => { if (e.data.size > 0) chunks.push(e.data) }
       mediaRecorder.onstop = async () => {
         try {
+          setStatusLabel('Изпращане към STT...')
           const blob = new Blob(chunks, { type: 'audio/webm' })
           const resp = await fetch('/api/stt', {
             method: 'POST',
@@ -181,23 +198,31 @@ const VoiceAssistant: React.FC<VoiceAssistantProps> = ({ onCommand, isListening,
           const data = await resp.json()
           if (data?.text) {
             await processCommand(data.text)
+            setStatusLabel('Готово')
+            setTimeout(() => setStatusLabel(''), 1200)
           }
         } catch (e) {
           console.error('STT request failed', e)
+          setError('STT не е конфигуриран или недостъпен. Записът е спрян.')
+          setStatusLabel('')
         } finally {
           stream.getTracks().forEach(t => t.stop())
+          setIsHolding(false)
         }
       }
       mediaRecorder.start()
       ;(window as any).__va_rec = mediaRecorder
     } catch (e) {
       console.error('Recording error', e)
+      setIsHolding(false)
+      setStatusLabel('')
     }
-  }, [processCommand])
+  }, [processCommand, supportsMediaRecorder])
 
   const stopRecording = useCallback(() => {
     const mr = (typeof window !== 'undefined' ? (window as any).__va_rec : null)
     if (mr && mr.state !== 'inactive') mr.stop()
+    setIsHolding(false)
   }, [])
 
   useEffect(() => {
@@ -443,7 +468,7 @@ const VoiceAssistant: React.FC<VoiceAssistantProps> = ({ onCommand, isListening,
             )}
           </div>
           <button
-            onClick={clearTranscript}
+            onClick={() => { onClose ? onClose() : clearTranscript() }}
             className="p-1 rounded-lg hover:bg-gray-100 transition-colors"
           >
             <X className="w-4 h-4 text-gray-500" />
@@ -505,15 +530,23 @@ const VoiceAssistant: React.FC<VoiceAssistantProps> = ({ onCommand, isListening,
 
         {/* iOS-friendly hold-to-record (works even when voiceSupported is false) */}
         {isMobile && (
-          <div className="flex justify-center mb-3">
+          <div className="flex justify-center mb-3 select-none" onContextMenu={(e) => e.preventDefault()}>
             <button
-              onMouseDown={startRecording}
-              onMouseUp={stopRecording}
-              onTouchStart={(e) => { e.preventDefault(); startRecording(); }}
-              onTouchEnd={(e) => { e.preventDefault(); stopRecording(); }}
-              className="px-4 py-2 rounded-md bg-blue-600 text-white hover:bg-blue-700 active:scale-95 transition"
+              type="button"
+              onMouseDown={(e) => { e.preventDefault(); startRecording() }}
+              onMouseUp={(e) => { e.preventDefault(); stopRecording() }}
+              onPointerDown={(e) => { e.preventDefault(); (e.currentTarget as HTMLButtonElement).setPointerCapture?.(e.pointerId); startRecording() }}
+              onPointerUp={(e) => { e.preventDefault(); stopRecording() }}
+              onPointerCancel={(e) => { e.preventDefault(); stopRecording() }}
+              onTouchStart={(e) => { e.preventDefault(); startRecording() }}
+              onTouchEnd={(e) => { e.preventDefault(); stopRecording() }}
+              onTouchCancel={(e) => { e.preventDefault(); stopRecording() }}
+              draggable={false}
+              className={`px-4 py-2 rounded-md text-white active:scale-95 transition select-none ${isHolding ? 'bg-red-600 animate-pulse' : 'bg-blue-600 hover:bg-blue-700'}`}
+              style={{ WebkitUserSelect: 'none', userSelect: 'none', touchAction: 'none' as any }}
+              aria-pressed={isListening}
             >
-              Задръж за говорене (iOS)
+              {isHolding ? 'Запис...' : 'Задръж за запис (iOS)'}
             </button>
           </div>
         )}
@@ -530,6 +563,9 @@ const VoiceAssistant: React.FC<VoiceAssistantProps> = ({ onCommand, isListening,
                   : 'Натиснете за да говорите'
             }
           </p>
+          {statusLabel && (
+            <p className="text-xs text-gray-500 mt-1">{statusLabel}</p>
+          )}
           {isMobile && (
             <p className="text-xs text-blue-600 mt-1">
               💡 iOS-оптимизирано с hold-to-record

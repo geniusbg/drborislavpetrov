@@ -16,6 +16,11 @@ const BugTracker = ({ onClose }: BugTrackerProps) => {
   const [filterStatus, setFilterStatus] = useState<string>('')
   const [filterCategory, setFilterCategory] = useState<string>('')
   const [filterSeverity, setFilterSeverity] = useState<string>('')
+  
+  // Drag state for main modal
+  const [isDragging, setIsDragging] = useState(false)
+  const [dragOffset, setDragOffset] = useState({ x: 0, y: 0 })
+  const [modalPosition, setModalPosition] = useState({ x: 0, y: 0 })
 
   const loadBugs = async () => {
     try {
@@ -116,10 +121,55 @@ const BugTracker = ({ onClose }: BugTrackerProps) => {
     return () => document.removeEventListener('keydown', handleEscape)
   }, [showBugForm, onClose])
 
+  // Drag functions for main modal
+  const handleMouseDown = (e: React.MouseEvent) => {
+    if (e.target === e.currentTarget) {
+      setIsDragging(true)
+      setDragOffset({
+        x: e.clientX - modalPosition.x,
+        y: e.clientY - modalPosition.y
+      })
+    }
+  }
+
+  const handleMouseMove = (e: MouseEvent) => {
+    if (isDragging) {
+      setModalPosition({
+        x: e.clientX - dragOffset.x,
+        y: e.clientY - dragOffset.y
+      })
+    }
+  }
+
+  const handleMouseUp = () => {
+    setIsDragging(false)
+  }
+
+  useEffect(() => {
+    if (isDragging) {
+      document.addEventListener('mousemove', handleMouseMove)
+      document.addEventListener('mouseup', handleMouseUp)
+      return () => {
+        document.removeEventListener('mousemove', handleMouseMove)
+        document.removeEventListener('mouseup', handleMouseUp)
+      }
+    }
+  }, [isDragging, dragOffset])
+
   return (
-    <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
-      <div className="bg-white rounded-lg p-6 w-full max-w-6xl mx-4 max-h-[90vh] overflow-y-auto">
-        <div className="flex items-center justify-between mb-6">
+          <div className="fixed inset-0 bg-black bg-opacity-50 z-50">
+      <div 
+        className="bg-white rounded-lg p-6 w-full max-w-6xl mx-4 max-h-[85vh] overflow-y-auto cursor-move" 
+        style={{ 
+          position: 'fixed',
+          left: '50%',
+          top: '50%',
+          transform: `translate(-50%, -50%) translate(${modalPosition.x}px, ${modalPosition.y}px)`,
+          cursor: isDragging ? 'grabbing' : 'grab'
+        }}
+        onMouseDown={handleMouseDown}
+      >
+        <div className="flex items-center justify-between mb-6" onMouseDown={(e) => e.stopPropagation()}>
           <div className="flex items-center space-x-3">
             <Bug className="w-8 h-8 text-red-600" />
             <div>
@@ -303,6 +353,11 @@ const BugTracker = ({ onClose }: BugTrackerProps) => {
 
 // Placeholder BugForm component
 const BugForm = ({ bug, onSubmit, onCancel }: { bug: BugReport | null; onSubmit: () => void; onCancel: () => void }) => {
+  // Drag state for bug form modal
+  const [isDragging, setIsDragging] = useState(false)
+  const [dragOffset, setDragOffset] = useState({ x: 0, y: 0 })
+  const [modalPosition, setModalPosition] = useState({ x: 0, y: 0 })
+
   const [formData, setFormData] = useState({
     title: bug?.title || '',
     description: bug?.description || '',
@@ -368,14 +423,59 @@ const BugForm = ({ bug, onSubmit, onCancel }: { bug: BugReport | null; onSubmit:
     }))
   }
 
+  // Drag functions for bug form modal
+  const handleMouseDown = (e: React.MouseEvent) => {
+    if (e.target === e.currentTarget) {
+      setIsDragging(true)
+      setDragOffset({
+        x: e.clientX - modalPosition.x,
+        y: e.clientY - modalPosition.y
+      })
+    }
+  }
+
+  const handleMouseMove = (e: MouseEvent) => {
+    if (isDragging) {
+      setModalPosition({
+        x: e.clientX - dragOffset.x,
+        y: e.clientY - dragOffset.y
+      })
+    }
+  }
+
+  const handleMouseUp = () => {
+    setIsDragging(false)
+  }
+
+  useEffect(() => {
+    if (isDragging) {
+      document.addEventListener('mousemove', handleMouseMove)
+      document.addEventListener('mouseup', handleMouseUp)
+      return () => {
+        document.removeEventListener('mousemove', handleMouseMove)
+        document.removeEventListener('mouseup', handleMouseUp)
+      }
+    }
+  }, [isDragging, dragOffset])
+
   return (
-    <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-[60]">
-      <div className="bg-white rounded-lg p-6 w-full max-w-4xl mx-4 max-h-[90vh] overflow-y-auto">
-        <h3 className="text-lg font-medium text-gray-900 mb-4">
+            <div className="fixed inset-0 bg-black bg-opacity-50 z-[60]">
+      <div 
+        className="bg-white rounded-lg p-6 w-full max-w-4xl mx-4 max-h-[85vh] overflow-y-auto cursor-move" 
+        style={{ 
+          position: 'fixed',
+          left: '50%',
+          top: '50%',
+          transform: `translate(-50%, -50%) translate(${modalPosition.x}px, ${modalPosition.y}px)`,
+          cursor: isDragging ? 'grabbing' : 'grab'
+        }}
+        onMouseDown={handleMouseDown}
+      >
+        <h3 className="text-lg font-medium text-gray-900 mb-4" onMouseDown={(e) => e.stopPropagation()}>
           {bug ? 'Редактирай Bug Report' : 'Нов Bug Report'}
         </h3>
         
-        <form onSubmit={handleSubmit} className="space-y-4">
+        <form onSubmit={handleSubmit} className="space-y-4" onMouseDown={(e) => e.stopPropagation()}>
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-1">
@@ -559,7 +659,7 @@ const BugForm = ({ bug, onSubmit, onCancel }: { bug: BugReport | null; onSubmit:
             </div>
           </div>
 
-          <div className="flex justify-end space-x-3 pt-4">
+          <div className="flex justify-end space-x-3 pt-4" onMouseDown={(e) => e.stopPropagation()}>
             <button
               type="button"
               onClick={onCancel}

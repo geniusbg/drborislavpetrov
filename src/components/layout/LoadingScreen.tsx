@@ -41,7 +41,7 @@ export const LoadingScreen = () => {
   if (!isVisible) return null
 
   return (
-    <div className="fixed inset-0 bg-white z-[9999] flex items-center justify-center transition-opacity duration-300">
+            <div className="fixed inset-0 bg-white z-[9999] flex items-center justify-center transition-opacity duration-300">
       <div className="text-center">
         {/* Logo/Title */}
         <div className="mb-8">

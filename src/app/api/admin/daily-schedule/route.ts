@@ -77,13 +77,41 @@ export async function GET(request: NextRequest) {
     }
     const uniqueBookings = Array.from(uniqueBookingsMap.values())
 
-    // Default working hours if not set
-    const defaultWorkingHours = {
-      isWorkingDay: true,
+    // Load default settings to determine if the day is working
+    let defaultSettings = {
+      workingDays: [1, 2, 3, 4, 5], // Monday to Friday
       startTime: '09:00',
       endTime: '18:00',
-      notes: null,
-      breaks: [{ startTime: '12:00', endTime: '13:00', description: 'Почивка' }]
+      breakStart: '13:00',
+      breakEnd: '14:00'
+    }
+
+    try {
+      const fs = require('fs')
+      const path = require('path')
+      const SETTINGS_FILE = path.join(process.cwd(), 'app-settings.json')
+      if (fs.existsSync(SETTINGS_FILE)) {
+        const json = JSON.parse(fs.readFileSync(SETTINGS_FILE, 'utf8'))
+        if (json?.defaultWorkingHours) {
+          defaultSettings = json.defaultWorkingHours
+        }
+      }
+    } catch (e) {
+      console.error('Failed to load default settings for daily schedule:', e)
+    }
+
+    // Determine if the date is a working day based on settings
+    const dateObj = new Date(date)
+    const dayOfWeek = dateObj.getDay() // 0 = Sunday, 1 = Monday, ..., 6 = Saturday
+    const isWorkingDayByDefault = defaultSettings.workingDays.includes(dayOfWeek)
+
+    // Default working hours if not set
+    const defaultWorkingHours = {
+      isWorkingDay: isWorkingDayByDefault,
+      startTime: defaultSettings.startTime || '09:00',
+      endTime: defaultSettings.endTime || '18:00',
+      notes: isWorkingDayByDefault ? null : 'Почивен ден според настройките',
+      breaks: [{ startTime: defaultSettings.breakStart || '12:00', endTime: defaultSettings.breakEnd || '13:00', description: 'Почивка' }]
     }
 
     const workingHoursData = workingHours.rows.length > 0 ? {
