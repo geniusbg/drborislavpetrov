@@ -15,14 +15,10 @@ const handle = app.getRequestHandler()
 app.prepare().then(() => {
   const server = createServer(async (req, res) => {
     try {
-      // Check if request is for Socket.io
       if (req.url && req.url.startsWith('/socket.io/')) {
-        // Let Socket.io handle this request - don't call handle()
         console.log('🔌 Socket.io request:', req.url)
-        // Socket.io will handle this automatically
         return
       }
-      
       const parsedUrl = parse(req.url, true)
       await handle(req, res, parsedUrl)
     } catch (err) {
@@ -55,9 +51,25 @@ app.prepare().then(() => {
   // Create Socket.io server with improved CORS settings
   const io = new Server(server, {
     cors: {
-      origin: process.env.NODE_ENV === 'production' 
-        ? [siteDomain, siteDomain.replace('://www.', '://'), siteDomain.replace('://', '://www.')] 
-        : ["http://localhost:3000", "http://127.0.0.1:3000", "http://172.16.1.167:3000"], // Added local network IP
+      origin: process.env.NODE_ENV === 'production'
+        ? [siteDomain, siteDomain.replace('://www.', '://'), siteDomain.replace('://', '://www.')]
+        : function(origin, callback) {
+            // Allow no-origin requests (e.g. mobile Safari, curl)
+            if (!origin) return callback(null, true)
+            try {
+              const url = new URL(origin)
+              const host = url.hostname || ''
+              const port = url.port || '80'
+              const isLocalHost = host === 'localhost' || host === '127.0.0.1'
+              const isPrivate10 = host.startsWith('10.')
+              const isPrivate172 = /^172\.(1[6-9]|2\d|3[0-1])\./.test(host)
+              const isPrivate192 = host.startsWith('192.168.')
+              const allow = (isLocalHost || isPrivate10 || isPrivate172 || isPrivate192)
+                && (port === '' || port === '3000' || port === '80' || port === '443')
+              if (allow) return callback(null, true)
+            } catch {}
+            return callback(new Error('Not allowed by CORS (dev)'), false)
+          },
       methods: ["GET", "POST"],
       credentials: true,
       allowedHeaders: ["Content-Type", "Authorization"]

@@ -42,6 +42,108 @@ const VoiceAssistant: React.FC<VoiceAssistantProps> = ({ onCommand, isListening,
   const recognitionRef = useRef<any>(null)
   const [isHolding, setIsHolding] = useState(false)
   const [statusLabel, setStatusLabel] = useState('')
+  const [isOnline, setIsOnline] = useState(true)
+
+  // IndexedDB setup for offline queue
+  const dbPromiseRef = useRef<Promise<IDBDatabase> | null>(null)
+  const getDb = (): Promise<IDBDatabase> => {
+    if (dbPromiseRef.current) return dbPromiseRef.current
+    dbPromiseRef.current = new Promise((resolve, reject) => {
+      if (typeof window === 'undefined' || !('indexedDB' in window)) {
+        reject(new Error('IndexedDB не се поддържа'))
+        return
+      }
+      const request = indexedDB.open('voice-assistant-db', 1)
+      request.onupgradeneeded = () => {
+        const db = request.result
+        if (!db.objectStoreNames.contains('audioQueue')) {
+          db.createObjectStore('audioQueue', { keyPath: 'id', autoIncrement: true })
+        }
+      }
+      request.onsuccess = () => resolve(request.result)
+      request.onerror = () => reject(request.error || new Error('IDB грешка'))
+    })
+    return dbPromiseRef.current
+  }
+
+  const addRecord = (db: IDBDatabase, storeName: string, value: any): Promise<void> => {
+    return new Promise((resolve, reject) => {
+      const tx = db.transaction(storeName, 'readwrite')
+      tx.oncomplete = () => resolve()
+      tx.onerror = () => reject(tx.error)
+      const store = tx.objectStore(storeName)
+      store.add(value)
+    })
+  }
+
+  const deleteRecord = (db: IDBDatabase, storeName: string, key: IDBValidKey): Promise<void> => {
+    return new Promise((resolve, reject) => {
+      const tx = db.transaction(storeName, 'readwrite')
+      tx.oncomplete = () => resolve()
+      tx.onerror = () => reject(tx.error)
+      const store = tx.objectStore(storeName)
+      store.delete(key)
+    })
+  }
+
+  const getAllRecords = (db: IDBDatabase, storeName: string): Promise<any[]> => {
+    return new Promise((resolve, reject) => {
+      const tx = db.transaction(storeName, 'readonly')
+      tx.onerror = () => reject(tx.error)
+      const store = tx.objectStore(storeName)
+      if ('getAll' in store) {
+        const req = (store as any).getAll()
+        req.onsuccess = () => resolve(req.result || [])
+        req.onerror = () => reject(req.error)
+      } else {
+        const results: any[] = []
+        const cursorReq = store.openCursor()
+        cursorReq.onsuccess = () => {
+          const cursor = cursorReq.result
+          if (cursor) {
+            results.push(cursor.value)
+            cursor.continue()
+          } else {
+            resolve(results)
+          }
+        }
+        cursorReq.onerror = () => reject(cursorReq.error)
+      }
+    })
+  }
+
+  const enqueueAudio = async (blob: Blob) => {
+    try {
+      const db = await getDb()
+      await addRecord(db, 'audioQueue', { createdAt: Date.now(), type: blob.type, data: await blob.arrayBuffer() })
+      setSuccess('Записът е запазен офлайн – ще се изпрати при свързване.')
+    } catch (e) {
+      console.error('Offline queue error:', e)
+      setError('Неуспешно записване офлайн.')
+    }
+  }
+
+  const flushQueue = useCallback(async () => {
+    try {
+      const db = await getDb()
+      const all = await getAllRecords(db, 'audioQueue')
+      for (const item of all) {
+        try {
+          const blob = new Blob([item.data], { type: item.type || 'audio/webm' })
+          const resp = await fetch('/api/stt', { method: 'POST', headers: { 'content-type': blob.type }, body: blob })
+          const data = await resp.json()
+          await deleteRecord(db, 'audioQueue', item.id)
+          if (data?.text) {
+            await processCommand(data.text)
+          }
+        } catch (e) {
+          console.error('Flush item failed, will retry later', e)
+        }
+      }
+    } catch (e) {
+      console.error('Flush queue error:', e)
+    }
+  }, [processCommand])
 
   // Simple device detection
   const isMobile = typeof window !== 'undefined' && /Android|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent)
@@ -131,6 +233,20 @@ const VoiceAssistant: React.FC<VoiceAssistantProps> = ({ onCommand, isListening,
     }
   }, [])
 
+  // Online/offline listeners
+  useEffect(() => {
+    const update = () => setIsOnline(typeof navigator !== 'undefined' ? navigator.onLine : true)
+    const onOnline = () => { setIsOnline(true); flushQueue() }
+    const onOffline = () => setIsOnline(false)
+    update()
+    window.addEventListener('online', onOnline)
+    window.addEventListener('offline', onOffline)
+    return () => {
+      window.removeEventListener('online', onOnline)
+      window.removeEventListener('offline', onOffline)
+    }
+  }, [flushQueue])
+
   const processCommand = useCallback(async (command: string) => {
     setIsProcessing(true)
     setError('')
@@ -188,18 +304,22 @@ const VoiceAssistant: React.FC<VoiceAssistantProps> = ({ onCommand, isListening,
       mediaRecorder.ondataavailable = (e) => { if (e.data.size > 0) chunks.push(e.data) }
       mediaRecorder.onstop = async () => {
         try {
-          setStatusLabel('Изпращане към STT...')
           const blob = new Blob(chunks, { type: 'audio/webm' })
-          const resp = await fetch('/api/stt', {
-            method: 'POST',
-            headers: { 'content-type': blob.type },
-            body: blob,
-          })
-          const data = await resp.json()
-          if (data?.text) {
-            await processCommand(data.text)
-            setStatusLabel('Готово')
-            setTimeout(() => setStatusLabel(''), 1200)
+          if (!isOnline) {
+            await enqueueAudio(blob)
+          } else {
+            setStatusLabel('Изпращане към STT...')
+            const resp = await fetch('/api/stt', {
+              method: 'POST',
+              headers: { 'content-type': blob.type },
+              body: blob,
+            })
+            const data = await resp.json()
+            if (data?.text) {
+              await processCommand(data.text)
+              setStatusLabel('Готово')
+              setTimeout(() => setStatusLabel(''), 1200)
+            }
           }
         } catch (e) {
           console.error('STT request failed', e)

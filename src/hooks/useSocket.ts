@@ -15,30 +15,56 @@ export function useSocket(): UseSocketReturn {
   const [socket, setSocket] = useState<Socket | null>(null)
   const [isConnected, setIsConnected] = useState(false)
   const [isSupported, setIsSupported] = useState(true)
+  const [isOnline, setIsOnline] = useState(true)
   const socketRef = useRef<Socket | null>(null)
   const hasJoinedAdminRef = useRef(false)
   const connectionAttempts = useRef(0)
   const maxAttempts = 5 // Increased for better reliability
   const isCreatingSocket = useRef(false) // Prevent multiple socket creation attempts
 
-  const createSocket = useCallback(() => {
+  // Lightweight reachability probe to avoid console errors when server is down
+  const serverReachable = useCallback(async (): Promise<boolean> => {
+    if (typeof window === 'undefined') return false
+    try {
+      const ctrl = new AbortController()
+      const t = setTimeout(() => ctrl.abort(), 1500)
+      const res = await fetch('/manifest.json', { method: 'HEAD', cache: 'no-store', signal: ctrl.signal })
+      clearTimeout(t)
+      return !!res.ok
+    } catch {
+      return false
+    }
+  }, [])
+
+  const createSocket = useCallback(async () => {
     // Only create socket on client side and if it doesn't exist
     if (typeof window !== 'undefined' && !socketRef.current && !isCreatingSocket.current) {
       isCreatingSocket.current = true
+      // Do not attempt to connect when offline
+      if (typeof navigator !== 'undefined' && navigator.onLine === false) {
+        setIsOnline(false)
+        isCreatingSocket.current = false
+        return null
+      }
+      // Skip if server looks down (preflight)
+      const ok = await serverReachable()
+      if (!ok) {
+        isCreatingSocket.current = false
+        setIsSupported(false)
+        return null
+      }
       try {
         // Use dynamic URL based on current page origin
         const socketUrl = window.location.origin
         console.log('🔌 Attempting to connect to Socket.io server at:', socketUrl)
-        
+
         const newSocket = io(socketUrl, {
           transports: ['websocket', 'polling'], // WebSocket first, polling as fallback
-          autoConnect: true,
+          path: '/socket.io',
+          autoConnect: false, // ръчно управление
           forceNew: false, // Prevent multiple connections
           timeout: 10000, // 10 second timeout - reduced for faster fallback
-          reconnection: true,
-          reconnectionAttempts: 3, // Reduced reconnection attempts
-          reconnectionDelay: 1000, // Reduced delay between attempts
-          reconnectionDelayMax: 5000 // Maximum delay between attempts
+          reconnection: false // без автоматични опити; ние ще менажираме по online/offline
         })
 
         // Store event handlers for cleanup
@@ -54,19 +80,11 @@ export function useSocket(): UseSocketReturn {
           setIsConnected(false)
         }
 
-        const connectErrorHandler = (error: Error) => {
-          console.error('❌ WebSocket connection error:', error)
+        const connectErrorHandler = (_error: Error) => {
+          // Безшумно затваряне при грешка (напр. сървърът е спрян)
           setIsConnected(false)
-          connectionAttempts.current++
-          
-          // If multiple connection attempts fail, disable WebSocket
-          if (connectionAttempts.current >= maxAttempts) {
-            console.warn('⚠️ WebSocket connection failed multiple times, falling back to polling')
-            setIsSupported(false)
-            if (newSocket) {
-              newSocket.close()
-            }
-          }
+          setIsSupported(false)
+          try { newSocket.close() } catch {}
         }
 
         newSocket.on('connect', connectHandler)
@@ -74,8 +92,8 @@ export function useSocket(): UseSocketReturn {
         newSocket.on('connect_error', connectErrorHandler)
 
         // Add specific handling for WebSocket transport failures
-        const errorHandler = (error: Error) => {
-          console.error('❌ Socket.io error:', error)
+        const errorHandler = (_error: Error) => {
+          // Безшумно – не шумим в конзолата при спряно API
           setIsConnected(false)
         }
 
@@ -94,18 +112,16 @@ export function useSocket(): UseSocketReturn {
         newSocket.on('upgrade', upgradeHandler)
         newSocket.on('upgradeError', upgradeErrorHandler)
 
-        // Add connection timeout handling
-        setTimeout(() => {
-          if (!newSocket.connected) {
-            console.warn('⚠️ Connection timeout, forcing polling transport')
-            newSocket.io.opts.transports = ['polling']
-            newSocket.connect()
-          }
-        }, 10000) // 10 second timeout for connection
+        // Без допълнителни таймаути/превключване – пазим конзолата чиста при спрян сървър
 
         setSocket(newSocket)
         socketRef.current = newSocket
         isCreatingSocket.current = false
+
+        // свържи само ако сме онлайн
+        if (typeof navigator === 'undefined' || navigator.onLine !== false) {
+          try { newSocket.connect() } catch {}
+        }
 
         return newSocket
       } catch (error) {
@@ -116,21 +132,56 @@ export function useSocket(): UseSocketReturn {
       }
     }
     return socketRef.current
-  }, [])
+  }, [serverReachable])
+
+  useEffect(() => {
+    // Track online/offline
+    const update = () => setIsOnline(typeof navigator !== 'undefined' ? navigator.onLine : true)
+    const handleOnline = () => {
+      setIsOnline(true)
+      // Try reconnect on coming online
+      if (!socketRef.current) createSocket()
+    }
+    const handleOffline = () => {
+      setIsOnline(false)
+      setIsConnected(false)
+      if (socketRef.current) {
+        socketRef.current.close()
+        socketRef.current = null
+        setSocket(null)
+      }
+    }
+    update()
+    window.addEventListener('online', handleOnline)
+    window.addEventListener('offline', handleOffline)
+    return () => {
+      window.removeEventListener('online', handleOnline)
+      window.removeEventListener('offline', handleOffline)
+    }
+  }, [createSocket])
 
   useEffect(() => {
     // Only create socket if it doesn't exist and not already creating
-    if (!socketRef.current && !isCreatingSocket.current) {
+    if (!socketRef.current && !isCreatingSocket.current && isOnline) {
       // Add small delay to prevent rapid socket creation
       const timer = setTimeout(() => {
-        const newSocket = createSocket()
+        const maybePromise = createSocket()
         
-        if (newSocket) {
-          return () => {
+        if (maybePromise && typeof (maybePromise as any).then === 'function') {
+          ;(maybePromise as Promise<Socket | null>).then((newSocket) => {
             if (newSocket) {
-              newSocket.close()
-              socketRef.current = null
+              return () => {
+                if (newSocket) {
+                  newSocket.close()
+                  socketRef.current = null
+                }
+              }
             }
+          })
+        } else if (maybePromise) {
+          return () => {
+            const newSocket = maybePromise as Socket
+            if (newSocket) { newSocket.close(); socketRef.current = null }
           }
         }
       }, 100) // 100ms delay
@@ -143,7 +194,7 @@ export function useSocket(): UseSocketReturn {
         }
       }
     }
-  }, [createSocket])
+  }, [createSocket, isOnline])
 
   const joinAdmin = useCallback(() => {
     if (socket && isConnected && socketRef.current) {
