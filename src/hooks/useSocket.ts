@@ -167,7 +167,7 @@ export function useSocket(): UseSocketReturn {
       const timer = setTimeout(() => {
         const maybePromise = createSocket()
         
-        if (maybePromise && typeof (maybePromise as any).then === 'function') {
+        if (maybePromise && typeof (maybePromise as Promise<Socket | null>).then === 'function') {
           ;(maybePromise as Promise<Socket | null>).then((newSocket) => {
             if (newSocket) {
               return () => {
@@ -180,8 +180,8 @@ export function useSocket(): UseSocketReturn {
           })
         } else if (maybePromise) {
           return () => {
-            const newSocket = maybePromise as Socket
-            if (newSocket) { newSocket.close(); socketRef.current = null }
+            const s = maybePromise as Socket
+            if (s) { s.close(); socketRef.current = null }
           }
         }
       }, 100) // 100ms delay
