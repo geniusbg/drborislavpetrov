@@ -138,7 +138,7 @@ const WorkingHoursForm = ({ selectedDate, onSave, onCancel, onDelete, initialDat
         document.removeEventListener('mouseup', handleMouseUp)
       }
     }
-  }, [isDragging, dragOffset])
+  }, [isDragging, dragOffset, handleMouseMove])
 
   // Handle Escape key for closing modal
   useEffect(() => {

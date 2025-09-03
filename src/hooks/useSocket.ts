@@ -19,7 +19,7 @@ export function useSocket(): UseSocketReturn {
   const socketRef = useRef<Socket | null>(null)
   const hasJoinedAdminRef = useRef(false)
   const connectionAttempts = useRef(0)
-  const maxAttempts = 5 // Increased for better reliability
+  // const maxAttempts = 5 // Increased for better reliability
   const isCreatingSocket = useRef(false) // Prevent multiple socket creation attempts
 
   // Lightweight reachability probe to avoid console errors when server is down
@@ -80,7 +80,7 @@ export function useSocket(): UseSocketReturn {
           setIsConnected(false)
         }
 
-        const connectErrorHandler = (_error: Error) => {
+        const connectErrorHandler = () => {
           // Безшумно затваряне при грешка (напр. сървърът е спрян)
           setIsConnected(false)
           setIsSupported(false)
@@ -92,7 +92,7 @@ export function useSocket(): UseSocketReturn {
         newSocket.on('connect_error', connectErrorHandler)
 
         // Add specific handling for WebSocket transport failures
-        const errorHandler = (_error: Error) => {
+        const errorHandler = () => {
           // Безшумно – не шумим в конзолата при спряно API
           setIsConnected(false)
         }

@@ -2310,7 +2310,7 @@ export default function AdminPage() {
 
       {/* Floating Voice Button */}
       {!showVoiceInterface && (
-        <div className="fixed z-50 right-4 bottom-16 sm:bottom-8">
+        <div className="fixed z-50 right-4 bottom-16 sm:right-6 sm:bottom-4">
           <button
             onClick={async () => {
               if (
