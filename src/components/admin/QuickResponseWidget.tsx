@@ -467,7 +467,7 @@ const QuickResponseWidget: React.FC<QuickResponseWidgetProps> = ({ onClose, onCr
       {/* Floating Button (responsive, avoids overlapping header/actions) */}
       <button
         onClick={() => setIsOpen(true)}
-        className="fixed bottom-4 right-4 sm:right-20 z-50 bg-green-600 hover:bg-green-700 text-white p-3 sm:p-4 rounded-full shadow-lg transition-all duration-200 hover:scale-110 flex items-center space-x-2"
+        className="fixed bottom-4 right-4 sm:bottom-6 sm:right-24 z-50 bg-green-600 hover:bg-green-700 text-white p-3 sm:p-4 rounded-full shadow-lg transition-all duration-200 hover:scale-110 flex items-center space-x-2"
         title="Бързо реагиране - свободни часове"
         aria-label="Бързо реагиране"
       >
@@ -478,7 +478,7 @@ const QuickResponseWidget: React.FC<QuickResponseWidgetProps> = ({ onClose, onCr
       {/* Modal */}
       {isOpen && (
         <div className="fixed inset-0 bg-gray-600 bg-opacity-50 overflow-y-auto h-full w-full z-50">
-          <div className="relative top-4 sm:top-20 mx-auto p-4 sm:p-5 border w-full max-w-2xl shadow-lg rounded-md bg-white m-4" style={{ top: '50%', transform: 'translateY(-50%)' }}>
+          <div className="relative mx-auto p-4 sm:p-5 border w-full max-w-2xl shadow-lg rounded-md bg-white m-4 max-h-[calc(100vh-2rem)] overflow-y-auto top-4 sm:top-1/2 sm:transform sm:-translate-y-1/2">
             <div className="mt-3">
               {/* Header */}
               <div className="flex items-center justify-between mb-4">
