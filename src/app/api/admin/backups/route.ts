@@ -85,7 +85,11 @@ async function createJavaScriptBackup(filePath: string) {
     `)
     
     const tables = tablesResult.rows.map((row: { tablename: string }) => row.tablename)
-    const backupData: Record<string, unknown> = {
+    const backupData: {
+      timestamp: string
+      database: string
+      tables: Record<string, { columns: Array<{ name: string; type: number }>; rows: unknown[] } | { error: string }>
+    } = {
       timestamp: new Date().toISOString(),
       database: 'drborislavpetrov', // Will be replaced with actual DB name
       tables: {}

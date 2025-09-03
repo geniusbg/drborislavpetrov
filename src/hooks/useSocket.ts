@@ -180,8 +180,11 @@ export function useSocket(): UseSocketReturn {
           })
         } else if (maybePromise) {
           return () => {
-            const s = maybePromise as Socket
-            if (s) { s.close(); socketRef.current = null }
+            maybePromise.then((s) => {
+              if (s) { s.close(); socketRef.current = null }
+            }).catch(() => {
+              // Ignore errors when closing
+            })
           }
         }
       }, 100) // 100ms delay

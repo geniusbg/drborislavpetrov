@@ -97,7 +97,7 @@ const VoiceAssistant: React.FC<VoiceAssistantProps> = ({ onCommand, isListening,
         req.onerror = () => reject(req.error)
       } else {
         const results: any[] = []
-        const cursorReq = store.openCursor()
+        const cursorReq = (store as any).openCursor()
         cursorReq.onsuccess = () => {
           const cursor = cursorReq.result
           if (cursor) {
@@ -122,6 +122,44 @@ const VoiceAssistant: React.FC<VoiceAssistantProps> = ({ onCommand, isListening,
       setError('Неуспешно записване офлайн.')
     }
   }
+
+  const processCommand = useCallback(async (command: string) => {
+    setIsProcessing(true)
+    setError('')
+    setSuccess('')
+
+    try {
+      const parsedCommand = parseVoiceCommand(command)
+      
+      if (parsedCommand.action) {
+        const adminToken = localStorage.getItem('adminToken');
+        const response = await fetch('/api/admin/voice-commands', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'x-admin-token': adminToken || ''
+          },
+          body: JSON.stringify(parsedCommand)
+        })
+
+        const result = await response.json()
+
+        if (result.success) {
+          setSuccess(result.message || 'Командата е изпълнена успешно')
+          onCommand(command)
+        } else {
+          setError(result.error || 'Грешка при изпълнение на командата')
+        }
+      } else {
+        setError('Не разпознавам командата. Моля, опитайте отново.')
+      }
+    } catch (err) {
+      setError('Грешка при обработка на командата')
+      console.error('Voice command error:', err)
+    } finally {
+      setIsProcessing(false)
+    }
+  }, [onCommand])
 
   const flushQueue = useCallback(async () => {
     try {
@@ -247,43 +285,7 @@ const VoiceAssistant: React.FC<VoiceAssistantProps> = ({ onCommand, isListening,
     }
   }, [flushQueue])
 
-  const processCommand = useCallback(async (command: string) => {
-    setIsProcessing(true)
-    setError('')
-    setSuccess('')
 
-    try {
-      const parsedCommand = parseVoiceCommand(command)
-      
-      if (parsedCommand.action) {
-        const adminToken = localStorage.getItem('adminToken');
-        const response = await fetch('/api/admin/voice-commands', {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-            'x-admin-token': adminToken || ''
-          },
-          body: JSON.stringify(parsedCommand),
-        })
-
-        const result = await response.json()
-
-        if (result.success) {
-          setSuccess(result.message || 'Командата е изпълнена успешно')
-          onCommand(command)
-        } else {
-          setError(result.error || 'Грешка при изпълнение на командата')
-        }
-      } else {
-        setError('Не разпознавам командата. Моля, опитайте отново.')
-      }
-    } catch (err) {
-      setError('Грешка при обработка на командата')
-      console.error('Voice command error:', err)
-    } finally {
-      setIsProcessing(false)
-    }
-  }, [onCommand])
 
   // iOS-friendly: hold-to-record button using MediaRecorder, sending to /api/stt
   const startRecording = useCallback(async () => {
