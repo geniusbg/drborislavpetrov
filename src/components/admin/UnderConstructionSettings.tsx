@@ -10,9 +10,9 @@ interface UnderConstructionConfig {
   showOnAdminPage: boolean
 }
 
-interface Socket {
-  emit: (event: string, data: UnderConstructionConfig) => void
-}
+// interface Socket {
+//   emit: (event: string, data: UnderConstructionConfig) => void
+// }
 
 // Socket interface is already declared globally in other files
 

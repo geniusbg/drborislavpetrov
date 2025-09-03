@@ -25,7 +25,7 @@ interface AvailableSlots {
 }
 
 // Helper function to ensure valid AvailableSlots
-const ensureValidAvailableSlots = (slot: any): AvailableSlots => ({
+const ensureValidAvailableSlots = (slot: { date?: string; availableSlots?: unknown }): AvailableSlots => ({
   date: slot.date || '',
   availableSlots: Array.isArray(slot.availableSlots) ? slot.availableSlots : []
 })
@@ -574,7 +574,7 @@ const Calendar = ({ bookings, onBookingClick, onAddBooking, onNavigateToDailySch
       const dayBookings = bookingsByDate[dateString] || []
       
       // Получи почивките за деня
-      let breaks = workingHoursData?.breaks || []
+      const breaks = workingHoursData?.breaks || []
       
       // НЕ добавяме автоматично default почивка - потребителят може да работи без почивки
       

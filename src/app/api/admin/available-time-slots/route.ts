@@ -31,7 +31,7 @@ export async function GET(req: NextRequest) {
 
     const { searchParams } = new URL(req.url)
     const date = searchParams.get('date')
-    const service = searchParams.get('service')
+    // const service = searchParams.get('service')
     const serviceDuration = parseInt(searchParams.get('serviceDuration') || '30')
     const excludeBookingId = searchParams.get('excludeBookingId')
     const limit = parseInt(searchParams.get('limit') || '10')
@@ -97,7 +97,7 @@ export async function GET(req: NextRequest) {
           }]
         }
       } else {
-        isWorkingDay = false
+        // isWorkingDay = false
       }
     }
 

@@ -84,8 +84,8 @@ async function createJavaScriptBackup(filePath: string) {
       ORDER BY tablename
     `)
     
-    const tables = tablesResult.rows.map((row: any) => row.tablename)
-    const backupData: any = {
+    const tables = tablesResult.rows.map((row: { tablename: string }) => row.tablename)
+    const backupData: Record<string, unknown> = {
       timestamp: new Date().toISOString(),
       database: 'drborislavpetrov', // Will be replaced with actual DB name
       tables: {}
@@ -96,7 +96,7 @@ async function createJavaScriptBackup(filePath: string) {
       try {
         const dataResult = await db.query(`SELECT * FROM "${table}"`)
         backupData.tables[table] = {
-          columns: dataResult.fields.map((field: any) => ({
+          columns: dataResult.fields.map((field: { name: string; dataTypeID: number }) => ({
             name: field.name,
             type: field.dataTypeID
           })),

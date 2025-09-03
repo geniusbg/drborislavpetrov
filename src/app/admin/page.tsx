@@ -5,7 +5,7 @@
 import React, { useState, useEffect, useMemo, useRef, Suspense } from 'react'
 import { useRouter, useSearchParams } from 'next/navigation'
 import Link from 'next/link'
-import { Calendar, Users, Clock, TrendingUp, ArrowLeft, Smartphone, LogOut, Plus, Edit, Trash2, BarChart3, Mic, X, Bug, HardDrive, FileText, MessageSquare, ChevronUp, ChevronDown, Settings } from 'lucide-react'
+import { Calendar, Users, Clock, TrendingUp, ArrowLeft, Smartphone, LogOut, Plus, Edit, Trash2, BarChart3, Mic, X, Bug, FileText, MessageSquare, ChevronUp, ChevronDown, Settings } from 'lucide-react'
 import CalendarComponent from '@/components/admin/Calendar'
 import UserHistory from '@/components/admin/UserHistory'
 import UserForm from '@/components/admin/UserForm'

@@ -87,8 +87,8 @@ export async function GET(request: NextRequest) {
     }
 
     try {
-      const fs = require('fs')
-      const path = require('path')
+      const fs = await import('fs')
+      const path = await import('path')
       const SETTINGS_FILE = path.join(process.cwd(), 'app-settings.json')
       if (fs.existsSync(SETTINGS_FILE)) {
         const json = JSON.parse(fs.readFileSync(SETTINGS_FILE, 'utf8'))
