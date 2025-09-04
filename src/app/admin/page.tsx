@@ -1812,7 +1812,7 @@ export default function AdminPage() {
                           <div className="text-sm text-gray-900">
                             {service.priceBgn && !isNaN(Number(service.priceBgn)) ? (
                               service.priceEur && !isNaN(Number(service.priceEur)) ? 
-                                `${Number(service.priceBgn).toFixed(2)} лв. / ${Number(service.priceBgn).toFixed(2)} €` :
+                                `${Number(service.priceBgn).toFixed(2)} лв. / ${Number(service.priceEur).toFixed(2)} €` :
                                 `${Number(service.priceBgn).toFixed(2)} лв.`
                             ) : service.price ? 
                               `${service.price} лв.` : 
@@ -2310,7 +2310,7 @@ export default function AdminPage() {
 
       {/* Floating Voice Button */}
       {!showVoiceInterface && (
-        <div className="fixed z-50 right-4 bottom-16 sm:right-6 sm:bottom-4">
+        <div className="fixed z-50 right-4 bottom-20 sm:bottom-4">
           <button
             onClick={async () => {
               if (

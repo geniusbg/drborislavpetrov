@@ -4,6 +4,7 @@
 // AdminPage no longer has booking logic, eliminating conflicts
 
 import { useState, useEffect, useCallback, useMemo, useRef } from 'react'
+import { createPortal } from 'react-dom'
 import { User, Phone, Calendar, X, Edit, Plus } from 'lucide-react'
 import BookingForm from './BookingForm'
 import { useSocket } from '@/hooks/useSocket'
@@ -907,9 +908,18 @@ const DailySchedule = ({ date, onClose, onEditWorkingHours, onEditBooking, onDel
     )
   }
   
-  return (
-    <div className="fixed inset-0 bg-black bg-opacity-50 z-50">
-      <div className="bg-white rounded-lg shadow-2xl p-6 w-full max-w-7xl mx-4" style={{ marginTop: `${modalTop}px` }}>
+  const modalContent = (
+    <div className="fixed inset-0 bg-black bg-opacity-50 z-50" onClick={onClose}>
+      <div className="bg-white rounded-lg shadow-2xl p-3 sm:p-6 w-full max-w-7xl mx-2 sm:mx-4" 
+           onClick={(e) => e.stopPropagation()}
+           style={{ 
+        position: 'fixed',
+        top: '12vh', 
+        left: '50%',
+        transform: 'translateX(-50%)',
+        maxHeight: '80vh',
+        overflowY: 'auto'
+      }}>
         <div className="flex items-center justify-between mb-6">
           <div>
             <h2 className="text-2xl font-bold text-gray-900">
@@ -986,15 +996,19 @@ const DailySchedule = ({ date, onClose, onEditWorkingHours, onEditBooking, onDel
                       }`}
                     >
                       <div className="flex items-center justify-between">
-                        <div className="flex items-center space-x-3">
+                        <div className="flex flex-col sm:flex-row sm:items-center space-y-2 sm:space-y-0 sm:space-x-3">
                           <span className="font-mono text-sm font-medium text-blue-600 bg-blue-100 px-2 py-1 rounded">
                             {booking.time}
                           </span>
-                          <div className="flex items-center space-x-2">
-                            <User className="w-4 h-4 text-green-600" />
-                            <span className="font-medium">{booking.name}</span>
-                            <Phone className="w-4 h-4 text-gray-500" />
-                            <span className="text-sm text-gray-600">{booking.phone}</span>
+                          <div className="flex flex-col sm:flex-row sm:items-center space-y-1 sm:space-y-0 sm:space-x-2">
+                            <div className="flex items-center space-x-2">
+                              <User className="w-4 h-4 text-green-600" />
+                              <span className="font-medium truncate">{booking.name}</span>
+                            </div>
+                            <div className="flex items-center space-x-2">
+                              <Phone className="w-4 h-4 text-gray-500" />
+                              <span className="text-sm text-gray-600 truncate">{booking.phone}</span>
+                            </div>
                           </div>
                         </div>
                         <div className="flex items-center space-x-2">
@@ -1443,17 +1457,21 @@ const DailySchedule = ({ date, onClose, onEditWorkingHours, onEditBooking, onDel
                         }`}
                       >
                         <div className="flex items-center justify-between">
-                          <div className="flex items-center space-x-3">
+                          <div className="flex flex-col sm:flex-row sm:items-center space-y-2 sm:space-y-0 sm:space-x-3">
                             <span className="font-mono text-sm font-medium">
                               {booking.time}
                             </span>
-                            <div className="flex items-center space-x-2">
-                              <User className="w-4 h-4 text-green-600" />
-                              <span className="font-medium">
-                                {booking.name}
-                              </span>
-                              <Phone className="w-4 h-4 text-gray-500" />
-                              <span className="text-sm text-gray-600">{booking.phone}</span>
+                            <div className="flex flex-col sm:flex-row sm:items-center space-y-1 sm:space-y-0 sm:space-x-2">
+                              <div className="flex items-center space-x-2">
+                                <User className="w-4 h-4 text-green-600" />
+                                <span className="font-medium truncate">
+                                  {booking.name}
+                                </span>
+                              </div>
+                              <div className="flex items-center space-x-2">
+                                <Phone className="w-4 h-4 text-gray-500" />
+                                <span className="text-sm text-gray-600 truncate">{booking.phone}</span>
+                              </div>
                             </div>
                           </div>
                           <div className="flex items-center space-x-2">
@@ -1517,8 +1535,11 @@ const DailySchedule = ({ date, onClose, onEditWorkingHours, onEditBooking, onDel
 
       {/* Booking Form Modal */}
       {showBookingForm && (
-        <div className="fixed inset-0 bg-black bg-opacity-50 z-50">
-          <div className="bg-white rounded-lg shadow-2xl p-6 w-full max-w-2xl mx-4" data-modal="booking-form" style={{ top: '50%', transform: 'translateY(-50%)' }}>
+        <div className="fixed inset-0 bg-black bg-opacity-50 z-50" onClick={handleBookingCancel}>
+          <div className="bg-white rounded-lg shadow-2xl p-6 w-full max-w-2xl mx-4" 
+               data-modal="booking-form" 
+               onClick={(e) => e.stopPropagation()}
+               style={{ top: '50%', transform: 'translateY(-50%)' }}>
             <div className="flex items-center justify-between mb-6">
               <h2 className="text-xl font-bold text-gray-900">
                 {editingBooking ? 'Редактирай резервация' : 'Нова резервация'}
@@ -1543,6 +1564,13 @@ const DailySchedule = ({ date, onClose, onEditWorkingHours, onEditBooking, onDel
       )}
     </div>
   )
+
+  // Use Portal to render modal outside of parent containers
+  if (typeof window === 'undefined') {
+    return null
+  }
+
+  return createPortal(modalContent, document.body)
 }
 
 export default DailySchedule 

@@ -222,11 +222,11 @@ export default function BackupManager() {
           <HardDrive className="w-6 h-6 text-blue-600" />
           Backup Управление
         </h2>
-        <div className="flex gap-2">
+        <div className="flex flex-col sm:flex-row gap-2">
                      <button
              onClick={loadBackups}
              disabled={isLoading}
-             className="flex items-center gap-2 px-4 py-2 bg-gray-100 text-gray-700 rounded-lg hover:bg-gray-200 disabled:opacity-50 transition-all duration-200 ease-in-out"
+             className="flex items-center justify-center gap-2 px-3 sm:px-4 py-2 bg-gray-100 text-gray-700 rounded-lg hover:bg-gray-200 disabled:opacity-50 transition-all duration-200 ease-in-out text-sm sm:text-base"
            >
              <RefreshCw className={`w-4 h-4 ${isLoading ? 'animate-spin' : ''}`} />
              Обнови
@@ -234,14 +234,14 @@ export default function BackupManager() {
                      <button
              onClick={runManualBackup}
              disabled={isRunningBackup}
-             className="flex items-center gap-2 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 disabled:opacity-50 transition-all duration-200 ease-in-out"
+             className="flex items-center justify-center gap-2 px-3 sm:px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 disabled:opacity-50 transition-all duration-200 ease-in-out text-sm sm:text-base"
            >
              <Play className="w-4 h-4" />
              {isRunningBackup ? 'Създаване...' : 'Ръчен Backup'}
            </button>
                      <button
              onClick={() => setShowConfig(true)}
-             className="flex items-center gap-2 px-4 py-2 bg-orange-600 text-white rounded-lg hover:bg-orange-700 transition-all duration-200 ease-in-out"
+             className="flex items-center justify-center gap-2 px-3 sm:px-4 py-2 bg-orange-600 text-white rounded-lg hover:bg-orange-700 transition-all duration-200 ease-in-out text-sm sm:text-base"
            >
              <Settings className="w-4 h-4" />
              Конфигурация
@@ -333,17 +333,17 @@ export default function BackupManager() {
                     </div>
                   </div>
                   
-                  <div className="flex gap-2">
+                  <div className="flex flex-col sm:flex-row gap-1 sm:gap-2">
                                          <button
                        onClick={() => restoreBackup(backup.name)}
-                       className="flex items-center gap-1 px-3 py-1 bg-green-100 text-green-700 rounded hover:bg-green-200 text-sm transition-all duration-200 ease-in-out"
+                       className="flex items-center justify-center gap-1 px-2 sm:px-3 py-1 bg-green-100 text-green-700 rounded hover:bg-green-200 text-xs sm:text-sm transition-all duration-200 ease-in-out"
                      >
                        <Upload className="w-3 h-3" />
                        Възстанови
                      </button>
                      <button
                        onClick={() => deleteBackup(backup.name)}
-                       className="flex items-center gap-1 px-3 py-1 bg-red-100 text-red-700 rounded hover:bg-red-200 text-sm transition-all duration-200 ease-in-out"
+                       className="flex items-center justify-center gap-1 px-2 sm:px-3 py-1 bg-red-100 text-red-700 rounded hover:bg-red-200 text-xs sm:text-sm transition-all duration-200 ease-in-out"
                      >
                        <Trash2 className="w-3 h-3" />
                        Изтрий

@@ -1279,8 +1279,10 @@ const Calendar = ({ bookings, onBookingClick, onAddBooking, onNavigateToDailySch
 
       {/* Month/Year Picker Modal */}
       {showMonthYearPicker && (
-        <div className="fixed inset-0 bg-black bg-opacity-50 z-50">
-          <div className="bg-white rounded-lg shadow-2xl p-6 max-w-md w-full mx-4" style={{ top: '50%', transform: 'translateY(-50%)' }}>
+        <div className="fixed inset-0 bg-black bg-opacity-50 z-50" onClick={() => setShowMonthYearPicker(false)}>
+          <div className="bg-white rounded-lg shadow-2xl p-6 max-w-md w-full mx-4" 
+               onClick={(e) => e.stopPropagation()}
+               style={{ top: '50%', transform: 'translateY(-50%)' }}>
             <div className="flex items-center justify-between mb-4">
               <h3 className="text-lg font-semibold text-gray-900">Избери месец и година</h3>
               <button
