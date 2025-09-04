@@ -2373,10 +2373,12 @@ export default function AdminPage() {
           setEditingBooking(newBooking as any)
           setShowBookingModal(true)
           // Sync URL so effects that depend on it won't accidentally close the modal
+          // Don't set date parameter to avoid opening DailySchedule modal
           try {
             const params = new URLSearchParams(searchParams?.toString?.() || '')
             params.set('modal', 'booking')
-            params.set('date', date)
+            // Remove date parameter to prevent DailySchedule from opening
+            params.delete('date')
             router.push(`/admin?${params.toString()}`, { scroll: false })
           } catch {}
           // Flag to re-open Quick Response after the booking modal is closed
