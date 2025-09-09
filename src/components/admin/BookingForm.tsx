@@ -263,7 +263,8 @@ const BookingForm = ({ booking, onSubmit, onCancel, onDelete }: BookingFormProps
         
         offlineStorage.saveAction({
           type: actionType,
-          data: actionData
+          data: actionData,
+          maxRetries: 3
         })
         
         // Показваме съобщение за успешно запазване
@@ -435,7 +436,8 @@ const BookingForm = ({ booking, onSubmit, onCancel, onDelete }: BookingFormProps
                 // Офлайн режим - запазваме за синхронизация
                 offlineStorage.saveAction({
                   type: 'DELETE_BOOKING',
-                  data: { id: booking.id }
+                  data: { id: booking.id },
+                  maxRetries: 3
                 })
                 
                 alert('Изтриването е запазено за синхронизация. Ще се изпълни когато се върне интернет връзката.')

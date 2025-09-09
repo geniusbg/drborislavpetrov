@@ -1,6 +1,7 @@
 'use client'
 
 import { useState, useEffect, useCallback } from 'react'
+import { createPortal } from 'react-dom'
 import { X, Save, Trash2 } from 'lucide-react'
 import type { Break, WorkingHours } from '@/types/global'
 // import { getBulgariaTime } from '@/lib/bulgaria-time'
@@ -152,8 +153,8 @@ const WorkingHoursForm = ({ selectedDate, onSave, onCancel, onDelete, initialDat
     return () => document.removeEventListener('keydown', handleEscape)
   }, [onCancel])
 
-  return (
-          <div className="fixed inset-0 bg-black bg-opacity-50 z-[70]">
+  const modalContent = (
+    <div className="fixed inset-0 bg-black bg-opacity-50 z-[70]">
       <div 
         className="bg-white rounded-lg p-6 w-full max-w-md mx-4 cursor-move" 
         style={{ 
@@ -375,6 +376,13 @@ const WorkingHoursForm = ({ selectedDate, onSave, onCancel, onDelete, initialDat
       </div>
     </div>
   )
+
+  // Use Portal to render modal outside of parent containers
+  if (typeof window === 'undefined') {
+    return null
+  }
+
+  return createPortal(modalContent, document.body)
 }
 
 export default WorkingHoursForm 

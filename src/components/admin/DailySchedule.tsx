@@ -123,20 +123,6 @@ const DailySchedule = ({ date, onClose, onEditWorkingHours, onEditBooking, onDel
     return () => document.removeEventListener('keydown', handleEscape)
   }, [showBookingForm, onClose])
 
-  // Modal positioned relative to current viewport
-  const [modalTop, setModalTop] = useState(0)
-
-  useEffect(() => {
-    // Position modal higher in the viewport - at 10% from top instead of 30%
-    if (typeof window !== 'undefined') {
-      const headerHeight = 80 // Приблизителна височина на горния банер
-      const topPosition = Math.max(
-        window.scrollY + (window.innerHeight * 0.1), // 10% отгоре на viewport-а
-        window.scrollY + headerHeight + 20 // Минимум 20px под банер
-      )
-      setModalTop(topPosition)
-    }
-  }, [])
 
 
 
@@ -153,9 +139,14 @@ const DailySchedule = ({ date, onClose, onEditWorkingHours, onEditBooking, onDel
 
         setSchedule(prev => {
           if (!prev) return null
-          // Deduplicate by id to avoid duplicate keys and double rendering
-          const withoutSame = prev.bookings.filter(b => b.id !== newBooking.id)
-          const updatedBookings = [...withoutSame, newBooking]
+          // Check if booking already exists to prevent duplicates
+          const existingBooking = prev.bookings.find(b => b.id === newBooking.id)
+          if (existingBooking) {
+            console.log('📅 DailySchedule: Booking already exists, skipping duplicate')
+            return prev
+          }
+          
+          const updatedBookings = [...prev.bookings, newBooking]
           return {
             ...prev,
             bookings: updatedBookings,
@@ -649,6 +640,9 @@ const DailySchedule = ({ date, onClose, onEditWorkingHours, onEditBooking, onDel
         setShowBookingForm(false)
         setEditingBooking(null)
         
+        // Reload data after successful update
+        loadDailySchedule()
+        
         // Reduced delay since AdminPage no longer interferes
         setTimeout(() => {
           console.log('📅 DailySchedule: Modal should be closed now, count:', modalOpenCount.current)
@@ -882,35 +876,71 @@ const DailySchedule = ({ date, onClose, onEditWorkingHours, onEditBooking, onDel
   const currentTimePosition = useMemo(() => getCurrentTimePosition(), [getCurrentTimePosition])
 
   if (loading) {
-    return (
-      <div className="fixed inset-0 bg-black bg-opacity-50 z-50">
-        <div className="bg-white rounded-lg p-6 mx-4" style={{ top: '50%', transform: 'translateY(-50%)' }}>
-          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary-600 mx-auto"></div>
-          <p className="text-center mt-2">Зареждане...</p>
+    const loadingContent = (
+      <div className="fixed inset-0 bg-black bg-opacity-50 z-[60]">
+        <div className="bg-white rounded-lg shadow-2xl p-3 sm:p-6 w-full max-w-6xl" 
+             style={{ 
+               position: 'fixed',
+               top: '10vh', 
+               left: '50%',
+               transform: 'translateX(-50%)',
+               maxHeight: '80vh',
+               overflowY: 'auto',
+               maxWidth: 'calc(100vw - 4rem)'
+             }}>
+          <div className="flex items-center justify-center py-8">
+            <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary-600"></div>
+            <p className="text-center mt-2 ml-3">Зареждане...</p>
+          </div>
         </div>
       </div>
     )
+
+    // Use Portal to render loading modal outside of parent containers
+    if (typeof window === 'undefined') {
+      return null
+    }
+
+    return createPortal(loadingContent, document.body)
   }
 
   if (!schedule) {
-    return (
-      <div className="fixed inset-0 bg-black bg-opacity-50 z-50">
-        <div className="bg-white rounded-lg p-6 mx-4" style={{ top: '50%', transform: 'translateY(-50%)' }}>
-          <p className="text-center">Грешка при зареждане на графика</p>
-          <button
-            onClick={onClose}
-            className="mt-4 px-4 py-2 bg-gray-200 rounded-md"
-          >
-            Затвори
-          </button>
+    const errorContent = (
+      <div className="fixed inset-0 bg-black bg-opacity-50 z-[60]">
+        <div className="bg-white rounded-lg shadow-2xl p-3 sm:p-6 w-full max-w-6xl" 
+             style={{ 
+               position: 'fixed',
+               top: '12vh', 
+               left: '50%',
+               transform: 'translateX(-50%)',
+               maxHeight: '80vh',
+               overflowY: 'auto',
+               maxWidth: 'calc(100vw - 4rem)'
+             }}>
+          <div className="flex flex-col items-center justify-center py-8">
+            <p className="text-center text-red-600 font-medium">Грешка при зареждане на графика</p>
+            <button
+              onClick={onClose}
+              className="mt-4 px-4 py-2 bg-gray-200 rounded-md hover:bg-gray-300 transition-colors"
+            >
+              Затвори
+            </button>
+          </div>
         </div>
       </div>
     )
+
+    // Use Portal to render error modal outside of parent containers
+    if (typeof window === 'undefined') {
+      return null
+    }
+
+    return createPortal(errorContent, document.body)
   }
   
   const modalContent = (
-    <div className="fixed inset-0 bg-black bg-opacity-50 z-50" onClick={onClose}>
-      <div className="bg-white rounded-lg shadow-2xl p-3 sm:p-6 w-full max-w-7xl mx-2 sm:mx-4" 
+    <div className="fixed inset-0 bg-black bg-opacity-50 z-[60]" onClick={onClose}>
+      <div className="bg-white rounded-lg shadow-2xl p-3 sm:p-6 w-full max-w-6xl" 
            onClick={(e) => e.stopPropagation()}
            style={{ 
         position: 'fixed',
@@ -918,7 +948,8 @@ const DailySchedule = ({ date, onClose, onEditWorkingHours, onEditBooking, onDel
         left: '50%',
         transform: 'translateX(-50%)',
         maxHeight: '80vh',
-        overflowY: 'auto'
+        overflowY: 'auto',
+        maxWidth: 'calc(100vw - 4rem)'
       }}>
         <div className="flex items-center justify-between mb-6">
           <div>
@@ -1073,10 +1104,10 @@ const DailySchedule = ({ date, onClose, onEditWorkingHours, onEditBooking, onDel
             {/* Time slots */}
             <div className="space-y-4">
               {/* Timeline with Hour Markers */}
-              <div className="relative">
+              <div className="relative h-32 px-4 sm:px-0">
                 {/* Timeline Bar */}
                 <div 
-                  className="relative bg-gray-200 rounded-lg h-20 cursor-pointer hover:bg-gray-300 transition-colors"
+                  className="relative bg-gray-200 rounded-lg h-24 cursor-pointer hover:bg-gray-300 transition-colors w-full"
                   onClick={handleTimelineClick}
                   title="Кликнете за добавяне на резервация в този час"
                 >
@@ -1153,9 +1184,12 @@ const DailySchedule = ({ date, onClose, onEditWorkingHours, onEditBooking, onDel
                           {/* Hour marker line */}
                           <div className="absolute top-0 bottom-0 w-full"></div>
                           
-                          {/* Hour text below timeline */}
+                          {/* Hour text below timeline - Responsive */}
                           <div className={`absolute top-full mt-2 left-1/2 transform -translate-x-1/2 text-xs font-medium bg-white px-1 py-0.5 rounded shadow-sm z-20 border ${
                             isFullHour ? 'text-gray-900 border-gray-300' : 'text-gray-600 border-gray-200'
+                          } ${
+                            // Show only full hours on mobile, all hours on desktop
+                            isFullHour ? 'block' : 'hidden sm:block'
                           }`}>
                             {timeString}
                           </div>
@@ -1418,14 +1452,7 @@ const DailySchedule = ({ date, onClose, onEditWorkingHours, onEditBooking, onDel
                    )}
                 </div>
                 
-                {/* Time Labels */}
-                <div className="h-12 flex items-end justify-between px-2">
-                  {timeSlots.filter((_, index) => index % 4 === 0).map((slot) => (
-                    <div key={`time-label-${slot.time}`} className="text-xs text-gray-600 font-mono">
-                      {slot.time}
-                    </div>
-                  ))}
-                </div>
+                {/* Time Labels removed - now shown above timeline */}
                 
 
 
@@ -1535,11 +1562,18 @@ const DailySchedule = ({ date, onClose, onEditWorkingHours, onEditBooking, onDel
 
       {/* Booking Form Modal */}
       {showBookingForm && (
-        <div className="fixed inset-0 bg-black bg-opacity-50 z-50" onClick={handleBookingCancel}>
+        <div className="fixed inset-0 bg-black bg-opacity-50 z-[60]" onClick={handleBookingCancel}>
           <div className="bg-white rounded-lg shadow-2xl p-6 w-full max-w-2xl mx-4" 
                data-modal="booking-form" 
                onClick={(e) => e.stopPropagation()}
-               style={{ top: '50%', transform: 'translateY(-50%)' }}>
+               style={{ 
+                 position: 'fixed',
+                 top: '10vh', 
+                 left: '50%', 
+                 transform: 'translateX(-50%)',
+                 maxHeight: '80vh',
+                 overflowY: 'auto'
+               }}>
             <div className="flex items-center justify-between mb-6">
               <h2 className="text-xl font-bold text-gray-900">
                 {editingBooking ? 'Редактирай резервация' : 'Нова резервация'}
