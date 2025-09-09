@@ -1,9 +1,13 @@
 // Service Worker for offline caching
-const CACHE_NAME = 'drborislavpetrov-v1';
+const CACHE_NAME = 'drborislavpetrov-v2';
 const urlsToCache = [
   '/',
+  '/admin',
   '/manifest.json',
-  '/favicon.ico'
+  '/favicon.ico',
+  '/icon-192.png',
+  '/icon-512.png',
+  '/sw.js'
 ];
 
 function canCacheRequest(request) {
