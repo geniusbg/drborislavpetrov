@@ -153,7 +153,6 @@ const Calendar = ({ bookings, onBookingClick, onAddBooking, onNavigateToDailySch
         }
       }
     } catch (error) {
-      console.error('Error loading services:', error)
     }
   }, [selectedService])
 
@@ -190,7 +189,6 @@ const Calendar = ({ bookings, onBookingClick, onAddBooking, onNavigateToDailySch
   // Load working hours for current month only
   const loadWorkingHours = useCallback(async () => {
     try {
-      console.log('📅 Calendar: loadWorkingHours called at:', getBulgariaTime().toISOString())
       const adminToken = localStorage.getItem('adminToken')
       
       // Зареждаме данни само за текущия месец
@@ -206,16 +204,19 @@ const Calendar = ({ bookings, onBookingClick, onAddBooking, onNavigateToDailySch
       if (response.ok) {
         const data = await response.json()
         setWorkingHours(data.workingHours)
-        console.log('📅 Calendar: Working hours loaded successfully for month:', startDate, 'to', endDate)
         
         // Изчисляваме свободните часове след зареждане на работните часове
         if (services.length > 0) {
           // Изчисляваме веднага, без setTimeout
           calculateAvailableSlots()
         }
+        
+        // Скриваме loading индикатора след зареждане на работните часове
+        setIsMonthDataLoading(false)
+      } else {
+        setIsMonthDataLoading(false)
       }
     } catch (error) {
-      console.error('Error loading working hours:', error)
       setIsMonthDataLoading(false)
     }
   }, [currentDate, services.length])
@@ -234,15 +235,11 @@ const Calendar = ({ bookings, onBookingClick, onAddBooking, onNavigateToDailySch
         const data = await response.json()
         if (data.settings?.defaultWorkingHours) {
           setDefaultWorkingHours(data.settings.defaultWorkingHours)
-          console.log('📅 Calendar: Default working hours loaded:', data.settings.defaultWorkingHours)
         } else {
-          console.log('📅 Calendar: No default working hours found in settings')
         }
       } else {
-        console.log('📅 Calendar: Failed to load settings, response not ok')
       }
     } catch (error) {
-      console.error('Error loading default settings:', error)
     }
   }, [])
 
@@ -262,20 +259,10 @@ const Calendar = ({ bookings, onBookingClick, onAddBooking, onNavigateToDailySch
     const hasWorkingHoursForMonth = workingHours.some(wh => wh.date && wh.date.startsWith(currentMonthString))
     const hasCalculatedForMonth = availableSlots.some(slot => slot.date && slot.date.startsWith(currentMonthString))
     
-    console.log('📅 Calendar: useEffect check:', {
-      currentMonthString,
-      hasServices,
-      hasWorkingHoursForMonth,
-      hasCalculatedForMonth,
-      isMonthDataLoading,
-      workingHoursCount: workingHours.length,
-      availableSlotsCount: availableSlots.length
-    })
     
     if (isMonthDataLoading) {
       // Ако се зареждат данните, проверяваме дали можем да ги скрием
       if (hasServices && hasWorkingHoursForMonth && hasCalculatedForMonth) {
-        console.log('📅 Calendar: All data ready for month:', currentMonthString)
         setIsMonthDataLoading(false)
         
         // Принудително re-render за да се покажат правилните данни
@@ -283,25 +270,16 @@ const Calendar = ({ bookings, onBookingClick, onAddBooking, onNavigateToDailySch
           setForceUpdate(prev => prev + 1)
         }, 50)
       } else if (hasServices && hasWorkingHoursForMonth) {
-        // Ако имаме основните данни, скриваме loading индикатора
-        console.log('📅 Calendar: Basic data ready, hiding loading indicator')
+        // Ако имаме основните данни, скриваме loading индикатора и изчисляваме свободните часове
+        calculateAvailableSlots()
         setIsMonthDataLoading(false)
       } else {
-        console.log('📅 Calendar: Still waiting for data:', {
-          waitingFor: {
-            services: !hasServices,
-            workingHours: !hasWorkingHoursForMonth,
-            availableSlots: !hasCalculatedForMonth
-          }
-        })
       }
     } else {
       // Ако не се зареждат данните, проверяваме дали трябва да заредим
       if (!hasWorkingHoursForMonth) {
-        console.log('📅 Calendar: Loading working hours for month:', currentMonthString)
         loadWorkingHours()
       } else if (!hasCalculatedForMonth && hasServices) {
-        console.log('📅 Calendar: Calculating available slots for month:', currentMonthString)
         calculateAvailableSlots()
       }
     }
@@ -310,11 +288,6 @@ const Calendar = ({ bookings, onBookingClick, onAddBooking, onNavigateToDailySch
   // Debug: Проверяваме дали bookings props са заредени правилно
   useEffect(() => {
     if (bookings.length > 0) {
-      console.log('📅 Calendar: Bookings props received:', {
-        totalBookings: bookings.length,
-        currentMonth: currentDate.getMonth() + 1,
-        currentYear: currentDate.getFullYear()
-      })
     }
   }, [bookings, currentDate])
 
@@ -322,7 +295,18 @@ const Calendar = ({ bookings, onBookingClick, onAddBooking, onNavigateToDailySch
   useEffect(() => {
     // Показвай индикатор за зареждане само при смяна на месеца
     setIsMonthDataLoading(true)
-  }, [currentDate])
+    
+    // Зареди данните за новия месец
+    const currentMonthString = `${currentDate.getFullYear()}-${String(currentDate.getMonth() + 1).padStart(2, '0')}`
+    
+    // Зареди работните часове за новия месец
+    loadWorkingHours()
+    
+    // Също така изчисли свободните часове ако имаме услуги
+    if (services.length > 0) {
+      calculateAvailableSlots()
+    }
+  }, [currentDate, loadWorkingHours])
 
   // Инициализира временните стойности когато се отвори модала
   useEffect(() => {
@@ -451,12 +435,6 @@ const Calendar = ({ bookings, onBookingClick, onAddBooking, onNavigateToDailySch
       const monthBookings = Object.keys(bookingsByDate).filter(date => date.startsWith(currentMonthString))
       const monthWorkingHours = workingHours.filter(wh => wh.date && wh.date.startsWith(currentMonthString))
       
-      console.log(`📅 Calendar Debug for ${currentMonthString}:`, {
-        monthBookings: monthBookings.length,
-        monthWorkingHours: monthWorkingHours.length,
-        totalBookings: Object.keys(bookingsByDate).length,
-        totalWorkingHours: workingHours.length
-      })
     }
   }, [isMonthDataLoading, currentDate]) // Премахнах bookingsByDate и workingHours от dependencies
 
@@ -510,24 +488,13 @@ const Calendar = ({ bookings, onBookingClick, onAddBooking, onNavigateToDailySch
 
     // Функция за изчисляване на свободните часове
   const calculateAvailableSlots = () => {
-    // Проверяваме дали вече се изчисляват свободните часове
-    if (isMonthDataLoading) {
-      console.log('📅 Calendar: Still loading month data, skipping calculation')
-      return
-    }
+    // Не проверяваме isMonthDataLoading тук - искаме да изчислим свободните часове когато имаме данните
     
 
     
-    console.log('📅 Calendar: calculateAvailableSlots called with:', {
-      currentDate: currentDate.toISOString(),
-      servicesCount: services.length,
-      bookingsCount: bookings.length,
-      workingHoursCount: workingHours.length
-    })
     
     // Проверяваме дали имаме нужните данни
     if (services.length === 0) {
-      console.log('📅 Calendar: No services available, skipping calculation')
       return
     }
     
@@ -547,6 +514,7 @@ const Calendar = ({ bookings, onBookingClick, onAddBooking, onNavigateToDailySch
         slots.push({ date: dateString, availableSlots: [] })
         continue
       }
+      
       
       // Получи работното време за деня
       const workingHoursData = getWorkingHoursForDate(date)
@@ -651,10 +619,9 @@ const Calendar = ({ bookings, onBookingClick, onAddBooking, onNavigateToDailySch
           currentTime += Math.min(30, serviceDuration) // следващия слот според услугата, но не повече от 30 мин
         }
         
-              slots.push({ date: dateString, availableSlots })
+        slots.push({ date: dateString, availableSlots })
     }
     
-    console.log('📅 Calendar: Available slots calculated:', slots.length, 'days')
     setAvailableSlots(slots)
     
     // Принудително re-render за да се покажат правилните данни
@@ -668,8 +635,8 @@ const Calendar = ({ bookings, onBookingClick, onAddBooking, onNavigateToDailySch
     // Проверяваме дали имаме всички необходими данни
     const hasAllRequiredData = 
       defaultWorkingHours.workingDays.length > 0 && 
-      services.length > 0 && 
-      !isMonthDataLoading
+      services.length > 0
+    
     
     if (hasAllRequiredData) {
       const timeoutId = setTimeout(() => {
@@ -678,7 +645,7 @@ const Calendar = ({ bookings, onBookingClick, onAddBooking, onNavigateToDailySch
       
       return () => clearTimeout(timeoutId)
     }
-  }, [defaultWorkingHours.workingDays.length, selectedService, services, isMonthDataLoading])
+  }, [defaultWorkingHours.workingDays.length, selectedService, services])
 
   // Функция за проверка дали денят има свободни часове
   const hasAvailableSlots = (date: Date) => {
@@ -692,10 +659,9 @@ const Calendar = ({ bookings, onBookingClick, onAddBooking, onNavigateToDailySch
     
     // Ако нямаме данни за този ден, провери дали е работен ден
     if (!daySlots) {
-      return !isNonWorkingDay(date)
+      const isNonWorking = isNonWorkingDay(date)
+      return !isNonWorking
     }
-    
-
     
     const hasSlots = daySlots.availableSlots && daySlots.availableSlots.length > 0
     
@@ -704,11 +670,10 @@ const Calendar = ({ bookings, onBookingClick, onAddBooking, onNavigateToDailySch
 
   // Функция за получаване на броя свободни часове за ден
   const getAvailableSlotsCount = (date: Date) => {
-
-    
     const dateString = calendarDateToString(date)
     const daySlots = availableSlots.find(slot => slot.date === dateString)
-    return daySlots && daySlots.availableSlots ? daySlots.availableSlots.length : 0
+    const count = daySlots && daySlots.availableSlots ? daySlots.availableSlots.length : 0
+    return count
   }
 
   // Функция за определяне на текущата и следващите резервации
@@ -912,7 +877,6 @@ const Calendar = ({ bookings, onBookingClick, onAddBooking, onNavigateToDailySch
         }
       }
     } catch (error) {
-      console.error('Error saving working hours:', error)
     }
   }
 
@@ -937,7 +901,6 @@ const Calendar = ({ bookings, onBookingClick, onAddBooking, onNavigateToDailySch
         }
       }
     } catch (error) {
-      console.error('Error deleting working hours:', error)
     }
   }
 
@@ -964,7 +927,6 @@ const Calendar = ({ bookings, onBookingClick, onAddBooking, onNavigateToDailySch
         // You might want to refresh the calendar data here
       }
     } catch (error) {
-      console.error('Error deleting booking:', error)
     }
   }
 
