@@ -61,7 +61,7 @@ export default function RootLayout({
         <meta name="bingbot" content="noindex, nofollow" />
         <meta name="slurp" content="noindex, nofollow" />
         
-        {/* PWA мета тегове */}
+        {/* 🚨 ЗАДЪЛЖИТЕЛНО: PWA мета тегове за ГЛАВНАТА СТРАНИЦА - НЕ ПРОМЕНЯЙТЕ БЕЗ РАЗРЕШЕНИЕ! */}
         <meta name="mobile-web-app-capable" content="yes" />
         <meta name="apple-mobile-web-app-capable" content="yes" />
         <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />

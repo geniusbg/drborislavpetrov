@@ -3,6 +3,13 @@
 /.pnp
 .pnp.js
 
+# 🚨 ЗАДЪЛЖИТЕЛНА PWA АРХИТЕКТУРА - НЕ ПРОМЕНЯЙТЕ БЕЗ РАЗРЕШЕНИЕ!
+# Файлове за PWA архитектурата - НЕ ПРОМЕНЯЙТЕ БЕЗ РАЗРЕШЕНИЕ!
+# /public/manifest.json - Главна страница PWA
+# /public/admin-manifest.json - Админ панел PWA
+# /src/app/layout.tsx - Главна страница PWA настройки
+# /src/app/admin/layout.tsx - Админ PWA настройки
+
 # Production builds
 /build
 /dist
