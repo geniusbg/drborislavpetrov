@@ -4,6 +4,7 @@ import { useState, useEffect } from 'react'
 import { Trash2, Clock } from 'lucide-react'
 import type { Booking, Service as ServiceType } from '@/types/global'
 import { getBulgariaTime } from '@/lib/bulgaria-time'
+import { offlineStorage } from '@/lib/offline-storage'
 
 interface BookingFormProps {
   booking: Booking | null
@@ -249,9 +250,33 @@ const BookingForm = ({ booking, onSubmit, onCancel, onDelete }: BookingFormProps
     }
     
     try {
-      await onSubmit(submissionData, isStatusOnlyUpdate)
+      // Проверяваме дали сме онлайн
+      if (navigator.onLine) {
+        // Онлайн режим - изпращаме веднага
+        await onSubmit(submissionData, isStatusOnlyUpdate)
+      } else {
+        // Офлайн режим - запазваме за синхронизация
+        const actionType = booking ? 'UPDATE_BOOKING' : 'CREATE_BOOKING'
+        const actionData = booking ? 
+          { ...submissionData, id: booking.id } : 
+          submissionData
+        
+        offlineStorage.saveAction({
+          type: actionType,
+          data: actionData
+        })
+        
+        // Показваме съобщение за успешно запазване
+        alert('Резервацията е запазена за синхронизация. Ще се изпрати когато се върне интернет връзката.')
+        
+        // Затваряме формата
+        onCancel()
+      }
     } catch (error) {
       console.error('Error submitting booking:', error)
+      if (navigator.onLine) {
+        alert('Грешка при запазване на резервацията. Моля, опитайте отново.')
+      }
     } finally {
       setIsSubmitting(false)
     }
@@ -402,7 +427,23 @@ const BookingForm = ({ booking, onSubmit, onCancel, onDelete }: BookingFormProps
         {booking?.id && onDelete && (
           <button
             type="button"
-            onClick={() => onDelete(booking.id)}
+            onClick={() => {
+              if (navigator.onLine) {
+                // Онлайн режим - изтриваме веднага
+                onDelete(booking.id)
+              } else {
+                // Офлайн режим - запазваме за синхронизация
+                offlineStorage.saveAction({
+                  type: 'DELETE_BOOKING',
+                  data: { id: booking.id }
+                })
+                
+                alert('Изтриването е запазено за синхронизация. Ще се изпълни когато се върне интернет връзката.')
+                
+                // Затваряме формата
+                onCancel()
+              }
+            }}
             className="px-4 py-2 text-sm font-medium text-red-700 bg-red-100 rounded-md hover:bg-red-200 flex items-center space-x-2"
           >
             <Trash2 className="w-4 h-4" />

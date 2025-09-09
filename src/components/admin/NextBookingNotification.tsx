@@ -25,6 +25,7 @@ const NextBookingNotification = ({ currentTime }: NextBookingNotificationProps) 
   const [hasPlayedSound, setHasPlayedSound] = useState(false)
   const [lastCheck, setLastCheck] = useState<number>(0)
   const [cachedBookings, setCachedBookings] = useState<Booking[]>([])
+  const [isOnline, setIsOnline] = useState(true)
   
   // WebSocket connection
   const { socket, isConnected, isSupported, joinAdmin } = useSocket()
@@ -49,6 +50,12 @@ const NextBookingNotification = ({ currentTime }: NextBookingNotificationProps) 
       // Additional protection - don't make API calls if we're not on admin page
       if (typeof window !== 'undefined' && !window.location.pathname.includes('/admin')) {
         console.log('🔔 NextBookingNotification: Not on admin page, skipping API call')
+        return
+      }
+
+      // Skip API calls if offline
+      if (!isOnline) {
+        console.log('🔔 NextBookingNotification: Offline, using cached data')
         return
       }
 
@@ -93,7 +100,7 @@ const NextBookingNotification = ({ currentTime }: NextBookingNotificationProps) 
     } catch (error) {
       console.error('Error checking next booking:', error)
     }
-  }, [cachedBookings.length, lastCheck])
+  }, [cachedBookings.length, lastCheck, isOnline])
 
   const checkUrgentBooking = useCallback(() => {
     if (!cachedBookings.length) return
@@ -172,6 +179,22 @@ const NextBookingNotification = ({ currentTime }: NextBookingNotificationProps) 
         if (typeof parsed.lastCheck === 'number') setLastCheck(parsed.lastCheck)
       }
     } catch {}
+  }, [])
+
+  // Offline detection
+  useEffect(() => {
+    const updateOnlineStatus = () => {
+      setIsOnline(navigator.onLine)
+    }
+
+    updateOnlineStatus()
+    window.addEventListener('online', updateOnlineStatus)
+    window.addEventListener('offline', updateOnlineStatus)
+
+    return () => {
+      window.removeEventListener('online', updateOnlineStatus)
+      window.removeEventListener('offline', updateOnlineStatus)
+    }
   }, [])
 
   // Persist cache to sessionStorage when it changes
@@ -348,6 +371,9 @@ const NextBookingNotification = ({ currentTime }: NextBookingNotificationProps) 
           <div className="space-y-1">
             <div className="text-sm">
               <span className="font-semibold">Следваща резервация</span>
+              {!isOnline && (
+                <span className="ml-2 text-xs opacity-75">(офлайн)</span>
+              )}
             </div>
             <div className="text-sm opacity-95">
               <span className="font-medium">{nextBooking.name}</span>

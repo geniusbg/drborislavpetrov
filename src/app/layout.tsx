@@ -3,6 +3,7 @@ import { getSiteDomain } from '@/lib/site'
 import { Inter } from 'next/font/google'
 import './globals.css'
 import UnderConstructionBanner from '@/components/UnderConstructionBanner'
+import OfflineBanner from '@/components/OfflineBanner'
 import Script from 'next/script'
 
 // Extend Window interface for service worker registration flag and socket
@@ -83,6 +84,7 @@ export default function RootLayout({
       </head>
       <body className={inter.className}>
         <UnderConstructionBanner />
+        <OfflineBanner />
         <div className="pt-16"></div>
         {children}
           <Script
@@ -93,6 +95,16 @@ export default function RootLayout({
                 // Only register service worker once to prevent multiple requests
                 if ('serviceWorker' in navigator && !window.serviceWorkerRegistered) {
                   window.serviceWorkerRegistered = true
+                  
+                  // Запазваме текущия URL за offline функционалност
+                  if (typeof window !== 'undefined' && window.location.pathname !== '/offline.html') {
+                    try {
+                      sessionStorage.setItem('offline-original-url', window.location.pathname);
+                    } catch (e) {
+                      // Ignore storage errors
+                    }
+                  }
+                  
                   window.addEventListener('load', function() {
                     console.log('[SW] Attempting to register...');
                     

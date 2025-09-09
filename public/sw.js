@@ -3,6 +3,7 @@ const CACHE_NAME = 'drborislavpetrov-v2';
 const urlsToCache = [
   '/',
   '/admin',
+  '/offline.html',
   '/manifest.json',
   '/admin-manifest.json',
   '/favicon.ico',
@@ -14,7 +15,12 @@ const urlsToCache = [
 ];
 
 function canCacheRequest(request) {
-  return request.method === 'GET' && (request.url.startsWith('http://') || request.url.startsWith('https://'));
+  return request.method === 'GET' && 
+         (request.url.startsWith('http://') || request.url.startsWith('https://')) &&
+         !request.url.includes('/api/') && // Не кешираме API заявки
+         request.destination !== 'document' && // Не кешираме navigation requests тук
+         !request.url.includes('socket') && // Не кешираме socket заявки
+         request.mode !== 'no-cors'; // Не кешираме no-cors заявки
 }
 
 self.addEventListener('install', (event) => {
@@ -44,8 +50,57 @@ self.addEventListener('activate', (event) => {
 
 self.addEventListener('fetch', (event) => {
   const url = event.request.url;
-  // Skip caching for API and socket traffic (навигиране към /admin да има offline fallback)
-  if (url.includes('/api/') || url.includes('socket')) {
+  
+  // Skip non-GET requests for caching
+  if (event.request.method !== 'GET') {
+    return;
+  }
+  
+  // Handle API requests with offline fallback
+  if (url.includes('/api/')) {
+    event.respondWith(
+      fetch(event.request)
+        .then((response) => {
+          // Cache only GET API responses for offline use
+          if (response.status === 200 && event.request.method === 'GET') {
+            const copy = response.clone();
+            caches.open(CACHE_NAME).then((cache) => {
+              try {
+                cache.put(event.request, copy);
+              } catch (error) {
+                console.warn('Failed to cache API request:', error);
+              }
+            });
+          }
+          return response;
+        })
+        .catch(() => {
+          // Offline fallback for API requests
+          return caches.match(event.request)
+            .then((cached) => {
+              if (cached) {
+                return cached;
+              }
+              // Return offline response for API requests
+              return new Response(
+                JSON.stringify({ 
+                  error: 'Offline', 
+                  message: 'Няма интернет връзка. Моля, проверете връзката си.' 
+                }),
+                { 
+                  status: 503, 
+                  statusText: 'Service Unavailable',
+                  headers: { 'Content-Type': 'application/json' }
+                }
+              );
+            });
+        })
+    );
+    return;
+  }
+
+  // Skip socket traffic
+  if (url.includes('socket')) {
     return;
   }
 
@@ -54,25 +109,78 @@ self.addEventListener('fetch', (event) => {
     event.respondWith(
       fetch(event.request)
         .then((response) => {
-          const copy = response.clone();
-          caches.open(CACHE_NAME).then((cache) => cache.put(event.request, copy));
+          // Cache successful navigation responses
+          if (response.status === 200 && event.request.method === 'GET') {
+            const copy = response.clone();
+            caches.open(CACHE_NAME).then((cache) => {
+              try {
+                cache.put(event.request, copy);
+              } catch (error) {
+                console.warn('Failed to cache navigation request:', error);
+              }
+            });
+          }
           return response;
         })
-        .catch(() => caches.match(event.request).then((cached) => cached || caches.match('/')))
+        .catch(() => {
+          // Offline fallback - try cached version first, then offline page
+          return caches.match(event.request)
+            .then((cached) => {
+              if (cached) return cached;
+              // If no cached version, show offline page with original URL
+              return caches.match('/offline.html').then((offlinePage) => {
+                if (offlinePage) {
+                  // Запазваме оригиналния URL в sessionStorage
+                  const originalUrl = event.request.url;
+                  const url = new URL(originalUrl);
+                  const pathname = url.pathname;
+                  
+                  // Създаваме нова response с JavaScript който запазва URL-а
+                  return offlinePage.text().then((html) => {
+                    const modifiedHtml = html.replace(
+                      'sessionStorage.setItem(\'offline-original-url\', window.location.pathname);',
+                      `sessionStorage.setItem('offline-original-url', '${pathname}');`
+                    );
+                    return new Response(modifiedHtml, {
+                      headers: offlinePage.headers
+                    });
+                  });
+                }
+                return offlinePage;
+              });
+            });
+        })
     );
     return;
   }
 
-  // Static assets: cache-first
+  // Static assets: cache-first with offline fallback
   event.respondWith(
     caches.match(event.request).then((cached) => {
       if (cached) return cached;
       return fetch(event.request).then((response) => {
         if (response && response.status === 200 && canCacheRequest(event.request)) {
           const copy = response.clone();
-          caches.open(CACHE_NAME).then((cache) => cache.put(event.request, copy));
+          caches.open(CACHE_NAME).then((cache) => {
+            try {
+              cache.put(event.request, copy);
+            } catch (error) {
+              console.warn('Failed to cache request:', error);
+            }
+          });
         }
         return response;
+      }).catch(() => {
+        // Offline fallback for static assets
+        if (event.request.destination === 'image') {
+          // Return placeholder for images
+          return new Response(
+            '<svg width="200" height="200" xmlns="http://www.w3.org/2000/svg"><rect width="200" height="200" fill="#f3f4f6"/><text x="100" y="100" text-anchor="middle" fill="#9ca3af" font-family="Arial" font-size="14">Офлайн</text></svg>',
+            { headers: { 'Content-Type': 'image/svg+xml' } }
+          );
+        }
+        // For other static assets, return empty response
+        return new Response('', { status: 404 });
       });
     })
   );

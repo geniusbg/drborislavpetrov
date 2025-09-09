@@ -1,5 +1,6 @@
 import type { Metadata } from 'next'
 import { Suspense } from 'react'
+import OfflineIndicator from '@/components/OfflineIndicator'
 
 export const metadata: Metadata = {
   title: 'Админ Панел - Д-р Борислав Петров',
@@ -33,6 +34,7 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
         <meta name="application-name" content="Админ Панел" />
       </head>
       <div className="min-h-screen">
+        <OfflineIndicator />
         <Suspense fallback={<div className="p-6 text-gray-600">Зареждане…</div>}>
           {children}
         </Suspense>
