@@ -1,7 +1,7 @@
 /* eslint-disable react/no-unescaped-entities */
 'use client'
 
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useCallback } from 'react'
 import { Calendar, Clock, User, Phone, Mail, FileText, Edit, X, Trash2, Plus } from 'lucide-react'
 import type { Booking, User as UserType } from '@/types/global'
 import { formatBulgariaDate, formatBulgariaTime } from '@/lib/bulgaria-time'
@@ -119,18 +119,18 @@ const UserHistory = ({ user, bookings, onClose, onUpdateTreatmentNotes, onEditBo
     }
   }
 
-  const handleMouseMove = (e: MouseEvent) => {
+  const handleMouseMove = useCallback((e: MouseEvent) => {
     if (isDragging) {
       setModalPosition({
         x: e.clientX - dragOffset.x,
         y: e.clientY - dragOffset.y
       })
     }
-  }
+  }, [isDragging, dragOffset])
 
-  const handleMouseUp = () => {
+  const handleMouseUp = useCallback(() => {
     setIsDragging(false)
-  }
+  }, [])
 
   useEffect(() => {
     if (isDragging) {
@@ -141,7 +141,7 @@ const UserHistory = ({ user, bookings, onClose, onUpdateTreatmentNotes, onEditBo
         document.removeEventListener('mouseup', handleMouseUp)
       }
     }
-  }, [isDragging, dragOffset])
+  }, [isDragging, handleMouseMove, handleMouseUp])
 
   const handleCancelEdit = () => {
     setEditingNotes(null)

@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useCallback } from 'react'
 import { X, Save, Trash2 } from 'lucide-react'
 import type { Break, WorkingHours } from '@/types/global'
 // import { getBulgariaTime } from '@/lib/bulgaria-time'
@@ -116,18 +116,18 @@ const WorkingHoursForm = ({ selectedDate, onSave, onCancel, onDelete, initialDat
     }
   }
 
-  const handleMouseMove = (e: MouseEvent) => {
+  const handleMouseMove = useCallback((e: MouseEvent) => {
     if (isDragging) {
       setModalPosition({
         x: e.clientX - dragOffset.x,
         y: e.clientY - dragOffset.y
       })
     }
-  }
+  }, [isDragging, dragOffset])
 
-  const handleMouseUp = () => {
+  const handleMouseUp = useCallback(() => {
     setIsDragging(false)
-  }
+  }, [])
 
   useEffect(() => {
     if (isDragging) {
@@ -138,7 +138,7 @@ const WorkingHoursForm = ({ selectedDate, onSave, onCancel, onDelete, initialDat
         document.removeEventListener('mouseup', handleMouseUp)
       }
     }
-  }, [isDragging, dragOffset, handleMouseMove])
+  }, [isDragging, handleMouseMove, handleMouseUp])
 
   // Handle Escape key for closing modal
   useEffect(() => {

@@ -339,7 +339,7 @@ const VoiceAssistant: React.FC<VoiceAssistantProps> = ({ onCommand, isListening,
       setIsHolding(false)
       setStatusLabel('')
     }
-  }, [processCommand, supportsMediaRecorder])
+  }, [processCommand, supportsMediaRecorder, enqueueAudio, isOnline])
 
   const stopRecording = useCallback(() => {
     const mr = (typeof window !== 'undefined' ? (window as any).__va_rec : null)
@@ -590,7 +590,13 @@ const VoiceAssistant: React.FC<VoiceAssistantProps> = ({ onCommand, isListening,
             )}
           </div>
           <button
-            onClick={() => { onClose ? onClose() : clearTranscript() }}
+            onClick={() => { 
+              if (onClose) {
+                onClose()
+              } else {
+                clearTranscript()
+              }
+            }}
             className="p-1 rounded-lg hover:bg-gray-100 transition-colors"
           >
             <X className="w-4 h-4 text-gray-500" />

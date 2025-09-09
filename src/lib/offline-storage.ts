@@ -3,7 +3,7 @@
 interface OfflineAction {
   id: string
   type: 'CREATE_BOOKING' | 'UPDATE_BOOKING' | 'DELETE_BOOKING' | 'CREATE_USER' | 'UPDATE_USER' | 'DELETE_USER'
-  data: any
+  data: Record<string, unknown>
   timestamp: number
   retryCount: number
   maxRetries: number
