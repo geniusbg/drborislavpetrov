@@ -328,13 +328,14 @@ const VoiceAssistant: React.FC<VoiceAssistantProps> = ({ onCommand, isListening,
               const data = await resp.json()
               console.log('STT Response data:', data)
               
-              if (data?.text) {
-                await processCommand(data.text)
-                setStatusLabel('Готово')
-                setTimeout(() => setStatusLabel(''), 1200)
-              } else {
-                throw new Error('Няма разпознат текст от STT')
-              }
+               if (data?.text) {
+                 setTranscript(data.text) // Покажи разпознатия текст
+                 await processCommand(data.text)
+                 setStatusLabel('Готово')
+                 setTimeout(() => setStatusLabel(''), 1200)
+               } else {
+                 throw new Error('Няма разпознат текст от STT')
+               }
             } catch (fetchError) {
               console.error('STT fetch error:', fetchError)
               throw fetchError
@@ -598,13 +599,15 @@ const VoiceAssistant: React.FC<VoiceAssistantProps> = ({ onCommand, isListening,
   }
 
   return (
-    <div className="fixed bottom-4 right-4 z-50">
-      <div className="bg-white rounded-xl shadow-2xl border border-gray-200 p-4 w-80 max-w-sm">
-        {/* Header */}
-        <div className="flex items-center justify-between mb-3">
+    <div className="fixed inset-0 sm:bottom-4 sm:right-4 sm:inset-auto z-50 flex items-end sm:items-start justify-center sm:justify-end p-0 sm:p-0">
+      <div className="bg-white w-full sm:w-80 sm:max-w-sm h-[85vh] sm:h-auto sm:rounded-xl shadow-2xl border border-gray-200 overflow-y-auto">
+        {/* Mobile-optimized content */}
+        <div className="p-4">
+        {/* Mobile-friendly Header */}
+        <div className="flex items-center justify-between mb-4 sticky top-0 bg-white z-10 -m-4 p-4 border-b sm:border-b-0 border-gray-100">
           <div className="flex items-center space-x-2">
             {showTextInput ? <Type className="w-5 h-5 text-blue-600" /> : <Volume2 className="w-5 h-5 text-blue-600" />}
-            <h3 className="font-semibold text-gray-900">
+            <h3 className="font-semibold text-gray-900 text-lg sm:text-base">
               {showTextInput ? 'Текстов Асистент' : 'Гласов Асистент'}
             </h3>
             {isMobile && (
@@ -619,43 +622,24 @@ const VoiceAssistant: React.FC<VoiceAssistantProps> = ({ onCommand, isListening,
                 clearTranscript()
               }
             }}
-            className="p-1 rounded-lg hover:bg-gray-100 transition-colors"
+            className="p-2 sm:p-1 rounded-lg hover:bg-gray-100 transition-colors touch-manipulation"
           >
-            <X className="w-4 h-4 text-gray-500" />
+            <X className="w-6 h-6 sm:w-4 sm:h-4 text-gray-500" />
           </button>
         </div>
+        
+        {/* Content area with better mobile spacing */}
+        <div className="space-y-4">
 
-        {/* Mode Toggle */}
-        <div className="flex justify-center mb-3">
-          <div className="flex bg-gray-100 rounded-lg p-1">
-            <button
-              onClick={() => setShowTextInput(false)}
-              disabled={!voiceSupported}
-              className={`px-3 py-1 rounded-md text-sm font-medium transition-colors ${
-                !showTextInput 
-                  ? 'bg-blue-600 text-white' 
-                  : 'text-gray-600 hover:text-gray-900'
-              } ${!voiceSupported ? 'opacity-50 cursor-not-allowed' : ''}`}
-            >
-              <Mic className="w-4 h-4 inline mr-1" />
-              Глас
-            </button>
-            <button
-              onClick={() => setShowTextInput(true)}
-              className={`px-3 py-1 rounded-md text-sm font-medium transition-colors ${
-                showTextInput 
-                  ? 'bg-blue-600 text-white' 
-                  : 'text-gray-600 hover:text-gray-900'
-              }`}
-            >
-              <Type className="w-4 h-4 inline mr-1" />
-              Текст
-            </button>
-          </div>
+        {/* Voice Commands Only - No Mode Toggle */}
+        <div className="text-center mb-4">
+          <p className="text-sm text-gray-600 font-medium">
+            🎤 Гласови команди за управление
+          </p>
         </div>
 
-        {/* Voice Button */}
-        {!showTextInput && voiceSupported && (
+        {/* Voice Button - Desktop */}
+        {voiceSupported && (
           <div className="flex justify-center mb-3">
             <button
               onClick={isListening ? stopListening : startListening}
@@ -678,9 +662,9 @@ const VoiceAssistant: React.FC<VoiceAssistantProps> = ({ onCommand, isListening,
           </div>
         )}
 
-        {/* iOS-friendly hold-to-record (works even when voiceSupported is false) */}
+        {/* Mobile-friendly hold-to-record button */}
         {isMobile && (
-          <div className="flex justify-center mb-3 select-none" onContextMenu={(e) => e.preventDefault()}>
+          <div className="flex justify-center mb-6 select-none" onContextMenu={(e) => e.preventDefault()}>
             <button
               type="button"
               onMouseDown={(e) => { e.preventDefault(); startRecording() }}
@@ -692,11 +676,18 @@ const VoiceAssistant: React.FC<VoiceAssistantProps> = ({ onCommand, isListening,
               onTouchEnd={(e) => { e.preventDefault(); stopRecording() }}
               onTouchCancel={(e) => { e.preventDefault(); stopRecording() }}
               draggable={false}
-              className={`px-4 py-2 rounded-md text-white active:scale-95 transition select-none ${isHolding ? 'bg-red-600 animate-pulse' : 'bg-blue-600 hover:bg-blue-700'}`}
+              className={`px-8 py-4 rounded-xl text-white font-semibold text-lg shadow-lg active:scale-95 transition-all duration-200 select-none min-h-[64px] touch-manipulation ${
+                isHolding 
+                  ? 'bg-red-500 animate-pulse shadow-red-200' 
+                  : 'bg-blue-600 hover:bg-blue-700 shadow-blue-200'
+              }`}
               style={{ WebkitUserSelect: 'none', userSelect: 'none', touchAction: 'none' as any }}
               aria-pressed={isListening}
             >
-              {isHolding ? 'Запис...' : 'Задръж за запис (iOS)'}
+              <div className="flex items-center justify-center space-x-3">
+                <Mic className="w-6 h-6" />
+                <span>{isHolding ? 'Записвам...' : 'Задръж за запис'}</span>
+              </div>
             </button>
           </div>
         )}
@@ -705,12 +696,10 @@ const VoiceAssistant: React.FC<VoiceAssistantProps> = ({ onCommand, isListening,
         <div className="text-center mb-3">
           <p className="text-sm text-gray-600">
             {isMobile 
-              ? '📱 iOS: Използвайте hold-to-record бутона' 
-              : showTextInput 
-                ? 'Въведете команда ръчно' 
-                : isListening 
-                  ? 'Говорете сега...' 
-                  : 'Натиснете за да говорите'
+              ? '📱 Мобилно: Използвайте hold-to-record бутона' 
+              : isListening 
+                ? 'Говорете сега...' 
+                : 'Натиснете за да говорите'
             }
           </p>
           {statusLabel && (
@@ -718,98 +707,31 @@ const VoiceAssistant: React.FC<VoiceAssistantProps> = ({ onCommand, isListening,
           )}
           {isMobile && (
             <p className="text-xs text-blue-600 mt-1">
-              💡 iOS-оптимизирано с hold-to-record
+              💡 Android: Web Speech API | iOS: Hold-to-record
             </p>
           )}
         </div>
 
-                {/* Text Input for iOS/Manual Entry */}
-                {showTextInput && (
-                  <div className="mb-3">
-                    <div className="relative">
-                      <input
-                        type="text"
-                        value={manualCommand}
-                        onChange={handleManualCommandChange}
-                        onKeyPress={handleManualCommandKeyPress}
-                        onFocus={() => setShowSuggestions(manualCommand.length > 0)}
-                        onBlur={() => setTimeout(() => setShowSuggestions(false), 200)}
-                        placeholder="Въведете команда ръчно..."
-                        className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                      />
-                      
-                      {/* Smart Suggestions */}
-                      {showSuggestions && suggestions.length > 0 && (
-                        <div className="absolute z-10 w-full mt-1 bg-white border border-gray-300 rounded-lg shadow-lg max-h-60 overflow-y-auto">
-                          {suggestions.map((suggestion, index) => (
-                            <div
-                              key={index}
-                              onClick={() => handleSuggestionClick(suggestion)}
-                              className={`px-3 py-2 cursor-pointer hover:bg-gray-100 ${
-                                index === selectedSuggestion ? 'bg-blue-50 text-blue-700' : ''
-                              }`}
-                            >
-                              {suggestion}
-                            </div>
-                          ))}
-                        </div>
-                      )}
-                    </div>
-                    
-                    {/* Quick Templates */}
-                    <div className="mt-3">
-                      <p className="text-xs text-gray-600 mb-2">Бързи команди:</p>
-                      <div className="flex flex-wrap gap-2">
-                        {commandTemplates.slice(0, 3).map((category, catIndex) => (
-                          <div key={catIndex} className="flex-1 min-w-0">
-                            <p className="text-xs font-medium text-gray-700 mb-1">{category.category}:</p>
-                            {category.commands.slice(0, 2).map((cmd, cmdIndex) => (
-                              <button
-                                key={cmdIndex}
-                                onClick={() => handleTemplateClick(cmd.example)}
-                                className="block w-full text-left text-xs text-blue-600 hover:text-blue-800 p-1 rounded hover:bg-blue-50 truncate"
-                                title={cmd.example}
-                              >
-                                {cmd.text}
-                              </button>
-                            ))}
-                          </div>
-                        ))}
-                      </div>
-                    </div>
-                  </div>
-                )}
 
-        {/* Transcript */}
-        {transcript && !showTextInput && (
-          <div className="mb-3">
-            <div className="bg-gray-50 rounded-lg p-3">
-              <p className="text-sm text-gray-700">{transcript}</p>
+        {/* Voice Recognition Result */}
+        {transcript && (
+          <div className="mb-4">
+            <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
+              <div className="flex items-center justify-between mb-2">
+                <div className="flex items-center space-x-2">
+                  <Volume2 className="w-4 h-4 text-blue-600" />
+                  <p className="text-sm font-medium text-blue-800">Разпознато от говора:</p>
+                </div>
+                <button
+                  onClick={() => setTranscript('')}
+                  className="text-blue-600 hover:text-blue-800 p-1 rounded"
+                  title="Изчисти"
+                >
+                  <X className="w-4 h-4" />
+                </button>
+              </div>
+              <p className="text-sm text-blue-700 bg-white rounded p-2 border">{transcript}</p>
             </div>
-            <div className="flex space-x-2 mt-2">
-              <button
-                onClick={handleManualSubmit}
-                disabled={isProcessing}
-                className="flex-1 bg-green-600 text-white px-3 py-2 rounded-lg text-sm hover:bg-green-700 transition-colors disabled:opacity-50"
-              >
-                <Check className="w-4 h-4 mr-1" />
-                Изпълни
-              </button>
-            </div>
-          </div>
-        )}
-
-        {/* Manual Command Submit */}
-        {showTextInput && manualCommand && (
-          <div className="flex space-x-2 mb-3">
-            <button
-              onClick={handleManualSubmit}
-              disabled={isProcessing}
-              className="flex-1 bg-green-600 text-white px-3 py-2 rounded-lg text-sm hover:bg-green-700 transition-colors disabled:opacity-50"
-            >
-              <Check className="w-4 h-4 mr-1" />
-              Изпълни
-            </button>
           </div>
         )}
 
@@ -849,24 +771,26 @@ const VoiceAssistant: React.FC<VoiceAssistantProps> = ({ onCommand, isListening,
             <div className="mt-2 p-2 bg-blue-50 border border-blue-200 rounded-lg">
               <p className="text-blue-800 font-medium">📱 Мобилно Решение:</p>
               <ul className="text-blue-700 mt-1 space-y-1">
-                <li>• Използвайте текстово въвеждане</li>
-                <li>• Бързи команди са налични</li>
-                <li>• Smart suggestions се появяват автоматично</li>
-                <li>• Натиснете &quot;Изпълни&quot; за обработка</li>
+                <li>• Задръжте бутона докато говорите</li>
+                <li>• Говорете ясно и бавно</li>
+                <li>• Използвайте примерните команди</li>
+                <li>• Командата се изпълнява автоматично</li>
               </ul>
             </div>
           )}
           {!isMobile && (
             <div className="mt-2 p-2 bg-green-50 border border-green-200 rounded-lg">
-              <p className="text-green-800 font-medium">🎤 Voice + Text:</p>
+              <p className="text-green-800 font-medium">🎤 Гласови команди:</p>
               <ul className="text-green-700 mt-1 space-y-1">
-                <li>• Гласово разпознаване е достъпно</li>
-                <li>• Текстово въвеждане като алтернатива</li>
-                <li>• Smart suggestions за бързо въвеждане</li>
-                <li>• Преминете между режими с бутоните</li>
+                <li>• Натиснете микрофона и говорете</li>
+                <li>• Говорете ясно и бавно</li>
+                <li>• Използвайте примерните команди</li>
+                <li>• Командата се изпълнява автоматично</li>
               </ul>
             </div>
           )}
+        </div>
+        </div>
         </div>
       </div>
     </div>
