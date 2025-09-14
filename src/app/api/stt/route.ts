@@ -10,49 +10,86 @@ export const runtime = 'nodejs'
 export const dynamic = 'force-dynamic'
 
 export async function POST(req: Request) {
+  console.log('🎤 STT API called')
   try {
     const contentType = req.headers.get('content-type') || ''
+    console.log('📄 Content-Type:', contentType)
+    
     if (!contentType.startsWith('audio/') && !contentType.includes('multipart/form-data')) {
+      console.log('❌ Unsupported content-type:', contentType)
       return NextResponse.json({ error: 'Неподдържан content-type. Очаквам аудио.' }, { status: 400 })
     }
 
     // Read raw audio (frontend изпраща Blob с audio/webm)
     const arrayBuffer = await req.arrayBuffer()
     const bytes = new Uint8Array(arrayBuffer)
+    console.log('📊 Audio size:', bytes.length, 'bytes')
+    
     if (!bytes || bytes.length < 10) {
+      console.log('❌ Empty audio input')
       return NextResponse.json({ error: 'Празен аудио вход.' }, { status: 400 })
     }
 
     // Write to temp file
-    const tmpDir = os.tmpdir()
+    const tmpDir = process.env.TEMP_DIR || os.tmpdir()
     const id = randomUUID()
     const ext = guessExtensionFromContentType(contentType)
     const audioPath = path.join(tmpDir, `${id}.${ext}`)
+    
+    console.log('💾 Writing to temp file:', audioPath)
+    console.log('📁 Temp dir permissions:', await checkDirPermissions(tmpDir))
+    
     await fs.writeFile(audioPath, bytes)
+    console.log('✅ Audio file written successfully')
 
     try {
       // Run Whisper CLI (Python openai-whisper). Requires it to be installed locally.
       const cli = resolveWhisperCommand()
+      console.log('🔧 Whisper CLI config:', cli)
+      
       if (!cli) {
+        console.log('❌ Whisper CLI not found')
         return NextResponse.json({ error: 'Whisper не е наличен на сървъра. Инсталирайте го локално.' }, { status: 501 })
       }
 
       const model = process.env.WHISPER_MODEL || 'small'
       const args = buildWhisperArgs(cli, audioPath, model)
+      
+      console.log('🚀 Running Whisper command:', cli.cmd, args.join(' '))
+      console.log('⏱️ Model:', model, '| Timeout: 60s')
 
-      const { code, stderr } = await execWithPromise(cli.cmd, args, { timeoutMs: 60_000 })
+      const { code, stdout, stderr } = await execWithPromise(cli.cmd, args, { timeoutMs: 60_000 })
+      
+      console.log('📤 Whisper stdout:', stdout)
+      console.log('📤 Whisper stderr:', stderr)
+      console.log('📤 Whisper exit code:', code)
+      
       if (code !== 0) {
-        return NextResponse.json({ error: `Грешка при транскрипция: ${stderr || 'неизвестна грешка'}` }, { status: 500 })
+        console.log('❌ Whisper failed with code:', code)
+        return NextResponse.json({ 
+          error: `Грешка при транскрипция (код ${code}): ${stderr || 'неизвестна грешка'}` 
+        }, { status: 500 })
       }
 
       // Whisper CLI създава .txt до аудио файла
       const transcriptPath = `${audioPath}.txt`
-      const transcript = await fs.readFile(transcriptPath, 'utf8').catch(() => '')
+      console.log('📖 Reading transcript from:', transcriptPath)
+      
+      const transcript = await fs.readFile(transcriptPath, 'utf8').catch((err) => {
+        console.log('❌ Failed to read transcript file:', err.message)
+        return ''
+      })
+      
+      console.log('📝 Raw transcript:', transcript)
+      
       if (!transcript.trim()) {
+        console.log('❌ Empty transcript')
         return NextResponse.json({ error: 'Няма разпознат текст.' }, { status: 422 })
       }
 
-      return NextResponse.json({ text: transcript.trim() })
+      const cleanTranscript = transcript.trim()
+      console.log('✅ Final transcript:', cleanTranscript)
+      return NextResponse.json({ text: cleanTranscript })
     } finally {
       // Cleanup temp files
       await safeUnlink(`${audioPath}.txt`)
@@ -60,7 +97,19 @@ export async function POST(req: Request) {
     }
   } catch (e: unknown) {
     const errorMessage = e instanceof Error ? e.message : 'Грешка при STT'
+    console.log('💥 STT API error:', errorMessage)
+    console.log('💥 Error stack:', e instanceof Error ? e.stack : 'No stack trace')
     return NextResponse.json({ error: errorMessage }, { status: 500 })
+  }
+}
+
+// Helper function to check directory permissions
+async function checkDirPermissions(dirPath: string): Promise<string> {
+  try {
+    await fs.access(dirPath, fs.constants.W_OK)
+    return 'WRITABLE'
+  } catch (error) {
+    return `NOT_WRITABLE: ${error instanceof Error ? error.message : 'Unknown error'}`
   }
 }
 

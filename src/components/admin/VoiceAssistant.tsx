@@ -311,22 +311,44 @@ const VoiceAssistant: React.FC<VoiceAssistantProps> = ({ onCommand, isListening,
             await enqueueAudio(blob)
           } else {
             setStatusLabel('Изпращане към STT...')
-            const resp = await fetch('/api/stt', {
-              method: 'POST',
-              headers: { 'content-type': blob.type },
-              body: blob,
-            })
-            const data = await resp.json()
-            if (data?.text) {
-              await processCommand(data.text)
-              setStatusLabel('Готово')
-              setTimeout(() => setStatusLabel(''), 1200)
+            try {
+              const resp = await fetch('/api/stt', {
+                method: 'POST',
+                headers: { 'content-type': blob.type },
+                body: blob,
+              })
+              
+              console.log('STT Response status:', resp.status)
+              
+              if (!resp.ok) {
+                const errorData = await resp.json().catch(() => ({ error: 'Unknown error' }))
+                throw new Error(`STT API error (${resp.status}): ${errorData.error || 'Unknown error'}`)
+              }
+              
+              const data = await resp.json()
+              console.log('STT Response data:', data)
+              
+              if (data?.text) {
+                await processCommand(data.text)
+                setStatusLabel('Готово')
+                setTimeout(() => setStatusLabel(''), 1200)
+              } else {
+                throw new Error('Няма разпознат текст от STT')
+              }
+            } catch (fetchError) {
+              console.error('STT fetch error:', fetchError)
+              throw fetchError
             }
           }
         } catch (e) {
           console.error('STT request failed', e)
-          setError('STT не е конфигуриран или недостъпен. Записът е спрян.')
-          setStatusLabel('')
+          const errorMessage = e instanceof Error ? e.message : 'Неизвестна грешка'
+          setError(`STT грешка: ${errorMessage}`)
+          setStatusLabel('Грешка')
+          setTimeout(() => {
+            setStatusLabel('')
+            setError('')
+          }, 3000)
         } finally {
           stream.getTracks().forEach(t => t.stop())
           setIsHolding(false)
