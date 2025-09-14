@@ -17,33 +17,37 @@ apt install python3 python3-pip python3-venv -y
 echo "🎵 Installing ffmpeg..."
 apt install ffmpeg -y
 
-# 4. Install Whisper
+# 4. Install CPU-only PyTorch first
+echo "🐍 Installing CPU-only PyTorch..."
+pip3 install torch torchvision torchaudio --index-url https://download.pytorch.org/whl/cpu
+
+# 5. Install Whisper
 echo "🎤 Installing Whisper..."
 pip3 install -U openai-whisper
 
-# 5. Create temp directory for Whisper
+# 6. Create temp directory for Whisper
 echo "📁 Creating temp directory..."
 mkdir -p /var/tmp/whisper
 chown -R www-data:www-data /var/tmp/whisper
 chmod -R 755 /var/tmp/whisper
 
-# 6. Test Whisper installation
+# 7. Test Whisper installation
 echo "🧪 Testing Whisper installation..."
 whisper --version
 
-# 7. Create test audio file
+# 8. Create test audio file
 echo "🎵 Creating test audio file..."
 echo "Здравей, това е тест за Whisper" | espeak -s 120 -w /tmp/test.wav
 
-# 8. Test Whisper with Bulgarian
+# 9. Test Whisper with Bulgarian
 echo "🇧🇬 Testing Whisper with Bulgarian..."
 whisper /tmp/test.wav --model small --language bg --output_format txt
 
-# 9. Show results
+# 10. Show results
 echo "📝 Test results:"
 cat /tmp/test.wav.txt
 
-# 10. Cleanup test files
+# 11. Cleanup test files
 rm -f /tmp/test.wav /tmp/test.wav.txt
 
 echo "✅ Whisper setup completed!"

@@ -52,13 +52,22 @@ export async function POST(req: Request) {
         return NextResponse.json({ error: 'Whisper не е наличен на сървъра. Инсталирайте го локално.' }, { status: 501 })
       }
 
-      const model = process.env.WHISPER_MODEL || 'small'
+      // Use tiny model for better CPU compatibility
+      const model = process.env.WHISPER_MODEL || 'tiny'
       const args = buildWhisperArgs(cli, audioPath, model)
       
       console.log('🚀 Running Whisper command:', cli.cmd, args.join(' '))
       console.log('⏱️ Model:', model, '| Timeout: 60s')
 
-      const { code, stdout, stderr } = await execWithPromise(cli.cmd, args, { timeoutMs: 60_000 })
+      // Set environment variables to force CPU usage
+      const env = {
+        ...process.env,
+        CUDA_VISIBLE_DEVICES: '',
+        OMP_NUM_THREADS: '4',
+        PYTORCH_CUDA_ALLOC_CONF: 'max_split_size_mb:128'
+      }
+      
+      const { code, stdout, stderr } = await execWithPromise(cli.cmd, args, { timeoutMs: 60_000, env })
       
       console.log('📤 Whisper stdout:', stdout)
       console.log('📤 Whisper stderr:', stderr)
@@ -135,15 +144,18 @@ function resolveWhisperCommand(): { cmd: string; mode: 'cli' | 'python' } | null
 
 function buildWhisperArgs(cli: { cmd: string; mode: 'cli' | 'python' }, audioPath: string, model: string): string[] {
   if (cli.mode === 'python') {
-    return ['-m', 'whisper', audioPath, '--model', model, '--language', 'bg', '--output_format', 'txt', '--fp16', 'False']
+    return ['-m', 'whisper', audioPath, '--model', model, '--language', 'bg', '--output_format', 'txt', '--device', 'cpu']
   }
-  // openai-whisper CLI
-  return [audioPath, '--model', model, '--language', 'bg', '--output_format', 'txt', '--fp16', 'False']
+  // openai-whisper CLI - минимални аргументи за CPU
+  return [audioPath, '--model', model, '--language', 'bg', '--output_format', 'txt', '--device', 'cpu']
 }
 
-function execWithPromise(cmd: string, args: string[], opts?: { timeoutMs?: number }): Promise<{ code: number; stdout: string; stderr: string }> {
+function execWithPromise(cmd: string, args: string[], opts?: { timeoutMs?: number; env?: any }): Promise<{ code: number; stdout: string; stderr: string }> {
   return new Promise((resolve) => {
-    const child = spawn(cmd, args, { shell: process.platform === 'win32' })
+    const child = spawn(cmd, args, { 
+      shell: process.platform === 'win32',
+      env: opts?.env || process.env
+    })
     const timer = opts?.timeoutMs ? setTimeout(() => { try { child.kill('SIGKILL') } catch {} }, opts.timeoutMs) : null
     let stdout = ''
     let stderr = ''
