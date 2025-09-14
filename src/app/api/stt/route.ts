@@ -150,7 +150,7 @@ function buildWhisperArgs(cli: { cmd: string; mode: 'cli' | 'python' }, audioPat
   return [audioPath, '--model', model, '--language', 'bg', '--output_format', 'txt', '--device', 'cpu']
 }
 
-function execWithPromise(cmd: string, args: string[], opts?: { timeoutMs?: number; env?: any }): Promise<{ code: number; stdout: string; stderr: string }> {
+function execWithPromise(cmd: string, args: string[], opts?: { timeoutMs?: number; env?: NodeJS.ProcessEnv }): Promise<{ code: number; stdout: string; stderr: string }> {
   return new Promise((resolve) => {
     const child = spawn(cmd, args, { 
       shell: process.platform === 'win32',

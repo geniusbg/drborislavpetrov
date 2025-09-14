@@ -361,7 +361,7 @@ const VoiceAssistant: React.FC<VoiceAssistantProps> = ({ onCommand, isListening,
       setIsHolding(false)
       setStatusLabel('')
     }
-  }, [processCommand, supportsMediaRecorder, enqueueAudio, isOnline])
+  }, [processCommand, supportsMediaRecorder, isOnline])
 
   const stopRecording = useCallback(() => {
     const mr = (typeof window !== 'undefined' ? (window as any).__va_rec : null)

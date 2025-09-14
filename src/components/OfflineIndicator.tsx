@@ -1,7 +1,7 @@
 'use client'
 
 import { useState, useEffect } from 'react'
-import { Wifi, WifiOff, Clock, CheckCircle, AlertCircle } from 'lucide-react'
+import { WifiOff, Clock, CheckCircle } from 'lucide-react'
 import { offlineStorage } from '@/lib/offline-storage'
 
 export default function OfflineIndicator() {
