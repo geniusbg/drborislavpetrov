@@ -330,9 +330,9 @@ const VoiceAssistant: React.FC<VoiceAssistantProps> = ({ onCommand, isListening,
               
                if (data?.text) {
                  setTranscript(data.text) // Покажи разпознатия текст
-                 await processCommand(data.text)
-                 setStatusLabel('Готово')
-                 setTimeout(() => setStatusLabel(''), 1200)
+                 setStatusLabel('Готово - натиснете "Изпълни"')
+                 setTimeout(() => setStatusLabel(''), 3000)
+                 // НЕ изпълняваме автоматично - чакаме потребителя да натисне "Изпълни"
                } else {
                  throw new Error('Няма разпознат текст от STT')
                }
@@ -431,12 +431,12 @@ const VoiceAssistant: React.FC<VoiceAssistantProps> = ({ onCommand, isListening,
         setIsListening(false)
       }
 
-      recognition.onend = () => {
-        setIsListening(false)
-        if (transcript.trim() && !showTextInput) {
-          processCommand(transcript.trim())
-        }
-      }
+       recognition.onend = () => {
+         setIsListening(false)
+         if (transcript.trim()) {
+           processCommand(transcript.trim()) // Desktop: автоматично изпълнение
+         }
+       }
     }
   }, [processCommand, transcript, setIsListening, voiceSupported, isMobile, checkVoiceSupport, showTextInput])
 
@@ -696,17 +696,17 @@ const VoiceAssistant: React.FC<VoiceAssistantProps> = ({ onCommand, isListening,
         <div className="text-center mb-3">
           <p className="text-sm text-gray-600">
             {isMobile 
-              ? '📱 Мобилно: Използвайте hold-to-record бутона' 
+              ? '📱 Мобилно: Задръжте бутона и говорете' 
               : isListening 
                 ? 'Говорете сега...' 
                 : 'Натиснете за да говорите'
             }
           </p>
           {statusLabel && (
-            <p className="text-xs text-gray-500 mt-1">{statusLabel}</p>
+            <p className="text-sm text-blue-600 mt-1 font-medium">{statusLabel}</p>
           )}
-          {isMobile && (
-            <p className="text-xs text-blue-600 mt-1">
+          {isMobile && !transcript && (
+            <p className="text-xs text-gray-500 mt-1">
               💡 Android: Web Speech API | iOS: Hold-to-record
             </p>
           )}
@@ -730,7 +730,30 @@ const VoiceAssistant: React.FC<VoiceAssistantProps> = ({ onCommand, isListening,
                   <X className="w-4 h-4" />
                 </button>
               </div>
-              <p className="text-sm text-blue-700 bg-white rounded p-2 border">{transcript}</p>
+              <p className="text-sm text-blue-700 bg-white rounded p-2 border mb-3">{transcript}</p>
+              
+              {/* Execute Button - Only for Mobile (iOS hold-to-record) */}
+              {isMobile && (
+                <div className="flex space-x-2">
+                  <button
+                    onClick={() => processCommand(transcript)}
+                    disabled={isProcessing}
+                    className="flex-1 bg-green-600 text-white px-4 py-2 rounded-lg text-sm font-medium hover:bg-green-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center space-x-2"
+                  >
+                    {isProcessing ? (
+                      <>
+                        <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white"></div>
+                        <span>Изпълнява се...</span>
+                      </>
+                    ) : (
+                      <>
+                        <Check className="w-4 h-4" />
+                        <span>Изпълни командата</span>
+                      </>
+                    )}
+                  </button>
+                </div>
+              )}
             </div>
           </div>
         )}
