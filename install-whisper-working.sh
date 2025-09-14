@@ -44,9 +44,11 @@ if [ -f "/tmp/whisper_test.wav.txt" ]; then
     cat /tmp/whisper_test.wav.txt
     echo ""
     
-    # Update .env file if it exists
-    if [ -f ".env" ]; then
-        echo "📝 Updating .env file..."
+    # Update .env file if it exists (in project directory)
+    PROJECT_DIR="/var/www/html/drpetrov"
+    if [ -f "$PROJECT_DIR/.env" ]; then
+        echo "📝 Updating .env file in $PROJECT_DIR..."
+        cd "$PROJECT_DIR"
         sed -i '/WHISPER_/d' .env
         sed -i '/CUDA_/d' .env
         sed -i '/OMP_/d' .env
@@ -55,6 +57,10 @@ if [ -f "/tmp/whisper_test.wav.txt" ]; then
         echo "WHISPER_CLI=whisper" >> .env
         echo "CUDA_VISIBLE_DEVICES=\"\"" >> .env
         echo "OMP_NUM_THREADS=4" >> .env
+        
+        echo "✅ .env file updated in project directory"
+    else
+        echo "⚠️ .env file not found. Please update manually in your project directory."
     fi
     
 else
