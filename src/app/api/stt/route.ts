@@ -52,8 +52,8 @@ export async function POST(req: Request) {
         return NextResponse.json({ error: 'Whisper не е наличен на сървъра. Инсталирайте го локално.' }, { status: 501 })
       }
 
-      // Use tiny model for better CPU compatibility
-      const model = process.env.WHISPER_MODEL || 'tiny'
+      // Use base model for better Bulgarian recognition (compromise between speed and accuracy)
+      const model = process.env.WHISPER_MODEL || 'base'
       const args = buildWhisperArgs(cli, audioPath, model)
       
       console.log('🚀 Running Whisper command:', cli.cmd, args.join(' '))
@@ -80,14 +80,26 @@ export async function POST(req: Request) {
         }, { status: 500 })
       }
 
-      // Whisper CLI създава .txt до аудио файла
+      // Try to read transcript from .txt file first
       const transcriptPath = `${audioPath}.txt`
       console.log('📖 Reading transcript from:', transcriptPath)
       
-      const transcript = await fs.readFile(transcriptPath, 'utf8').catch((err) => {
-        console.log('❌ Failed to read transcript file:', err.message)
+      let transcript = await fs.readFile(transcriptPath, 'utf8').catch((err) => {
+        console.log('⚠️ Failed to read transcript file:', err.message)
         return ''
       })
+      
+      // If no .txt file, try to extract from stdout
+      if (!transcript.trim() && stdout.trim()) {
+        console.log('📝 Using transcript from stdout')
+        // Extract text from VTT format: [00:00.000 --> 00:03.000] Text
+        const vttMatch = stdout.match(/\]\s*(.+?)(?:\n|$)/g)
+        if (vttMatch) {
+          transcript = vttMatch.map(line => line.replace(/\]\s*/, '').trim()).join(' ')
+        } else {
+          transcript = stdout.trim()
+        }
+      }
       
       console.log('📝 Raw transcript:', transcript)
       
@@ -183,10 +195,10 @@ function resolveWhisperCommand(): { cmd: string; mode: 'cli' | 'python' } | null
 
 function buildWhisperArgs(cli: { cmd: string; mode: 'cli' | 'python' }, audioPath: string, model: string): string[] {
   if (cli.mode === 'python') {
-    return ['-m', 'whisper', audioPath, '--model', model, '--device', 'cpu', '--fp16', 'False', '--language', 'bg']
+    return ['-m', 'whisper', audioPath, '--model', model, '--device', 'cpu', '--fp16', 'False', '--language', 'bg', '--output_format', 'txt', '--temperature', '0']
   }
-  // openai-whisper CLI - работеща команда за CPU
-  return [audioPath, '--model', model, '--device', 'cpu', '--fp16', 'False', '--language', 'bg']
+  // openai-whisper CLI - подобрени настройки за българско разпознаване
+  return [audioPath, '--model', model, '--device', 'cpu', '--fp16', 'False', '--language', 'bg', '--output_format', 'txt', '--temperature', '0']
 }
 
 function execWithPromise(cmd: string, args: string[], opts?: { timeoutMs?: number; env?: NodeJS.ProcessEnv }): Promise<{ code: number; stdout: string; stderr: string }> {

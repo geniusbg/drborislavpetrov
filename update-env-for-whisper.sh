@@ -46,7 +46,7 @@ sed -i '/STT_FALLBACK/d' .env
 echo "📝 Adding new Whisper settings..."
 echo "" >> .env
 echo "# Whisper STT Configuration" >> .env
-echo "WHISPER_MODEL=tiny" >> .env
+echo "WHISPER_MODEL=base" >> .env
 echo "WHISPER_CLI=whisper" >> .env
 echo "CUDA_VISIBLE_DEVICES=\"\"" >> .env
 echo "OMP_NUM_THREADS=4" >> .env
@@ -55,7 +55,7 @@ echo ""
 echo "✅ .env file updated successfully!"
 echo ""
 echo "📋 Added settings:"
-echo "WHISPER_MODEL=tiny"
+echo "WHISPER_MODEL=base"
 echo "WHISPER_CLI=whisper"
 echo "CUDA_VISIBLE_DEVICES=\"\""
 echo "OMP_NUM_THREADS=4"
