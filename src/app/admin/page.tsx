@@ -1908,12 +1908,14 @@ export default function AdminPage() {
                   {paginatedUsers.map((user) => (
                     <div key={user.id} className="bg-gray-50 rounded-lg p-4 border border-gray-200">
                       <div className="flex justify-between items-start mb-3">
-                        <div className="flex-1">
-                          <h3 className="font-medium text-gray-900">{user.name}</h3>
-                          <p className="text-sm text-gray-600">{user.phone}</p>
-                          {user.email && (
-                            <p className="text-sm text-gray-600">{user.email}</p>
-                          )}
+                        <div className="flex-1 min-w-0">
+                          <h3 className="font-semibold text-lg text-gray-900 break-words">{user.name}</h3>
+                          <div className="mt-2 space-y-1">
+                            <p className="text-sm text-gray-600 break-words">{user.phone}</p>
+                            {user.email && (
+                              <p className="text-sm text-gray-600 break-words">{user.email}</p>
+                            )}
+                          </div>
                         </div>
                       </div>
                       
@@ -1986,14 +1988,14 @@ export default function AdminPage() {
                   <tbody className="bg-white divide-y divide-gray-200">
                     {paginatedUsers.map((user) => (
                       <tr key={user.id} className="hover:bg-gray-50">
-                        <td className="px-2 sm:px-2.5 md:px-4 lg:px-6 py-4 max-w-0 text-sm font-medium text-gray-900">
-                          <div className="truncate">{user.name}</div>
+                        <td className="px-2 sm:px-2.5 md:px-4 lg:px-6 py-4 text-sm font-medium text-gray-900">
+                          <div className="truncate max-w-xs" title={user.name}>{user.name}</div>
                         </td>
-                        <td className="px-2 sm:px-2.5 md:px-4 lg:px-6 py-4 max-w-0 text-sm text-gray-900">
-                          <div className="truncate">{user.email || '-'}</div>
+                        <td className="px-2 sm:px-2.5 md:px-4 lg:px-6 py-4 text-sm text-gray-900">
+                          <div className="truncate max-w-xs" title={user.email || '-'}>{user.email || '-'}</div>
                         </td>
-                        <td className="px-2 sm:px-2.5 md:px-4 lg:px-6 py-4 max-w-0 text-sm text-gray-900">
-                          <div className="truncate">{user.phone}</div>
+                        <td className="px-2 sm:px-2.5 md:px-4 lg:px-6 py-4 text-sm text-gray-900">
+                          <div className="truncate max-w-xs" title={user.phone}>{user.phone}</div>
                         </td>
                         <td className="px-2 sm:px-2.5 md:px-4 lg:px-6 py-4 max-w-0 text-sm text-gray-500">
                           <div className="truncate">
