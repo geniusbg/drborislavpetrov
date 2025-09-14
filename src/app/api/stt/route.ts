@@ -100,9 +100,8 @@ export async function POST(req: Request) {
       console.log('✅ Final transcript:', cleanTranscript)
       return NextResponse.json({ text: cleanTranscript })
     } finally {
-      // Cleanup temp files
-      await safeUnlink(`${audioPath}.txt`)
-      await safeUnlink(audioPath)
+      // Cleanup all Whisper generated files
+      await cleanupWhisperFiles(audioPath)
     }
   } catch (e: unknown) {
     const errorMessage = e instanceof Error ? e.message : 'Грешка при STT'
@@ -134,6 +133,46 @@ async function safeUnlink(filePath: string) {
   try { await fs.unlink(filePath) } catch {}
 }
 
+async function cleanupWhisperFiles(audioPath: string) {
+  console.log('🧹 Cleaning up Whisper generated files...')
+  
+  // Whisper генерира различни типове файлове
+  const extensions = ['.txt', '.json', '.vtt', '.srt', '.tsv']
+  
+  // Почистване на оригиналния аудио файл
+  await safeUnlink(audioPath)
+  console.log('🗑️ Deleted audio file:', audioPath)
+  
+  // Почистване на всички генерирани файлове
+  for (const ext of extensions) {
+    const filePath = audioPath + ext
+    await safeUnlink(filePath)
+    console.log('🗑️ Deleted Whisper file:', filePath)
+  }
+  
+  // Проверка за други временни файлове в същата директория
+  try {
+    const dir = path.dirname(audioPath)
+    const baseName = path.basename(audioPath, path.extname(audioPath))
+    const files = await fs.readdir(dir)
+    
+    // Намиране на файлове които започват със същото име
+    const relatedFiles = files.filter(file => 
+      file.startsWith(baseName) && file !== path.basename(audioPath)
+    )
+    
+    for (const file of relatedFiles) {
+      const fullPath = path.join(dir, file)
+      await safeUnlink(fullPath)
+      console.log('🗑️ Deleted related file:', fullPath)
+    }
+    
+    console.log('✅ Cleanup completed')
+  } catch (cleanupError) {
+    console.log('⚠️ Cleanup error (non-critical):', cleanupError instanceof Error ? cleanupError.message : 'Unknown error')
+  }
+}
+
 function resolveWhisperCommand(): { cmd: string; mode: 'cli' | 'python' } | null {
   // Priority: explicit env > whisper cli > python -m whisper
   const explicit = process.env.WHISPER_CLI?.trim()
@@ -144,10 +183,10 @@ function resolveWhisperCommand(): { cmd: string; mode: 'cli' | 'python' } | null
 
 function buildWhisperArgs(cli: { cmd: string; mode: 'cli' | 'python' }, audioPath: string, model: string): string[] {
   if (cli.mode === 'python') {
-    return ['-m', 'whisper', audioPath, '--model', model, '--language', 'bg', '--output_format', 'txt', '--device', 'cpu']
+    return ['-m', 'whisper', audioPath, '--model', model, '--device', 'cpu', '--fp16', 'False', '--language', 'bg']
   }
-  // openai-whisper CLI - минимални аргументи за CPU
-  return [audioPath, '--model', model, '--language', 'bg', '--output_format', 'txt', '--device', 'cpu']
+  // openai-whisper CLI - работеща команда за CPU
+  return [audioPath, '--model', model, '--device', 'cpu', '--fp16', 'False', '--language', 'bg']
 }
 
 function execWithPromise(cmd: string, args: string[], opts?: { timeoutMs?: number; env?: NodeJS.ProcessEnv }): Promise<{ code: number; stdout: string; stderr: string }> {

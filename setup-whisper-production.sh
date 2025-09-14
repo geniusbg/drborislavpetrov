@@ -17,11 +17,16 @@ apt install python3 python3-pip python3-venv -y
 echo "🎵 Installing ffmpeg..."
 apt install ffmpeg -y
 
-# 4. Install CPU-only PyTorch first
-echo "🐍 Installing CPU-only PyTorch..."
-pip3 install torch torchvision torchaudio --index-url https://download.pytorch.org/whl/cpu
+# 4. Install specific working PyTorch versions
+echo "🐍 Installing PyTorch 2.1.2+cpu (tested working)..."
+pip3 install torch==2.1.2+cpu torchvision==0.16.2+cpu torchaudio==2.1.2+cpu --index-url https://download.pytorch.org/whl/cpu
 
-# 5. Install Whisper
+# 5. Fix NumPy version
+echo "🔢 Fixing NumPy version..."
+pip3 uninstall numpy -y
+pip3 install "numpy<2"
+
+# 6. Install Whisper
 echo "🎤 Installing Whisper..."
 pip3 install -U openai-whisper
 
@@ -39,9 +44,9 @@ whisper --version
 echo "🎵 Creating test audio file..."
 echo "Здравей, това е тест за Whisper" | espeak -s 120 -w /tmp/test.wav
 
-# 9. Test Whisper with Bulgarian
-echo "🇧🇬 Testing Whisper with Bulgarian..."
-whisper /tmp/test.wav --model small --language bg --output_format txt
+# 9. Test Whisper with working command
+echo "🇧🇬 Testing Whisper with working command..."
+whisper /tmp/test.wav --model tiny --device cpu --fp16 False --language bg
 
 # 10. Show results
 echo "📝 Test results:"
