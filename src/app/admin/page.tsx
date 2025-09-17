@@ -107,7 +107,7 @@ export default function AdminPage() {
 
   // WebSocket connection
   const { socket, isConnected, isSupported, joinAdmin } = useSocket()
-  const { isOnline, isOffline, syncPendingActions, getPendingCount } = useOffline()
+  const { } = useOffline()
 
   // Save sort state to localStorage
   useEffect(() => {

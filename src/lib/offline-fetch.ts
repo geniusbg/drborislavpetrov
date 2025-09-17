@@ -10,7 +10,7 @@ interface OfflineFetchOptions extends RequestInit {
   timeout?: number
   cache?: boolean
   cacheTTL?: number
-  fallbackData?: any
+  fallbackData?: unknown
   retryAttempts?: number
   retryDelay?: number
 }
@@ -19,7 +19,7 @@ interface OfflineFetchResponse extends Response {
   ok: boolean
   status: number
   statusText: string
-  json: () => Promise<any>
+  json: () => Promise<unknown>
   text: () => Promise<string>
   offline?: boolean
   fromCache?: boolean
@@ -181,7 +181,7 @@ class OfflineFetchManager {
     }
   }
 
-  private createResponse(data: any, metadata: { offline?: boolean; fromCache?: boolean } = {}): OfflineFetchResponse {
+  private createResponse(data: unknown, metadata: { offline?: boolean; fromCache?: boolean } = {}): OfflineFetchResponse {
     const response = new Response(JSON.stringify(data), {
       status: 200,
       statusText: 'OK',

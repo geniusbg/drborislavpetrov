@@ -45,7 +45,7 @@ const VoiceAssistant: React.FC<VoiceAssistantProps> = ({ onCommand, isListening,
   const recognitionRef = useRef<any>(null)
   const [isHolding, setIsHolding] = useState(false)
   const [statusLabel, setStatusLabel] = useState('')
-  const { isOnline, isOffline } = useOffline()
+  const { isOnline } = useOffline()
 
   // IndexedDB setup for offline queue
   const dbPromiseRef = useRef<Promise<IDBDatabase> | null>(null)

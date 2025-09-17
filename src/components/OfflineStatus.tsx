@@ -4,7 +4,7 @@
  */
 
 import React, { useState, useEffect } from 'react'
-import { Wifi, WifiOff, Sync, AlertCircle, CheckCircle } from 'lucide-react'
+import { Wifi, WifiOff, RotateCcw, AlertCircle, CheckCircle } from 'lucide-react'
 import { useOffline } from '@/hooks/useOffline'
 
 interface OfflineStatusProps {
@@ -128,9 +128,9 @@ export default function OfflineStatus({ showDetails = false, className = '' }: O
             className="flex items-center gap-1 px-3 py-1 bg-blue-500 text-white text-sm rounded-md hover:bg-blue-600 disabled:opacity-50"
           >
             {isSyncing ? (
-              <Sync className="w-4 h-4 animate-spin" />
+              <RotateCcw className="w-4 h-4 animate-spin" />
             ) : (
-              <Sync className="w-4 h-4" />
+                     <RotateCcw className="w-4 h-4" />
             )}
             Синхронизирай
           </button>

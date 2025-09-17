@@ -20,7 +20,7 @@ const BookingForm = ({ booking, onSubmit, onCancel, onDelete }: BookingFormProps
   const [services, setServices] = useState<ServiceType[]>([])
   const [availableTimeSlots, setAvailableTimeSlots] = useState<string[]>([])
   const [loadingTimeSlots, setLoadingTimeSlots] = useState(false)
-  const { isOnline, isOffline } = useOffline()
+  const { isOnline } = useOffline()
   const [isSubmitting, setIsSubmitting] = useState(false)
 
   // Generate basic time slots for offline mode

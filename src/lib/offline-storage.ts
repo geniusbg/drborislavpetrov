@@ -5,7 +5,7 @@
 
 interface StoredData {
   id: string
-  data: any
+  data: unknown
   timestamp: number
   version: number
   synced: boolean
@@ -14,7 +14,7 @@ interface StoredData {
 interface SyncAction {
   id: string
   action: 'create' | 'update' | 'delete'
-  data: any
+  data: unknown
   timestamp: number
   retries: number
   maxRetries: number
@@ -126,7 +126,7 @@ class OfflineStorage {
   }
 
   // Generic data storage methods
-  public async storeData(storeName: string, data: any): Promise<void> {
+  public async storeData(storeName: string, data: unknown): Promise<void> {
     try {
       const db = await this.getDB()
       const transaction = db.transaction([storeName], 'readwrite')
@@ -151,14 +151,14 @@ class OfflineStorage {
     }
   }
 
-  public async getData(storeName: string, id?: string): Promise<any[]> {
+  public async getData(storeName: string, id?: string): Promise<unknown[]> {
     try {
       const db = await this.getDB()
       const transaction = db.transaction([storeName], 'readonly')
       const store = transaction.objectStore(storeName)
       
       return new Promise((resolve, reject) => {
-        const results: any[] = []
+        const results: unknown[] = []
         
         if (id) {
           const request = store.get(id)
@@ -202,38 +202,38 @@ class OfflineStorage {
   }
 
   // Specific methods for different data types
-  public async storeBookings(bookings: any[]): Promise<void> {
+  public async storeBookings(bookings: unknown[]): Promise<void> {
     for (const booking of bookings) {
       await this.storeData(this.config.stores.bookings, booking)
     }
   }
 
-  public async getBookings(): Promise<any[]> {
+  public async getBookings(): Promise<unknown[]> {
     return await this.getData(this.config.stores.bookings)
   }
 
-  public async storeServices(services: any[]): Promise<void> {
+  public async storeServices(services: unknown[]): Promise<void> {
     for (const service of services) {
       await this.storeData(this.config.stores.services, service)
     }
   }
 
-  public async getServices(): Promise<any[]> {
+  public async getServices(): Promise<unknown[]> {
     return await this.getData(this.config.stores.services)
   }
 
-  public async storeUsers(users: any[]): Promise<void> {
+  public async storeUsers(users: unknown[]): Promise<void> {
     for (const user of users) {
       await this.storeData(this.config.stores.users, user)
     }
   }
 
-  public async getUsers(): Promise<any[]> {
+  public async getUsers(): Promise<unknown[]> {
     return await this.getData(this.config.stores.users)
   }
 
   // Cache management
-  public async cacheResponse(key: string, data: any, ttl: number = 300000): Promise<void> {
+  public async cacheResponse(key: string, data: unknown, ttl: number = 300000): Promise<void> {
     try {
       const db = await this.getDB()
       const transaction = db.transaction([this.config.stores.cache], 'readwrite')
@@ -256,7 +256,7 @@ class OfflineStorage {
     }
   }
 
-  public async getCachedData(key: string): Promise<any | null> {
+  public async getCachedData<T = unknown>(key: string): Promise<T | null> {
     try {
       const db = await this.getDB()
       const transaction = db.transaction([this.config.stores.cache], 'readonly')
@@ -338,7 +338,7 @@ class OfflineStorage {
   }
 
   // Sync processing
-  public async processSyncItem(item: SyncAction, apiCall: (data: any) => Promise<any>): Promise<boolean> {
+  public async processSyncItem(item: SyncAction, apiCall: (data: unknown) => Promise<unknown>): Promise<boolean> {
     try {
       await apiCall(item.data)
       await this.removeFromSyncQueue(item.id)

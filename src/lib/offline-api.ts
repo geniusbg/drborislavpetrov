@@ -1,13 +1,13 @@
 /**
- * Offline-first API wrapper with automatic caching and synchronization
- * Provides seamless online/offline API experience
+ * Offline-first API wrapper
+ * Handles online/offline states and provides caching/fallback
  */
 
 import { offlineDetector } from './offline-detector'
 import { offlineStorage } from './offline-storage'
 import { offlineFetch, OfflineFetchOptions } from './offline-fetch'
 
-interface ApiResponse<T = any> {
+interface ApiResponse<T = unknown> {
   data?: T
   error?: string
   offline?: boolean
@@ -18,27 +18,24 @@ interface ApiResponse<T = any> {
 interface ApiRequestOptions extends OfflineFetchOptions {
   endpoint: string
   method?: 'GET' | 'POST' | 'PUT' | 'DELETE' | 'PATCH'
-  data?: any
+  data?: unknown
   headers?: Record<string, string>
   timeout?: number
   cache?: boolean
   cacheTTL?: number
-  fallbackData?: any
+  fallbackData?: unknown
   retryAttempts?: number
   retryDelay?: number
 }
 
 class OfflineAPI {
-  private baseURL: string = ''
-  private defaultHeaders: Record<string, string> = {
-    'Content-Type': 'application/json'
-  }
+  private baseURL: string
 
   constructor(baseURL: string = '') {
     this.baseURL = baseURL
   }
 
-  public async request<T = any>(options: ApiRequestOptions): Promise<ApiResponse<T>> {
+  public async request<T = unknown>(options: ApiRequestOptions): Promise<ApiResponse<T>> {
     const {
       endpoint,
       method = 'GET',
@@ -46,311 +43,184 @@ class OfflineAPI {
       headers = {},
       timeout = 10000,
       cache = true,
-      cacheTTL = 300000, // 5 minutes
+      cacheTTL = 5 * 60 * 1000, // 5 minutes
       fallbackData,
       retryAttempts = 3,
       retryDelay = 1000,
       ...fetchOptions
     } = options
 
-    const url = this.buildURL(endpoint)
-    const requestOptions: RequestInit = {
-      method,
-      headers: {
-        ...this.defaultHeaders,
-        ...headers
-      },
-      ...fetchOptions
-    }
+    const url = `${this.baseURL}${endpoint}`
+    const cacheKey = `${method}:${url}`
 
-    // Add body for non-GET requests
-    if (data && method !== 'GET') {
-      requestOptions.body = JSON.stringify(data)
-    }
-
-    try {
-      const response = await offlineFetch.fetch(url, {
-        ...requestOptions,
-        timeout,
-        cache,
-        cacheTTL,
-        fallbackData,
-        retryAttempts,
-        retryDelay
-      })
-
-      const responseData = await response.json()
-
-      return {
-        data: responseData,
-        offline: response.offline || false,
-        fromCache: response.fromCache || false,
-        cached: response.cached || false
+    // Check if we can make a request
+    if (!offlineDetector.canMakeRequest()) {
+      console.log(`[OfflineAPI] Offline detected for ${url}, using cached data`)
+      
+      // Try to get cached data
+      const cachedData = await this.getCachedData<T>(cacheKey)
+      if (cachedData) {
+        return {
+          data: cachedData,
+          fromCache: true,
+          offline: true
+        }
       }
 
-    } catch (error) {
-      console.error(`[OfflineAPI] Request failed for ${endpoint}:`, error)
-      
-      // Try to get cached data as fallback
-      if (cache) {
-        const cachedData = await offlineStorage.getCachedData(url)
-        if (cachedData) {
-          return {
-            data: cachedData,
-            offline: true,
-            fromCache: true,
-            cached: true
-          }
+      // Use fallback data if available
+      if (fallbackData) {
+        return {
+          data: fallbackData as T,
+          offline: true
         }
       }
 
       return {
-        error: error instanceof Error ? error.message : 'Unknown error',
-        offline: !offlineDetector.isOnline()
+        error: 'No internet connection and no cached data available',
+        offline: true
+      }
+    }
+
+    try {
+      // Mark that we're attempting a request
+      offlineDetector.markRequestAttempted()
+
+      const response = await offlineFetch(url, {
+        method,
+        headers: {
+          'Content-Type': 'application/json',
+          ...headers
+        },
+        body: data ? JSON.stringify(data) : undefined,
+        timeout,
+        ...fetchOptions
+      })
+
+      if (response.ok) {
+        const responseData = await response.json() as T
+        
+        // Cache the response if caching is enabled
+        if (cache) {
+          await this.cacheResponse(cacheKey, responseData, cacheTTL)
+        }
+
+        return {
+          data: responseData,
+          fromCache: response.fromCache || false
+        }
+      } else {
+        const errorData = await response.json().catch(() => ({ error: 'Unknown error' })) as { error?: string }
+        return {
+          error: errorData.error || `HTTP ${response.status}: ${response.statusText}`,
+          offline: response.offline || false
+        }
+      }
+    } catch (error) {
+      console.warn(`[OfflineAPI] Request failed for ${url}, trying cached data:`, error)
+      
+      // Try to get cached data as fallback
+      const cachedData = await this.getCachedData<T>(cacheKey)
+      if (cachedData) {
+        return {
+          data: cachedData,
+          fromCache: true,
+          offline: true
+        }
+      }
+
+      // Use fallback data if available
+      if (fallbackData) {
+        return {
+          data: fallbackData as T,
+          offline: true
+        }
+      }
+
+      return {
+        error: error instanceof Error ? error.message : 'Network request failed',
+        offline: true
       }
     }
   }
 
   // Convenience methods
-  public async get<T = any>(endpoint: string, options: Partial<ApiRequestOptions> = {}): Promise<ApiResponse<T>> {
-    return this.request<T>({
-      ...options,
-      endpoint,
-      method: 'GET'
-    })
+  async get<T = unknown>(endpoint: string, options: Partial<ApiRequestOptions> = {}): Promise<ApiResponse<T>> {
+    return this.request<T>({ ...options, endpoint, method: 'GET' })
   }
 
-  public async post<T = any>(endpoint: string, data?: any, options: Partial<ApiRequestOptions> = {}): Promise<ApiResponse<T>> {
-    return this.request<T>({
-      ...options,
-      endpoint,
-      method: 'POST',
-      data
-    })
+  async post<T = unknown>(endpoint: string, data?: unknown, options: Partial<ApiRequestOptions> = {}): Promise<ApiResponse<T>> {
+    return this.request<T>({ ...options, endpoint, method: 'POST', data })
   }
 
-  public async put<T = any>(endpoint: string, data?: any, options: Partial<ApiRequestOptions> = {}): Promise<ApiResponse<T>> {
-    return this.request<T>({
-      ...options,
-      endpoint,
-      method: 'PUT',
-      data
-    })
+  async put<T = unknown>(endpoint: string, data?: unknown, options: Partial<ApiRequestOptions> = {}): Promise<ApiResponse<T>> {
+    return this.request<T>({ ...options, endpoint, method: 'PUT', data })
   }
 
-  public async delete<T = any>(endpoint: string, options: Partial<ApiRequestOptions> = {}): Promise<ApiResponse<T>> {
-    return this.request<T>({
-      ...options,
-      endpoint,
-      method: 'DELETE'
-    })
+  async delete<T = unknown>(endpoint: string, options: Partial<ApiRequestOptions> = {}): Promise<ApiResponse<T>> {
+    return this.request<T>({ ...options, endpoint, method: 'DELETE' })
   }
 
-  public async patch<T = any>(endpoint: string, data?: any, options: Partial<ApiRequestOptions> = {}): Promise<ApiResponse<T>> {
-    return this.request<T>({
-      ...options,
-      endpoint,
-      method: 'PATCH',
-      data
-    })
-  }
-
-  // Specialized methods for common endpoints
-  public async getBookings(): Promise<ApiResponse> {
-    const response = await this.get('/api/admin/bookings', {
+  // Specific API methods
+  async getBookings(): Promise<ApiResponse<{ bookings: unknown[] }>> {
+    return this.get('/api/admin/bookings', {
       cache: true,
-      cacheTTL: 60000, // 1 minute
-      fallbackData: await offlineStorage.getBookings()
+      cacheTTL: 2 * 60 * 1000, // 2 minutes
+      fallbackData: { bookings: [] }
     })
-
-    // Store in offline storage if successful
-    if (response.data && !response.offline) {
-      await offlineStorage.storeBookings(response.data)
-    }
-
-    return response
   }
 
-  public async getServices(): Promise<ApiResponse> {
-    const response = await this.get('/api/admin/services', {
+  async getServices(): Promise<ApiResponse<{ services: unknown[] }>> {
+    return this.get('/api/admin/services', {
       cache: true,
-      cacheTTL: 300000, // 5 minutes
-      fallbackData: await offlineStorage.getServices()
+      cacheTTL: 5 * 60 * 1000, // 5 minutes
+      fallbackData: { services: [] }
     })
-
-    // Store in offline storage if successful
-    if (response.data && !response.offline) {
-      await offlineStorage.storeServices(response.data)
-    }
-
-    return response
   }
 
-  public async getUsers(): Promise<ApiResponse> {
-    const response = await this.get('/api/admin/users', {
+  async getUsers(): Promise<ApiResponse<{ users: unknown[] }>> {
+    return this.get('/api/admin/users', {
       cache: true,
-      cacheTTL: 300000, // 5 minutes
-      fallbackData: await offlineStorage.getUsers()
+      cacheTTL: 10 * 60 * 1000, // 10 minutes
+      fallbackData: { users: [] }
     })
-
-    // Store in offline storage if successful
-    if (response.data && !response.offline) {
-      await offlineStorage.storeUsers(response.data)
-    }
-
-    return response
   }
 
-  public async createBooking(bookingData: any): Promise<ApiResponse> {
-    const response = await this.post('/api/admin/bookings', bookingData, {
-      cache: false,
-      retryAttempts: 5,
-      retryDelay: 2000
-    })
-
-    // Add to sync queue if offline
-    if (response.offline) {
-      await offlineStorage.addToSyncQueue({
-        id: `booking-${Date.now()}`,
-        action: 'create',
-        data: bookingData,
-        timestamp: Date.now(),
-        retries: 0,
-        maxRetries: 5
-      })
+  // Cache management
+  private async cacheResponse(key: string, data: unknown, ttl: number): Promise<void> {
+    try {
+      await offlineStorage.cacheResponse(key, data, ttl)
+    } catch (error) {
+      console.warn('[OfflineAPI] Failed to cache response:', error)
     }
-
-    return response
   }
 
-  public async updateBooking(id: string, bookingData: any): Promise<ApiResponse> {
-    const response = await this.put(`/api/admin/bookings/${id}`, bookingData, {
-      cache: false,
-      retryAttempts: 5,
-      retryDelay: 2000
-    })
-
-    // Add to sync queue if offline
-    if (response.offline) {
-      await offlineStorage.addToSyncQueue({
-        id: `booking-update-${id}-${Date.now()}`,
-        action: 'update',
-        data: { id, ...bookingData },
-        timestamp: Date.now(),
-        retries: 0,
-        maxRetries: 5
-      })
+  private async getCachedData<T>(key: string): Promise<T | null> {
+    try {
+      return await offlineStorage.getCachedData<T>(key)
+    } catch (error) {
+      console.warn('[OfflineAPI] Failed to get cached data:', error)
+      return null
     }
-
-    return response
-  }
-
-  public async deleteBooking(id: string): Promise<ApiResponse> {
-    const response = await this.delete(`/api/admin/bookings/${id}`, {
-      cache: false,
-      retryAttempts: 5,
-      retryDelay: 2000
-    })
-
-    // Add to sync queue if offline
-    if (response.offline) {
-      await offlineStorage.addToSyncQueue({
-        id: `booking-delete-${id}-${Date.now()}`,
-        action: 'delete',
-        data: { id },
-        timestamp: Date.now(),
-        retries: 0,
-        maxRetries: 5
-      })
-    }
-
-    return response
   }
 
   // Sync management
-  public async syncPendingActions(): Promise<{ success: number; failed: number }> {
-    if (!offlineDetector.isOnline()) {
-      return { success: 0, failed: 0 }
-    }
-
-    const syncQueue = await offlineStorage.getSyncQueue()
-    let success = 0
-    let failed = 0
-
-    for (const item of syncQueue) {
-      try {
-        const apiCall = this.getApiCallForAction(item.action)
-        const success = await offlineStorage.processSyncItem(item, apiCall)
-        
-        if (success) {
-          success++
-        } else {
-          failed++
-        }
-      } catch (error) {
-        console.error(`[OfflineAPI] Sync failed for item ${item.id}:`, error)
-        failed++
-      }
-    }
-
-    return { success, failed }
-  }
-
-  private getApiCallForAction(action: string): (data: any) => Promise<any> {
-    switch (action) {
-      case 'create':
-        return (data) => this.createBooking(data)
-      case 'update':
-        return (data) => this.updateBooking(data.id, data)
-      case 'delete':
-        return (data) => this.deleteBooking(data.id)
-      default:
-        throw new Error(`Unknown action: ${action}`)
-    }
-  }
-
-  // Utility methods
-  private buildURL(endpoint: string): string {
-    if (endpoint.startsWith('http')) {
-      return endpoint
-    }
-    
-    const base = this.baseURL || (typeof window !== 'undefined' ? window.location.origin : '')
-    return `${base}${endpoint.startsWith('/') ? endpoint : `/${endpoint}`}`
-  }
-
-  public setBaseURL(baseURL: string): void {
-    this.baseURL = baseURL
-  }
-
-  public setDefaultHeaders(headers: Record<string, string>): void {
-    this.defaultHeaders = { ...this.defaultHeaders, ...headers }
-  }
-
-  public async clearCache(): Promise<void> {
-    await offlineStorage.clearExpiredCache()
-  }
-
-  public async getPendingSyncCount(): Promise<number> {
-    return await offlineStorage.getPendingCount()
-  }
-
-  // Health check
-  public async healthCheck(): Promise<boolean> {
+  async getPendingSyncCount(): Promise<number> {
     try {
-      const response = await this.get('/api/health', {
-        timeout: 5000,
-        cache: false
-      })
-      return response.data?.status === 'ok'
-    } catch {
-      return false
+      return await offlineStorage.getPendingCount()
+    } catch (error) {
+      console.warn('[OfflineAPI] Failed to get pending sync count:', error)
+      return 0
+    }
+  }
+
+  async syncPendingActions(): Promise<void> {
+    try {
+      await offlineStorage.syncActions()
+    } catch (error) {
+      console.warn('[OfflineAPI] Failed to sync pending actions:', error)
     }
   }
 }
 
-// Export singleton instance
 export const offlineAPI = new OfflineAPI()
-
-// Export types
 export type { ApiResponse, ApiRequestOptions }
