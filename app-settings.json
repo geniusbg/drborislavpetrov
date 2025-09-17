@@ -1,6 +1,6 @@
 {
   "site": {
-    "domain": "http://localhost:3000"
+    "domain": "https://drpetrov.bg"
   },
   "defaultWorkingHours": {
     "workingDays": [
