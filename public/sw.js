@@ -1,8 +1,6 @@
 // Service Worker for offline caching
 const CACHE_NAME = 'drborislavpetrov-v2';
 const urlsToCache = [
-  '/',
-  '/admin',
   '/offline.html',
   '/manifest.json',
   '/admin-manifest.json',
@@ -10,8 +8,7 @@ const urlsToCache = [
   '/icon-192.png',
   '/icon-512.png',
   '/admin-icon-192.png',
-  '/admin-icon-512.png',
-  '/sw.js'
+  '/admin-icon-512.png'
 ];
 
 function canCacheRequest(request) {
@@ -26,10 +23,22 @@ function canCacheRequest(request) {
 self.addEventListener('install', (event) => {
   event.waitUntil(
     caches.open(CACHE_NAME)
-      .then((cache) => cache.addAll(urlsToCache))
+      .then((cache) => {
+        // Кешираме файловете поотделно за по-добра обработка на грешки
+        return Promise.allSettled(
+          urlsToCache.map(url => 
+            cache.add(url).catch(error => {
+              console.warn(`Failed to cache ${url}:`, error);
+              return null; // Продължаваме дори ако някой файл не може да бъде кеширан
+            })
+          )
+        );
+      })
       .then(() => self.skipWaiting())
       .catch((error) => {
         console.error('Service Worker: Cache failed:', error);
+        // Продължаваме дори ако кеширането не успее
+        self.skipWaiting();
       })
   );
 });
@@ -146,7 +155,24 @@ self.addEventListener('fetch', (event) => {
                     });
                   });
                 }
-                return offlinePage;
+                // Fallback ако offline.html не е наличен
+                return new Response(`
+                  <!DOCTYPE html>
+                  <html>
+                  <head>
+                    <title>Офлайн - Д-р Борислав Петров</title>
+                    <meta charset="UTF-8">
+                    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+                  </head>
+                  <body style="font-family: Arial, sans-serif; text-align: center; padding: 50px; background: #f3f4f6;">
+                    <h1>Няма интернет връзка</h1>
+                    <p>Моля, проверете връзката си и опитайте отново.</p>
+                    <button onclick="window.location.reload()">Опитай отново</button>
+                  </body>
+                  </html>
+                `, {
+                  headers: { 'Content-Type': 'text/html' }
+                });
               });
             });
         })

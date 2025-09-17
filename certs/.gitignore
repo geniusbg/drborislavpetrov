@@ -1,0 +1,5 @@
+﻿# SSL certificates for development
+*.key
+*.crt
+*.pem
+*.pfx

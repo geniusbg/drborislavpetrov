@@ -44,8 +44,6 @@ const DailySchedule = ({ date, onClose, onEditWorkingHours, onEditBooking, onDel
       setLoading(true)
       const adminToken = localStorage.getItem('adminToken')
       
-      console.log('📅 DailySchedule: loadDailySchedule called with date:', date, 'at:', getBulgariaTime().toISOString())
-      console.log('📅 DailySchedule: showBookingForm:', showBookingForm)
       
       // Load both schedule and services
       const [scheduleResponse, servicesResponse] = await Promise.all([
@@ -64,13 +62,11 @@ const DailySchedule = ({ date, onClose, onEditWorkingHours, onEditBooking, onDel
       if (scheduleResponse.ok) {
         const scheduleData = await scheduleResponse.json()
         setSchedule(scheduleData)
-        console.log('📅 DailySchedule: Schedule loaded successfully')
       }
       
       if (servicesResponse.ok) {
         const servicesData = await servicesResponse.json()
         setServices(servicesData.services)
-        console.log('📅 DailySchedule: Services loaded successfully')
       }
     } catch (error) {
       console.error('Error loading daily schedule:', error)
@@ -134,7 +130,6 @@ const DailySchedule = ({ date, onClose, onEditWorkingHours, onEditBooking, onDel
       
       // Listen for booking updates for this specific date
       const handleBookingAdded = (newBooking: Booking) => {
-        console.log('📅 DailySchedule: handleBookingAdded called with:', newBooking)
         if (newBooking.date !== date) return
 
         setSchedule(prev => {
@@ -142,7 +137,6 @@ const DailySchedule = ({ date, onClose, onEditWorkingHours, onEditBooking, onDel
           // Check if booking already exists to prevent duplicates
           const existingBooking = prev.bookings.find(b => b.id === newBooking.id)
           if (existingBooking) {
-            console.log('📅 DailySchedule: Booking already exists, skipping duplicate')
             return prev
           }
           
@@ -156,17 +150,14 @@ const DailySchedule = ({ date, onClose, onEditWorkingHours, onEditBooking, onDel
 
         // Only close modal if the added booking is the one we're currently editing
         if (showBookingForm && editingBooking && newBooking.id === editingBooking.id) {
-          console.log('📅 DailySchedule: Closing modal after booking updated via WebSocket')
           setIsModalClosing(true)
           setShowBookingForm(false)
           setEditingBooking(null)
           setTimeout(() => setIsModalClosing(false), 500)
         }
-        console.log('📅 DailySchedule: Booking added, modal should stay closed')
       }
 
       const handleBookingUpdated = (updatedBooking: Booking) => {
-        console.log('📅 DailySchedule: handleBookingUpdated called with:', updatedBooking)
         setSchedule(prev => {
           if (!prev) return null
           const replaced = prev.bookings.map(booking => (
@@ -403,7 +394,6 @@ const DailySchedule = ({ date, onClose, onEditWorkingHours, onEditBooking, onDel
     setLoadingActions(prev => ({ ...prev, [actionKey]: true }))
     
     if (showBookingForm || isModalClosing) {
-      console.log('📅 DailySchedule: Modal already open or closing, not opening again for edit')
       setLoadingActions(prev => ({ ...prev, [actionKey]: false }))
       return
     }

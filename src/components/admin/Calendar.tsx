@@ -195,6 +195,7 @@ const Calendar = ({ bookings, onBookingClick, onAddBooking, onNavigateToDailySch
       const startDate = dateToLocalDateString(new Date(currentDate.getFullYear(), currentDate.getMonth(), 1))
       const endDate = dateToLocalDateString(new Date(currentDate.getFullYear(), currentDate.getMonth() + 1, 0))
       
+      
       const response = await fetch(`/api/admin/working-hours?startDate=${startDate}&endDate=${endDate}`, {
         headers: {
           'x-admin-token': adminToken || ''
@@ -205,14 +206,7 @@ const Calendar = ({ bookings, onBookingClick, onAddBooking, onNavigateToDailySch
         const data = await response.json()
         setWorkingHours(data.workingHours)
         
-        // Изчисляваме свободните часове след зареждане на работните часове
-        if (services.length > 0) {
-          // Изчисляваме веднага, без setTimeout
-          calculateAvailableSlots()
-        }
-        
-        // Скриваме loading индикатора след зареждане на работните часове
-        setIsMonthDataLoading(false)
+        // НЕ скриваме loading индикатора тук - ще го скрием когато всичко е готово
       } else {
         setIsMonthDataLoading(false)
       }
@@ -299,13 +293,22 @@ const Calendar = ({ bookings, onBookingClick, onAddBooking, onNavigateToDailySch
     // Зареди данните за новия месец
     const currentMonthString = `${currentDate.getFullYear()}-${String(currentDate.getMonth() + 1).padStart(2, '0')}`
     
-    // Зареди работните часове за новия месец
-    loadWorkingHours()
-    
-    // Също така изчисли свободните часове ако имаме услуги
-    if (services.length > 0) {
-      calculateAvailableSlots()
+    // Зареди работните часове за новия месец и след това изчисли свободните часове
+    const loadData = async () => {
+      await loadWorkingHours()
+      
+      // Изчисли свободните часове след като се заредят работните часове
+      if (services.length > 0) {
+        setTimeout(() => {
+          calculateAvailableSlots()
+        }, 10) // Намалих забавянето до минимум
+      } else {
+        // Ако няма услуги, скриваме loading индикатора веднага
+        setIsMonthDataLoading(false)
+      }
     }
+    
+    loadData()
   }, [currentDate, loadWorkingHours])
 
   // Инициализира временните стойности когато се отвори модала
@@ -490,9 +493,6 @@ const Calendar = ({ bookings, onBookingClick, onAddBooking, onNavigateToDailySch
   const calculateAvailableSlots = () => {
     // Не проверяваме isMonthDataLoading тук - искаме да изчислим свободните часове когато имаме данните
     
-
-    
-    
     // Проверяваме дали имаме нужните данни
     if (services.length === 0) {
       return
@@ -624,10 +624,14 @@ const Calendar = ({ bookings, onBookingClick, onAddBooking, onNavigateToDailySch
     
     setAvailableSlots(slots)
     
+    
+    // Скриваме loading индикатора когато всичко е готово
+    setIsMonthDataLoading(false)
+    
     // Принудително re-render за да се покажат правилните данни
     setTimeout(() => {
       setForceUpdate(prev => prev + 1)
-    }, 100)
+    }, 10) // Намалих забавянето до минимум
   }
 
   // Изчисли свободните часове когато се променят данните
@@ -641,11 +645,11 @@ const Calendar = ({ bookings, onBookingClick, onAddBooking, onNavigateToDailySch
     if (hasAllRequiredData) {
       const timeoutId = setTimeout(() => {
         calculateAvailableSlots()
-      }, 100) // Debounce от 100ms за по-бързо обновяване
+      }, 10) // Намалих debounce до минимум
       
       return () => clearTimeout(timeoutId)
     }
-  }, [defaultWorkingHours.workingDays.length, selectedService, services])
+  }, [defaultWorkingHours.workingDays.length, selectedService, services, workingHours])
 
   // Функция за проверка дали денят има свободни часове
   const hasAvailableSlots = (date: Date) => {

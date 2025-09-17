@@ -1920,7 +1920,17 @@ export default function AdminPage() {
                       </div>
                       
                       <div className="text-sm text-gray-500 mb-3">
-                        Създаден: {user.createdat ? new Date(user.createdat).toLocaleDateString('bg-BG') : '-'}
+                        <div className="font-medium text-gray-700">Създаден:</div>
+                        <div className="break-words">
+                          {user.createdat ? new Date(user.createdat).toLocaleDateString('bg-BG', {
+                            year: 'numeric',
+                            month: '2-digit',
+                            day: '2-digit'
+                          }) + ' ' + new Date(user.createdat).toLocaleTimeString('bg-BG', {
+                            hour: '2-digit',
+                            minute: '2-digit'
+                          }) : '-'}
+                        </div>
                       </div>
                       
                       <div className="flex justify-end space-x-2 pt-3 border-t border-gray-200">
@@ -1977,7 +1987,7 @@ export default function AdminPage() {
                       <th className="px-2 sm:px-2.5 md:px-4 lg:px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                         Телефон
                       </th>
-                      <th className="px-2 sm:px-2.5 md:px-4 lg:px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                      <th className="px-2 sm:px-2.5 md:px-4 lg:px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider min-w-32">
                         Създаден на
                       </th>
                       <th className="px-2 sm:px-2.5 md:px-4 lg:px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
@@ -1997,18 +2007,20 @@ export default function AdminPage() {
                         <td className="px-2 sm:px-2.5 md:px-4 lg:px-6 py-4 text-sm text-gray-900">
                           <div className="truncate max-w-xs" title={user.phone}>{user.phone}</div>
                         </td>
-                        <td className="px-2 sm:px-2.5 md:px-4 lg:px-6 py-4 max-w-0 text-sm text-gray-500">
-                          <div className="truncate">
+                        <td className="px-2 sm:px-2.5 md:px-4 lg:px-6 py-4 text-sm text-gray-500 min-w-0">
+                          <div className="whitespace-nowrap text-xs" title={user.createdat ? new Date(user.createdat).toLocaleDateString('bg-BG', {
+                            year: 'numeric',
+                            month: '2-digit',
+                            day: '2-digit'
+                          }) + ' ' + new Date(user.createdat).toLocaleTimeString('bg-BG', {
+                            hour: '2-digit',
+                            minute: '2-digit'
+                          }) : '-'}>
                             {user.createdat ? new Date(user.createdat).toLocaleDateString('bg-BG', {
                               year: 'numeric',
                               month: '2-digit',
-                              day: '2-digit',
-                              hour: '2-digit',
-                              minute: '2-digit'
-                            }) : user.createdat ? new Date(user.createdat).toLocaleDateString('bg-BG', {
-                              year: 'numeric',
-                              month: '2-digit',
-                              day: '2-digit',
+                              day: '2-digit'
+                            }) + ' ' + new Date(user.createdat).toLocaleTimeString('bg-BG', {
                               hour: '2-digit',
                               minute: '2-digit'
                             }) : '-'}
