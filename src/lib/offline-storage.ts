@@ -48,7 +48,10 @@ class OfflineStorage {
   }
 
   constructor() {
-    this.initializeDB()
+    // Only initialize on client side
+    if (typeof window !== 'undefined' && 'indexedDB' in window) {
+      this.initializeDB()
+    }
   }
 
   private async initializeDB(): Promise<IDBDatabase> {
@@ -127,6 +130,12 @@ class OfflineStorage {
 
   // Generic data storage methods
   public async storeData(storeName: string, data: unknown): Promise<void> {
+    // Check if we're in browser environment
+    if (typeof window === 'undefined' || typeof indexedDB === 'undefined') {
+      console.warn('[OfflineStorage] IndexedDB not available, skipping store operation')
+      return
+    }
+
     try {
       const db = await this.getDB()
       const transaction = db.transaction([storeName], 'readwrite')
@@ -152,6 +161,12 @@ class OfflineStorage {
   }
 
   public async getData(storeName: string, id?: string): Promise<unknown[]> {
+    // Check if we're in browser environment
+    if (typeof window === 'undefined' || typeof indexedDB === 'undefined') {
+      console.warn('[OfflineStorage] IndexedDB not available, returning empty array')
+      return []
+    }
+
     try {
       const db = await this.getDB()
       const transaction = db.transaction([storeName], 'readonly')
@@ -282,6 +297,12 @@ class OfflineStorage {
 
   // Sync queue management
   public async addToSyncQueue(action: SyncAction): Promise<void> {
+    // Check if we're in browser environment
+    if (typeof window === 'undefined' || typeof indexedDB === 'undefined') {
+      console.warn('[OfflineStorage] IndexedDB not available, skipping sync queue operation')
+      return
+    }
+
     try {
       const db = await this.getDB()
       const transaction = db.transaction([this.config.stores.syncQueue], 'readwrite')
@@ -299,6 +320,12 @@ class OfflineStorage {
   }
 
   public async getSyncQueue(): Promise<SyncAction[]> {
+    // Check if we're in browser environment
+    if (typeof window === 'undefined' || typeof indexedDB === 'undefined') {
+      console.warn('[OfflineStorage] IndexedDB not available, returning empty sync queue')
+      return []
+    }
+
     try {
       const db = await this.getDB()
       const transaction = db.transaction([this.config.stores.syncQueue], 'readonly')
@@ -333,6 +360,11 @@ class OfflineStorage {
   }
 
   public async getPendingCount(): Promise<number> {
+    // Check if we're in browser environment
+    if (typeof window === 'undefined' || typeof indexedDB === 'undefined') {
+      return 0
+    }
+
     const queue = await this.getSyncQueue()
     return queue.length
   }
@@ -361,6 +393,12 @@ class OfflineStorage {
 
   // Sync all pending actions
   public async syncActions(): Promise<void> {
+    // Check if we're in browser environment
+    if (typeof window === 'undefined' || typeof indexedDB === 'undefined') {
+      console.warn('[OfflineStorage] IndexedDB not available, skipping sync actions')
+      return
+    }
+
     try {
       const queue = await this.getSyncQueue()
       console.log(`[OfflineStorage] Syncing ${queue.length} pending actions`)
