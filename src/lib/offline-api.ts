@@ -85,7 +85,7 @@ class OfflineAPI {
       // Mark that we're attempting a request
       offlineDetector.markRequestAttempted()
 
-      const response = await offlineFetch(url, {
+      const response = await offlineFetch.fetch(url, {
         method,
         headers: {
           'Content-Type': 'application/json',

@@ -6,7 +6,7 @@
 import { offlineDetector } from './offline-detector'
 import { offlineStorage } from './offline-storage'
 
-interface OfflineFetchOptions extends RequestInit {
+interface OfflineFetchOptions extends Omit<RequestInit, 'cache'> {
   timeout?: number
   cache?: boolean
   cacheTTL?: number
@@ -37,7 +37,7 @@ class OfflineFetchManager {
     input: RequestInfo | URL,
     options: OfflineFetchOptions = {}
   ): Promise<OfflineFetchResponse> {
-    const url = typeof input === 'string' ? input : input.url
+    const url = typeof input === 'string' ? input : input instanceof URL ? input.toString() : input.url
     const {
       timeout = this.defaultTimeout,
       cache = true,
@@ -84,7 +84,7 @@ class OfflineFetchManager {
     input: RequestInfo | URL,
     options: OfflineFetchOptions
   ): Promise<OfflineFetchResponse> {
-    const url = typeof input === 'string' ? input : input.url
+    const url = typeof input === 'string' ? input : input instanceof URL ? input.toString() : input.url
     const { timeout, cache, cacheTTL, fallbackData, retryAttempts, retryDelay, ...fetchOptions } = options
 
     // Check cache first if enabled
@@ -115,9 +115,9 @@ class OfflineFetchManager {
     }
 
     // Attempt network request with retries
-    for (let attempt = 0; attempt <= retryAttempts; attempt++) {
+    for (let attempt = 0; attempt <= (retryAttempts || 0); attempt++) {
       try {
-        const response = await this.makeNetworkRequest(input, timeout, fetchOptions)
+        const response = await this.makeNetworkRequest(input, timeout || 10000, fetchOptions)
         
         // Mark successful request
         offlineDetector.markRequestAttempted()
@@ -149,8 +149,8 @@ class OfflineFetchManager {
         }
         
         // Wait before retry
-        if (attempt < retryAttempts) {
-          await this.delay(retryDelay * Math.pow(2, attempt)) // Exponential backoff
+        if (attempt < (retryAttempts || 0)) {
+          await this.delay((retryDelay || 1000) * Math.pow(2, attempt)) // Exponential backoff
         }
       }
     }
@@ -230,8 +230,8 @@ class OfflineFetchManager {
     }) as OfflineFetchResponse
   }
 
-  private getRequestKey(input: RequestInfo | URL, options: RequestInit): string {
-    const url = typeof input === 'string' ? input : input.url
+  private getRequestKey(input: RequestInfo | URL, options: OfflineFetchOptions): string {
+    const url = typeof input === 'string' ? input : input instanceof URL ? input.toString() : input.url
     const method = options.method || 'GET'
     const body = options.body ? JSON.stringify(options.body) : ''
     return `${method}:${url}:${body}`

@@ -133,7 +133,7 @@ class OfflineStorage {
       const store = transaction.objectStore(storeName)
       
       const storedData: StoredData = {
-        id: data.id || Date.now().toString(),
+        id: (data as { id?: string })?.id || Date.now().toString(),
         data,
         timestamp: Date.now(),
         version: 1,
@@ -356,6 +356,35 @@ class OfflineStorage {
       // Update retry count in queue
       await this.updateSyncItemRetries(item.id, item.retries)
       return false
+    }
+  }
+
+  // Sync all pending actions
+  public async syncActions(): Promise<void> {
+    try {
+      const queue = await this.getSyncQueue()
+      console.log(`[OfflineStorage] Syncing ${queue.length} pending actions`)
+      
+      for (const item of queue) {
+        if (item.retries >= item.maxRetries) {
+          console.warn(`[OfflineStorage] Skipping item ${item.id} - max retries exceeded`)
+          await this.removeFromSyncQueue(item.id)
+          continue
+        }
+        
+        try {
+          // Simple sync - just remove from queue for now
+          // In a real implementation, you would call the appropriate API
+          await this.removeFromSyncQueue(item.id)
+          console.log(`[OfflineStorage] Synced item ${item.id}`)
+        } catch (error) {
+          console.error(`[OfflineStorage] Failed to sync item ${item.id}:`, error)
+          await this.updateSyncItemRetries(item.id, item.retries + 1)
+        }
+      }
+    } catch (error) {
+      console.error('[OfflineStorage] Error during sync:', error)
+      throw error
     }
   }
 

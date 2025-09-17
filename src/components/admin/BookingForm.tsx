@@ -114,7 +114,7 @@ const BookingForm = ({ booking, onSubmit, onCancel, onDelete }: BookingFormProps
         })
         
         if (response.data) {
-          setAvailableTimeSlots((response.data as any).availableSlots || [])
+          setAvailableTimeSlots((response.data as { availableSlots?: string[] }).availableSlots || [])
         } else if (response.offline) {
           // Generate basic time slots for offline mode
           const basicSlots = generateBasicTimeSlots(formData.serviceDuration)

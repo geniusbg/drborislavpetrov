@@ -139,11 +139,11 @@ const VoiceAssistant: React.FC<VoiceAssistantProps> = ({ onCommand, isListening,
           // Online mode - send immediately
           const response = await offlineAPI.post('/api/admin/voice-commands', parsedCommand)
           
-          if (response.data?.success) {
-            setSuccess(response.data.message || 'Командата е изпълнена успешно')
+          if ((response.data as any)?.success) {
+            setSuccess((response.data as any).message || 'Командата е изпълнена успешно')
             onCommand(command)
           } else {
-            setError(response.data?.error || response.error || 'Грешка при изпълнение на командата')
+            setError((response.data as any)?.error || response.error || 'Грешка при изпълнение на командата')
           }
         } else {
           // Offline mode - queue for later

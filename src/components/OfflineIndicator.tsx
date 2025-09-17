@@ -19,13 +19,15 @@ export default function OfflineIndicator() {
         setIsSyncing(true)
         offlineStorage.syncActions().finally(() => {
           setIsSyncing(false)
-          setPendingActions(offlineStorage.getPendingCount())
+          offlineStorage.getPendingCount().then(setPendingActions)
+        }).catch(() => {
+          setIsSyncing(false)
         })
       } else {
         setIsSyncing(false)
       }
       
-      setPendingActions(offlineStorage.getPendingCount())
+      offlineStorage.getPendingCount().then(setPendingActions)
     }
 
     updateStatus()
@@ -34,7 +36,7 @@ export default function OfflineIndicator() {
 
     // Проверяваме на всеки 5 секунди за промени в pending actions
     const interval = setInterval(() => {
-      setPendingActions(offlineStorage.getPendingCount())
+      offlineStorage.getPendingCount().then(setPendingActions)
     }, 5000)
 
     return () => {
