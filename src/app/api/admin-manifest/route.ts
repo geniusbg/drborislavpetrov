@@ -4,7 +4,7 @@ import path from 'path'
 
 export async function GET() {
   try {
-    const manifestPath = path.join(process.cwd(), 'admin-manifest.json')
+    const manifestPath = path.join(process.cwd(), 'public', 'admin-manifest.json')
     
     if (!fs.existsSync(manifestPath)) {
       return new NextResponse('Admin manifest not found', { status: 404 })

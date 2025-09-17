@@ -4,7 +4,7 @@ import path from 'path'
 
 export async function GET() {
   try {
-    const iconPath = path.join(process.cwd(), 'icon-512.png')
+    const iconPath = path.join(process.cwd(), 'public', 'icon-512.png')
     
     if (!fs.existsSync(iconPath)) {
       return new NextResponse('Icon 512 not found', { status: 404 })

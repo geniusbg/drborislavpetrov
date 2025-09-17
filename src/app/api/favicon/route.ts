@@ -4,7 +4,7 @@ import path from 'path'
 
 export async function GET() {
   try {
-    const faviconPath = path.join(process.cwd(), 'favicon.ico')
+    const faviconPath = path.join(process.cwd(), 'public', 'favicon.ico')
     
     if (!fs.existsSync(faviconPath)) {
       return new NextResponse('Favicon not found', { status: 404 })

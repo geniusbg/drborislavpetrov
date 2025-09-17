@@ -4,7 +4,7 @@ import path from 'path'
 
 export async function GET() {
   try {
-    const manifestPath = path.join(process.cwd(), 'manifest.json')
+    const manifestPath = path.join(process.cwd(), 'public', 'manifest.json')
     
     if (!fs.existsSync(manifestPath)) {
       return new NextResponse('Manifest not found', { status: 404 })

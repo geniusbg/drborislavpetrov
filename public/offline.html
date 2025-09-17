@@ -1,0 +1,157 @@
+<!DOCTYPE html>
+<html lang="bg">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Офлайн - Д-р Борислав Петров</title>
+    <style>
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            margin: 0;
+            padding: 20px;
+            background: linear-gradient(135deg, #1e40af 0%, #3b82f6 100%);
+            color: white;
+            min-height: 100vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            text-align: center;
+        }
+        .container {
+            max-width: 500px;
+            padding: 40px;
+            background: rgba(255, 255, 255, 0.1);
+            border-radius: 20px;
+            backdrop-filter: blur(10px);
+            box-shadow: 0 8px 32px rgba(0, 0, 0, 0.3);
+        }
+        .icon {
+            font-size: 64px;
+            margin-bottom: 20px;
+        }
+        h1 {
+            font-size: 28px;
+            margin-bottom: 16px;
+            font-weight: 600;
+        }
+        p {
+            font-size: 16px;
+            line-height: 1.6;
+            margin-bottom: 24px;
+            opacity: 0.9;
+        }
+        .retry-btn {
+            background: rgba(255, 255, 255, 0.2);
+            border: 2px solid rgba(255, 255, 255, 0.3);
+            color: white;
+            padding: 12px 24px;
+            border-radius: 12px;
+            font-size: 16px;
+            font-weight: 500;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            text-decoration: none;
+            display: inline-block;
+        }
+        .retry-btn:hover {
+            background: rgba(255, 255, 255, 0.3);
+            border-color: rgba(255, 255, 255, 0.5);
+            transform: translateY(-2px);
+        }
+        .status {
+            margin-top: 20px;
+            padding: 12px;
+            background: rgba(255, 255, 255, 0.1);
+            border-radius: 8px;
+            font-size: 14px;
+            opacity: 0.8;
+        }
+        .online {
+            background: rgba(34, 197, 94, 0.2);
+            border: 1px solid rgba(34, 197, 94, 0.3);
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="icon">📱</div>
+        <h1>Няма интернет връзка</h1>
+        <p>Приложението работи офлайн, но някои функции може да не са налични. Моля, проверете интернет връзката си и опитайте отново.</p>
+        
+        <a href="#" class="retry-btn" onclick="retryConnection()">
+            🔄 Опитай отново
+        </a>
+        
+        <div class="status" id="status">
+            Статус: Офлайн
+        </div>
+    </div>
+
+    <script>
+        // Запазване на оригиналната страница
+        let originalUrl = '/';
+        
+        // Опитваме да вземем URL-а от referrer или sessionStorage
+        if (document.referrer) {
+            try {
+                const referrerUrl = new URL(document.referrer);
+                originalUrl = referrerUrl.pathname;
+            } catch (e) {
+                // Ако не можем да парсираме referrer, използваме sessionStorage
+                const savedUrl = sessionStorage.getItem('offline-original-url');
+                if (savedUrl) {
+                    originalUrl = savedUrl;
+                }
+            }
+        } else {
+            // Ако няма referrer, провери sessionStorage
+            const savedUrl = sessionStorage.getItem('offline-original-url');
+            if (savedUrl) {
+                originalUrl = savedUrl;
+            }
+        }
+
+        // Запазваме текущия URL в sessionStorage за следващи пъти
+        if (window.location.pathname !== '/offline.html') {
+            sessionStorage.setItem('offline-original-url', window.location.pathname);
+        }
+
+        // Проверка за онлайн статус
+        function updateStatus() {
+            const statusEl = document.getElementById('status');
+            if (navigator.onLine) {
+                statusEl.textContent = 'Статус: Онлайн';
+                statusEl.className = 'status online';
+                // Автоматично пренасочване към оригиналната страница след 2 секунди
+                setTimeout(() => {
+                    window.location.href = originalUrl;
+                }, 2000);
+            } else {
+                statusEl.textContent = 'Статус: Офлайн';
+                statusEl.className = 'status';
+            }
+        }
+
+        // Функция за опит отново
+        function retryConnection() {
+            if (navigator.onLine) {
+                // Ако вече сме онлайн, пренасочваме веднага
+                window.location.href = originalUrl;
+            } else {
+                // Ако все още сме офлайн, опитваме да заредим страницата
+                window.location.reload();
+            }
+        }
+
+        // Проверка при зареждане
+        updateStatus();
+
+        // Слушане за промени в онлайн статуса
+        window.addEventListener('online', updateStatus);
+        window.addEventListener('offline', updateStatus);
+
+        // Проверка на всеки 5 секунди
+        setInterval(updateStatus, 5000);
+    </script>
+</body>
+</html>
