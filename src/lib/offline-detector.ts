@@ -52,12 +52,27 @@ class OfflineDetector {
 
     this.state.lastCheck = now
 
+    // Check if we're in browser environment
+    if (typeof window === 'undefined') {
+      // Server-side: assume online
+      this.updateState({
+        isOnline: true,
+        connectionQuality: 'excellent',
+        retryCount: 0
+      })
+      return true
+    }
+
     try {
       // Use a lightweight endpoint for connection testing
       const controller = new AbortController()
       const timeout = setTimeout(() => controller.abort(), 3000)
       
-      const response = await fetch('/manifest.json', {
+      // Build absolute URL for manifest.json
+      const baseUrl = window.location.origin
+      const manifestUrl = `${baseUrl}/manifest.json`
+      
+      const response = await fetch(manifestUrl, {
         method: 'HEAD',
         cache: 'no-store',
         signal: controller.signal
