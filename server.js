@@ -109,8 +109,17 @@ app.prepare().then(() => {
 
   // Socket.io event handlers
   io.on('connection', (socket) => {
+    // Get real client IP address
+    const clientIP = socket.handshake.headers['x-client-ip'] ||
+                    socket.handshake.headers['x-forwarded-for']?.split(',')[0] || 
+                    socket.handshake.headers['x-real-ip'] || 
+                    socket.handshake.address || 
+                    socket.conn.remoteAddress ||
+                    'unknown'
+    
     console.log('🔌 Client connected:', socket.id)
-    console.log('🔌 Client IP:', socket.handshake.address)
+    console.log('🔌 Client IP (real):', clientIP)
+    console.log('🔌 Client IP (handshake):', socket.handshake.address)
     console.log('🔌 Client User-Agent:', socket.handshake.headers['user-agent'])
     console.log('🔌 Transport:', socket.conn.transport.name)
 

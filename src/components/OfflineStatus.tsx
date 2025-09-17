@@ -175,10 +175,17 @@ export default function OfflineStatus({ showDetails = false, className = '' }: O
       )}
 
       {isOffline && (
-        <div className="mt-3 p-2 bg-red-100 border border-red-200 rounded-md">
-          <div className="flex items-center gap-2 text-red-700 text-sm">
-            <AlertCircle className="w-4 h-4" />
-            <span>Няма интернет връзка. Данните ще се синхронизират при връзка.</span>
+        <div className="mt-3 p-3 bg-orange-100 border border-orange-200 rounded-md">
+          <div className="flex items-start gap-2 text-orange-700 text-sm">
+            <AlertCircle className="w-4 h-4 mt-0.5 flex-shrink-0" />
+            <div>
+              <div className="font-medium mb-1">Офлайн режим</div>
+              <div className="text-xs space-y-1">
+                <div>• Резервации се запазват локално</div>
+                <div>• Преглед на кеширани данни</div>
+                <div>• Автоматична синхронизация при връзка</div>
+              </div>
+            </div>
           </div>
         </div>
       )}

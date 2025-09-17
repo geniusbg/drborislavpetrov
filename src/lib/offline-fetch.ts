@@ -190,15 +190,13 @@ class OfflineFetchManager {
       }
     })
 
-    return Object.assign(response, {
-      ok: true,
+    // Create a new response object instead of modifying the existing one
+    return new Response(JSON.stringify(data), {
       status: 200,
       statusText: 'OK',
-      json: async () => data,
-      text: async () => JSON.stringify(data),
-      offline: metadata.offline || false,
-      fromCache: metadata.fromCache || false,
-      cached: metadata.fromCache || false
+      headers: {
+        'Content-Type': 'application/json'
+      }
     }) as OfflineFetchResponse
   }
 
@@ -218,15 +216,13 @@ class OfflineFetchManager {
       }
     })
 
-    return Object.assign(response, {
-      ok: false,
+    // Create a new response object instead of modifying the existing one
+    return new Response(JSON.stringify(errorData), {
       status: 503,
       statusText: 'Service Unavailable',
-      json: async () => errorData,
-      text: async () => JSON.stringify(errorData),
-      offline: true,
-      fromCache: false,
-      cached: false
+      headers: {
+        'Content-Type': 'application/json'
+      }
     }) as OfflineFetchResponse
   }
 

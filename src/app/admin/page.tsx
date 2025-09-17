@@ -20,6 +20,7 @@ import VoiceAssistant from '@/components/admin/VoiceAssistant'
 import { useSocket } from '@/hooks/useSocket'
 import { useOffline } from '@/hooks/useOffline'
 import { offlineAPI } from '@/lib/offline-api'
+import { offlineStorage } from '@/lib/offline-storage'
 import type { Booking, User as UserType, Service as ServiceType } from '@/types/global'
 import BugTracker from '@/components/admin/BugTracker'
 import BackupManager from '@/components/admin/BackupManager'
@@ -555,6 +556,17 @@ export default function AdminPage() {
         setBookings(response.data.bookings as Booking[])
       } else if (response.error) {
         console.error('❌ Failed to load bookings:', response.error)
+        
+        // Try to load from offline storage as fallback
+        try {
+          const cachedBookings = await offlineStorage.getBookings()
+          if (cachedBookings && cachedBookings.length > 0) {
+            console.log('📦 Loading cached bookings from offline storage:', cachedBookings.length)
+            setBookings(cachedBookings as Booking[])
+          }
+        } catch (cacheError) {
+          console.error('❌ Failed to load cached bookings:', cacheError)
+        }
       }
     } catch (error) {
       console.error('❌ Error loading bookings:', error)
@@ -590,6 +602,30 @@ export default function AdminPage() {
             }, 50)
           }
         }
+      } else if (response.error) {
+        console.error('❌ Failed to load services:', response.error)
+        
+        // Try to load from offline storage as fallback
+        try {
+          const cachedServices = await offlineStorage.getServices()
+          if (cachedServices && cachedServices.length > 0) {
+            console.log('📦 Loading cached services from offline storage:', cachedServices.length)
+            const mappedServices = (cachedServices as any[]).map((service: any) => ({
+              id: service.id,
+              name: service.name,
+              description: service.description,
+              duration: service.duration,
+              price: service.price,
+              priceCurrency: service.priceCurrency,
+              priceBgn: service.priceBgn,
+              priceEur: service.priceEur,
+              isActive: service.isactive
+            }))
+            setServices(mappedServices)
+          }
+        } catch (cacheError) {
+          console.error('❌ Failed to load cached services:', cacheError)
+        }
       }
     } catch (error) {
       console.error('Error loading services:', error)
@@ -611,6 +647,17 @@ export default function AdminPage() {
         setUsers((response.data.users as UserType[]) || [])
       } else if (response.error) {
         console.error('❌ loadUsers - failed:', response.error)
+        
+        // Try to load from offline storage as fallback
+        try {
+          const cachedUsers = await offlineStorage.getUsers()
+          if (cachedUsers && cachedUsers.length > 0) {
+            console.log('📦 Loading cached users from offline storage:', cachedUsers.length)
+            setUsers(cachedUsers as UserType[])
+          }
+        } catch (cacheError) {
+          console.error('❌ Failed to load cached users:', cacheError)
+        }
       }
     } catch (error) {
       console.error('❌ Error loading users:', error)

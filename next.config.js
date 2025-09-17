@@ -3,6 +3,11 @@ const nextConfig = {
   // Server external packages for Next.js 15
   serverExternalPackages: ['socket.io'],
   
+  // Enable real IP detection
+  experimental: {
+    // trustHost: true // Removed - not needed for IP detection
+  },
+  
   // Static file serving configuration
   async rewrites() {
     return [

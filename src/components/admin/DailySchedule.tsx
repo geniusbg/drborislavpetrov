@@ -1094,7 +1094,7 @@ const DailySchedule = ({ date, onClose, onEditWorkingHours, onEditBooking, onDel
             {/* Time slots */}
             <div className="space-y-4">
               {/* Timeline with Hour Markers */}
-              <div className="relative h-32 px-4 sm:px-0">
+              <div className="relative h-32 px-4 sm:px-0 overflow-visible py-4">
                 {/* Timeline Bar */}
                 <div 
                   className="relative bg-gray-200 rounded-lg h-24 cursor-pointer hover:bg-gray-300 transition-colors w-full"
@@ -1432,10 +1432,10 @@ const DailySchedule = ({ date, onClose, onEditWorkingHours, onEditBooking, onDel
                        className="absolute top-0 bottom-0 w-2 bg-red-600 z-30 shadow-lg animate-pulse"
                        style={{ left: `${currentTimePosition.percentage}%` }}
                      >
-                       <div className="absolute -top-4 -left-4 w-8 h-8 bg-red-600 rounded-full border-4 border-white shadow-lg flex items-center justify-center animate-bounce">
-                         <div className="w-3 h-3 bg-white rounded-full"></div>
+                       <div className="absolute top-0 left-1/2 transform -translate-x-1/2 -translate-y-1/2 w-6 h-6 bg-red-600 rounded-full border-2 border-white shadow-lg flex items-center justify-center animate-bounce">
+                         <div className="w-2 h-2 bg-white rounded-full"></div>
                        </div>
-                       <div className="absolute -bottom-12 left-1/2 transform -translate-x-1/2 bg-red-600 text-white text-sm px-3 py-1 rounded whitespace-nowrap shadow-lg font-bold border-2 border-white">
+                       <div className="absolute bottom-0 left-1/2 transform -translate-x-1/2 translate-y-1/2 bg-red-600 text-white text-xs px-2 py-1 rounded whitespace-nowrap shadow-lg font-bold border border-white">
                          {currentTimePosition.time}
                        </div>
                      </div>

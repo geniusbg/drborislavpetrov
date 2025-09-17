@@ -20,7 +20,7 @@ class OfflineDetector {
 
   private listeners: Set<(state: OfflineState) => void> = new Set()
   private checkInterval: NodeJS.Timeout | null = null
-  private readonly CHECK_INTERVAL = 5000 // 5 seconds
+  private readonly CHECK_INTERVAL = 15000 // 15 seconds
   private readonly RETRY_DELAY = 2000 // 2 seconds
   private readonly MAX_RETRIES = 3
 
@@ -45,8 +45,8 @@ class OfflineDetector {
   private async checkConnection(): Promise<boolean> {
     const now = Date.now()
     
-    // Don't check too frequently
-    if (now - this.state.lastCheck < 1000) {
+    // Don't check too frequently - increase to 10 seconds
+    if (now - this.state.lastCheck < 10000) {
       return this.state.isOnline
     }
 
@@ -63,10 +63,20 @@ class OfflineDetector {
       return true
     }
 
+    // If navigator.onLine is false, don't even try
+    if (!navigator.onLine) {
+      this.updateState({
+        isOnline: false,
+        connectionQuality: 'offline',
+        retryCount: this.state.retryCount + 1
+      })
+      return false
+    }
+
     try {
       // Use a lightweight endpoint for connection testing
       const controller = new AbortController()
-      const timeout = setTimeout(() => controller.abort(), 3000)
+      const timeout = setTimeout(() => controller.abort(), 2000) // Reduce timeout
       
       // Build absolute URL for manifest.json
       const baseUrl = window.location.origin
@@ -91,7 +101,10 @@ class OfflineDetector {
       
       return isOnline
     } catch (error) {
-      console.warn('[OfflineDetector] Connection check failed:', error)
+      // Only log errors in development
+      if (process.env.NODE_ENV === 'development') {
+        console.log('[OfflineDetector] Connection check failed:', error)
+      }
       
       this.updateState({
         isOnline: false,
