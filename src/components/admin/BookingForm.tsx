@@ -459,15 +459,18 @@ const BookingForm = ({ booking, onSubmit, onCancel, onDelete }: BookingFormProps
         {booking?.id && onDelete && (
           <button
             type="button"
-            onClick={() => {
+            onClick={async () => {
               if (navigator.onLine) {
                 // Онлайн режим - изтриваме веднага
                 onDelete(booking.id)
               } else {
                 // Офлайн режим - запазваме за синхронизация
-                offlineStorage.saveAction({
-                  type: 'DELETE_BOOKING',
+                await offlineStorage.addToSyncQueue({
+                  id: `delete-booking-${Date.now()}`,
+                  action: 'delete',
                   data: { id: booking.id },
+                  timestamp: Date.now(),
+                  retries: 0,
                   maxRetries: 3
                 })
                 

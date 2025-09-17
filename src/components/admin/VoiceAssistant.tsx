@@ -3,6 +3,7 @@ import React, { useState, useEffect, useRef, useCallback } from 'react'
 import { Mic, MicOff, Volume2, X, Check, AlertCircle, Type, Zap } from 'lucide-react'
 import { useOffline } from '@/hooks/useOffline'
 import { offlineAPI } from '@/lib/offline-api'
+import { offlineStorage } from '@/lib/offline-storage'
 
 // Type declarations for Web Speech API
 declare global {
