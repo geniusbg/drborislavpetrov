@@ -552,7 +552,7 @@ export default function AdminPage() {
       
       if (response.data) {
         console.log('📊 Bookings data:', response.data)
-        setBookings(response.data)
+        setBookings(response.data.bookings as Booking[])
       } else if (response.error) {
         console.error('❌ Failed to load bookings:', response.error)
       }
@@ -567,7 +567,7 @@ export default function AdminPage() {
       const response = await offlineAPI.getServices()
       if (response.data) {
         // Map database fields to interface fields
-        const mappedServices = response.data.services.map((service: any) => ({
+        const mappedServices = (response.data.services as any[]).map((service: any) => ({
           id: service.id,
           name: service.name,
           description: service.description,
@@ -608,7 +608,7 @@ export default function AdminPage() {
       
       if (response.data) {
         console.log('👥 Users data:', response.data)
-        setUsers(response.data.users || [])
+        setUsers((response.data.users as UserType[]) || [])
       } else if (response.error) {
         console.error('❌ loadUsers - failed:', response.error)
       }

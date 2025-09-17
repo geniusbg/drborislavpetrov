@@ -58,18 +58,18 @@ const BookingForm = ({ booking, onSubmit, onCancel, onDelete }: BookingFormProps
       try {
         const response = await offlineAPI.getServices()
         if (response.data) {
-          setServices(response.data.services || response.data)
+          setServices((response.data.services as ServiceType[]) || [])
         } else if (response.offline) {
           // Fallback to offline storage
           const cachedServices = await offlineStorage.getServices()
-          setServices(cachedServices)
+          setServices(cachedServices as ServiceType[])
         }
       } catch (error) {
         console.error('Error loading services:', error)
         // Fallback to offline storage
         try {
           const cachedServices = await offlineStorage.getServices()
-          setServices(cachedServices)
+          setServices(cachedServices as ServiceType[])
         } catch (offlineError) {
           console.error('Error loading cached services:', offlineError)
         }
@@ -114,7 +114,7 @@ const BookingForm = ({ booking, onSubmit, onCancel, onDelete }: BookingFormProps
         })
         
         if (response.data) {
-          setAvailableTimeSlots(response.data.availableSlots || [])
+          setAvailableTimeSlots((response.data as any).availableSlots || [])
         } else if (response.offline) {
           // Generate basic time slots for offline mode
           const basicSlots = generateBasicTimeSlots(formData.serviceDuration)
