@@ -1,0 +1,208 @@
+/**
+ * Centralized offline detection and network request management
+ * Replaces unreliable navigator.onLine with robust connection testing
+ */
+
+interface OfflineState {
+  isOnline: boolean
+  lastCheck: number
+  connectionQuality: 'excellent' | 'good' | 'poor' | 'offline'
+  retryCount: number
+}
+
+class OfflineDetector {
+  private state: OfflineState = {
+    isOnline: true,
+    lastCheck: 0,
+    connectionQuality: 'excellent',
+    retryCount: 0
+  }
+
+  private listeners: Set<(state: OfflineState) => void> = new Set()
+  private checkInterval: NodeJS.Timeout | null = null
+  private readonly CHECK_INTERVAL = 5000 // 5 seconds
+  private readonly RETRY_DELAY = 2000 // 2 seconds
+  private readonly MAX_RETRIES = 3
+
+  constructor() {
+    this.initialize()
+  }
+
+  private initialize() {
+    // Initial check
+    this.checkConnection()
+    
+    // Listen to browser events
+    if (typeof window !== 'undefined') {
+      window.addEventListener('online', () => this.handleOnline())
+      window.addEventListener('offline', () => this.handleOffline())
+      
+      // Start periodic checks
+      this.startPeriodicChecks()
+    }
+  }
+
+  private async checkConnection(): Promise<boolean> {
+    const now = Date.now()
+    
+    // Don't check too frequently
+    if (now - this.state.lastCheck < 1000) {
+      return this.state.isOnline
+    }
+
+    this.state.lastCheck = now
+
+    try {
+      // Use a lightweight endpoint for connection testing
+      const controller = new AbortController()
+      const timeout = setTimeout(() => controller.abort(), 3000)
+      
+      const response = await fetch('/manifest.json', {
+        method: 'HEAD',
+        cache: 'no-store',
+        signal: controller.signal
+      })
+      
+      clearTimeout(timeout)
+      
+      const isOnline = response.ok
+      const connectionQuality = this.assessConnectionQuality(response)
+      
+      this.updateState({
+        isOnline,
+        connectionQuality,
+        retryCount: isOnline ? 0 : this.state.retryCount + 1
+      })
+      
+      return isOnline
+    } catch (error) {
+      console.warn('[OfflineDetector] Connection check failed:', error)
+      
+      this.updateState({
+        isOnline: false,
+        connectionQuality: 'offline',
+        retryCount: this.state.retryCount + 1
+      })
+      
+      return false
+    }
+  }
+
+  private assessConnectionQuality(response: Response): OfflineState['connectionQuality'] {
+    // Simple quality assessment based on response time
+    // In a real app, you might use more sophisticated metrics
+    if (response.status === 200) {
+      return 'excellent'
+    } else if (response.status >= 400 && response.status < 500) {
+      return 'poor'
+    } else {
+      return 'offline'
+    }
+  }
+
+  private updateState(updates: Partial<OfflineState>) {
+    const oldState = { ...this.state }
+    this.state = { ...this.state, ...updates }
+    
+    // Notify listeners if state changed
+    if (JSON.stringify(oldState) !== JSON.stringify(this.state)) {
+      this.notifyListeners()
+    }
+  }
+
+  private handleOnline() {
+    console.log('[OfflineDetector] Browser online event detected')
+    this.checkConnection()
+  }
+
+  private handleOffline() {
+    console.log('[OfflineDetector] Browser offline event detected')
+    this.updateState({
+      isOnline: false,
+      connectionQuality: 'offline'
+    })
+  }
+
+  private startPeriodicChecks() {
+    if (this.checkInterval) {
+      clearInterval(this.checkInterval)
+    }
+    
+    this.checkInterval = setInterval(() => {
+      this.checkConnection()
+    }, this.CHECK_INTERVAL)
+  }
+
+  private notifyListeners() {
+    this.listeners.forEach(listener => {
+      try {
+        listener(this.state)
+      } catch (error) {
+        console.error('[OfflineDetector] Listener error:', error)
+      }
+    })
+  }
+
+  // Public API
+  public getState(): OfflineState {
+    return { ...this.state }
+  }
+
+  public isOnline(): boolean {
+    return this.state.isOnline
+  }
+
+  public getConnectionQuality(): OfflineState['connectionQuality'] {
+    return this.state.connectionQuality
+  }
+
+  public canMakeRequest(): boolean {
+    if (!this.state.isOnline) {
+      return false
+    }
+    
+    // Don't make requests if we've exceeded retry limit
+    if (this.state.retryCount >= this.MAX_RETRIES) {
+      return false
+    }
+    
+    return true
+  }
+
+  public markRequestAttempted(): void {
+    this.state.lastCheck = Date.now()
+  }
+
+  public subscribe(listener: (state: OfflineState) => void): () => void {
+    this.listeners.add(listener)
+    
+    // Return unsubscribe function
+    return () => {
+      this.listeners.delete(listener)
+    }
+  }
+
+  public async forceCheck(): Promise<boolean> {
+    return await this.checkConnection()
+  }
+
+  public destroy() {
+    if (this.checkInterval) {
+      clearInterval(this.checkInterval)
+      this.checkInterval = null
+    }
+    
+    this.listeners.clear()
+    
+    if (typeof window !== 'undefined') {
+      window.removeEventListener('online', () => this.handleOnline())
+      window.removeEventListener('offline', () => this.handleOffline())
+    }
+  }
+}
+
+// Export singleton instance
+export const offlineDetector = new OfflineDetector()
+
+// Export types
+export type { OfflineState }

@@ -1,211 +1,434 @@
-// Offline Storage - запазва промените до връщане на интернет връзката
+/**
+ * IndexedDB wrapper for offline data storage and synchronization
+ * Provides offline-first data management with automatic sync when online
+ */
 
-interface OfflineAction {
+interface StoredData {
   id: string
-  type: 'CREATE_BOOKING' | 'UPDATE_BOOKING' | 'DELETE_BOOKING' | 'CREATE_USER' | 'UPDATE_USER' | 'DELETE_USER'
-  data: Record<string, unknown>
+  data: any
   timestamp: number
-  retryCount: number
+  version: number
+  synced: boolean
+}
+
+interface SyncAction {
+  id: string
+  action: 'create' | 'update' | 'delete'
+  data: any
+  timestamp: number
+  retries: number
   maxRetries: number
 }
 
+interface OfflineStorageConfig {
+  dbName: string
+  version: number
+  stores: {
+    bookings: string
+    services: string
+    users: string
+    syncQueue: string
+    cache: string
+  }
+}
+
 class OfflineStorage {
-  private storageKey = 'offline-actions'
-  private maxRetries = 3
-  private retryDelay = 5000 // 5 секунди
-
-  // Запазва действие за offline изпълнение
-  saveAction(action: Omit<OfflineAction, 'id' | 'timestamp' | 'retryCount'>): string {
-    const id = `offline-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`
-    const fullAction: OfflineAction = {
-      ...action,
-      id,
-      timestamp: Date.now(),
-      retryCount: 0,
-      maxRetries: this.maxRetries
+  private db: IDBDatabase | null = null
+  private dbPromise: Promise<IDBDatabase> | null = null
+  private config: OfflineStorageConfig = {
+    dbName: 'drborislavpetrov-offline',
+    version: 3,
+    stores: {
+      bookings: 'bookings',
+      services: 'services', 
+      users: 'users',
+      syncQueue: 'syncQueue',
+      cache: 'cache'
     }
-
-    const actions = this.getActions()
-    actions.push(fullAction)
-    this.setActions(actions)
-
-    console.log('💾 Offline action saved:', fullAction)
-    return id
   }
 
-  // Взема всички запазени действия
-  getActions(): OfflineAction[] {
+  constructor() {
+    this.initializeDB()
+  }
+
+  private async initializeDB(): Promise<IDBDatabase> {
+    if (this.dbPromise) {
+      return this.dbPromise
+    }
+
+    this.dbPromise = new Promise((resolve, reject) => {
+      if (typeof window === 'undefined' || !('indexedDB' in window)) {
+        reject(new Error('IndexedDB not supported'))
+        return
+      }
+
+      const request = indexedDB.open(this.config.dbName, this.config.version)
+
+      request.onupgradeneeded = (event) => {
+        const db = (event.target as IDBOpenDBRequest).result
+        const transaction = (event.target as IDBOpenDBRequest).transaction!
+
+        // Create object stores
+        const stores = this.config.stores
+        
+        // Bookings store
+        if (!db.objectStoreNames.contains(stores.bookings)) {
+          const bookingsStore = db.createObjectStore(stores.bookings, { keyPath: 'id' })
+          bookingsStore.createIndex('timestamp', 'timestamp', { unique: false })
+          bookingsStore.createIndex('synced', 'synced', { unique: false })
+        }
+
+        // Services store
+        if (!db.objectStoreNames.contains(stores.services)) {
+          const servicesStore = db.createObjectStore(stores.services, { keyPath: 'id' })
+          servicesStore.createIndex('timestamp', 'timestamp', { unique: false })
+        }
+
+        // Users store
+        if (!db.objectStoreNames.contains(stores.users)) {
+          const usersStore = db.createObjectStore(stores.users, { keyPath: 'id' })
+          usersStore.createIndex('timestamp', 'timestamp', { unique: false })
+        }
+
+        // Sync queue store
+        if (!db.objectStoreNames.contains(stores.syncQueue)) {
+          const syncStore = db.createObjectStore(stores.syncQueue, { keyPath: 'id', autoIncrement: true })
+          syncStore.createIndex('timestamp', 'timestamp', { unique: false })
+          syncStore.createIndex('retries', 'retries', { unique: false })
+        }
+
+        // Cache store for API responses
+        if (!db.objectStoreNames.contains(stores.cache)) {
+          const cacheStore = db.createObjectStore(stores.cache, { keyPath: 'key' })
+          cacheStore.createIndex('timestamp', 'timestamp', { unique: false })
+          cacheStore.createIndex('expires', 'expires', { unique: false })
+        }
+      }
+
+      request.onsuccess = () => {
+        this.db = request.result
+        resolve(this.db)
+      }
+
+      request.onerror = () => {
+        reject(request.error || new Error('Failed to open IndexedDB'))
+      }
+    })
+
+    return this.dbPromise
+  }
+
+  private async getDB(): Promise<IDBDatabase> {
+    if (!this.db) {
+      await this.initializeDB()
+    }
+    return this.db!
+  }
+
+  // Generic data storage methods
+  public async storeData(storeName: string, data: any): Promise<void> {
     try {
-      const stored = localStorage.getItem(this.storageKey)
-      return stored ? JSON.parse(stored) : []
+      const db = await this.getDB()
+      const transaction = db.transaction([storeName], 'readwrite')
+      const store = transaction.objectStore(storeName)
+      
+      const storedData: StoredData = {
+        id: data.id || Date.now().toString(),
+        data,
+        timestamp: Date.now(),
+        version: 1,
+        synced: false
+      }
+      
+      await new Promise<void>((resolve, reject) => {
+        const request = store.put(storedData)
+        request.onsuccess = () => resolve()
+        request.onerror = () => reject(request.error)
+      })
     } catch (error) {
-      console.error('Failed to get offline actions:', error)
+      console.error(`[OfflineStorage] Error storing data in ${storeName}:`, error)
+      throw error
+    }
+  }
+
+  public async getData(storeName: string, id?: string): Promise<any[]> {
+    try {
+      const db = await this.getDB()
+      const transaction = db.transaction([storeName], 'readonly')
+      const store = transaction.objectStore(storeName)
+      
+      return new Promise((resolve, reject) => {
+        const results: any[] = []
+        
+        if (id) {
+          const request = store.get(id)
+          request.onsuccess = () => {
+            if (request.result) {
+              results.push(request.result.data)
+            }
+            resolve(results)
+          }
+          request.onerror = () => reject(request.error)
+        } else {
+          const request = store.getAll()
+          request.onsuccess = () => {
+            const data = request.result.map((item: StoredData) => item.data)
+            resolve(data)
+          }
+          request.onerror = () => reject(request.error)
+        }
+      })
+    } catch (error) {
+      console.error(`[OfflineStorage] Error getting data from ${storeName}:`, error)
       return []
     }
   }
 
-  // Запазва действията в localStorage
-  private setActions(actions: OfflineAction[]): void {
+  public async deleteData(storeName: string, id: string): Promise<void> {
     try {
-      localStorage.setItem(this.storageKey, JSON.stringify(actions))
+      const db = await this.getDB()
+      const transaction = db.transaction([storeName], 'readwrite')
+      const store = transaction.objectStore(storeName)
+      
+      await new Promise<void>((resolve, reject) => {
+        const request = store.delete(id)
+        request.onsuccess = () => resolve()
+        request.onerror = () => reject(request.error)
+      })
     } catch (error) {
-      console.error('Failed to save offline actions:', error)
+      console.error(`[OfflineStorage] Error deleting data from ${storeName}:`, error)
+      throw error
     }
   }
 
-  // Изтрива действие след успешно изпълнение
-  removeAction(id: string): void {
-    const actions = this.getActions()
-    const filtered = actions.filter(action => action.id !== id)
-    this.setActions(filtered)
-    console.log('✅ Offline action removed:', id)
+  // Specific methods for different data types
+  public async storeBookings(bookings: any[]): Promise<void> {
+    for (const booking of bookings) {
+      await this.storeData(this.config.stores.bookings, booking)
+    }
   }
 
-  // Изпълнява всички запазени действия когато се върне връзката
-  async syncActions(): Promise<void> {
-    const actions = this.getActions()
-    if (actions.length === 0) return
+  public async getBookings(): Promise<any[]> {
+    return await this.getData(this.config.stores.bookings)
+  }
 
-    console.log('🔄 Syncing offline actions:', actions.length)
+  public async storeServices(services: any[]): Promise<void> {
+    for (const service of services) {
+      await this.storeData(this.config.stores.services, service)
+    }
+  }
 
-    for (const action of actions) {
-      try {
-        await this.executeAction(action)
-        this.removeAction(action.id)
-      } catch (error) {
-        console.error('Failed to sync action:', action.id, error)
-        
-        // Увеличаваме retry count
-        action.retryCount++
-        if (action.retryCount >= action.maxRetries) {
-          console.error('Max retries reached for action:', action.id)
-          this.removeAction(action.id)
+  public async getServices(): Promise<any[]> {
+    return await this.getData(this.config.stores.services)
+  }
+
+  public async storeUsers(users: any[]): Promise<void> {
+    for (const user of users) {
+      await this.storeData(this.config.stores.users, user)
+    }
+  }
+
+  public async getUsers(): Promise<any[]> {
+    return await this.getData(this.config.stores.users)
+  }
+
+  // Cache management
+  public async cacheResponse(key: string, data: any, ttl: number = 300000): Promise<void> {
+    try {
+      const db = await this.getDB()
+      const transaction = db.transaction([this.config.stores.cache], 'readwrite')
+      const store = transaction.objectStore(this.config.stores.cache)
+      
+      const cacheEntry = {
+        key,
+        data,
+        timestamp: Date.now(),
+        expires: Date.now() + ttl
+      }
+      
+      await new Promise<void>((resolve, reject) => {
+        const request = store.put(cacheEntry)
+        request.onsuccess = () => resolve()
+        request.onerror = () => reject(request.error)
+      })
+    } catch (error) {
+      console.error('[OfflineStorage] Error caching response:', error)
+    }
+  }
+
+  public async getCachedData(key: string): Promise<any | null> {
+    try {
+      const db = await this.getDB()
+      const transaction = db.transaction([this.config.stores.cache], 'readonly')
+      const store = transaction.objectStore(this.config.stores.cache)
+      
+      return new Promise((resolve, reject) => {
+        const request = store.get(key)
+        request.onsuccess = () => {
+          const result = request.result
+          if (result && result.expires > Date.now()) {
+            resolve(result.data)
         } else {
-          // Запазваме обновения action
-          const actions = this.getActions()
-          const index = actions.findIndex(a => a.id === action.id)
-          if (index !== -1) {
-            actions[index] = action
-            this.setActions(actions)
+            resolve(null)
           }
         }
+        request.onerror = () => reject(request.error)
+      })
+    } catch (error) {
+      console.error('[OfflineStorage] Error getting cached data:', error)
+      return null
+    }
+  }
+
+  // Sync queue management
+  public async addToSyncQueue(action: SyncAction): Promise<void> {
+    try {
+      const db = await this.getDB()
+      const transaction = db.transaction([this.config.stores.syncQueue], 'readwrite')
+      const store = transaction.objectStore(this.config.stores.syncQueue)
+      
+      await new Promise<void>((resolve, reject) => {
+        const request = store.add(action)
+        request.onsuccess = () => resolve()
+        request.onerror = () => reject(request.error)
+      })
+    } catch (error) {
+      console.error('[OfflineStorage] Error adding to sync queue:', error)
+      throw error
+    }
+  }
+
+  public async getSyncQueue(): Promise<SyncAction[]> {
+    try {
+      const db = await this.getDB()
+      const transaction = db.transaction([this.config.stores.syncQueue], 'readonly')
+      const store = transaction.objectStore(this.config.stores.syncQueue)
+      
+      return new Promise((resolve, reject) => {
+        const request = store.getAll()
+        request.onsuccess = () => resolve(request.result)
+        request.onerror = () => reject(request.error)
+      })
+    } catch (error) {
+      console.error('[OfflineStorage] Error getting sync queue:', error)
+      return []
+    }
+  }
+
+  public async removeFromSyncQueue(id: string): Promise<void> {
+    try {
+      const db = await this.getDB()
+      const transaction = db.transaction([this.config.stores.syncQueue], 'readwrite')
+      const store = transaction.objectStore(this.config.stores.syncQueue)
+      
+      await new Promise<void>((resolve, reject) => {
+        const request = store.delete(id)
+        request.onsuccess = () => resolve()
+        request.onerror = () => reject(request.error)
+      })
+    } catch (error) {
+      console.error('[OfflineStorage] Error removing from sync queue:', error)
+      throw error
+    }
+  }
+
+  public async getPendingCount(): Promise<number> {
+    const queue = await this.getSyncQueue()
+    return queue.length
+  }
+
+  // Sync processing
+  public async processSyncItem(item: SyncAction, apiCall: (data: any) => Promise<any>): Promise<boolean> {
+    try {
+      await apiCall(item.data)
+      await this.removeFromSyncQueue(item.id)
+      return true
+    } catch (error) {
+      console.error('[OfflineStorage] Sync item failed:', error)
+      
+      // Increment retry count
+      item.retries++
+      if (item.retries >= item.maxRetries) {
+        await this.removeFromSyncQueue(item.id)
+        return false
       }
+      
+      // Update retry count in queue
+      await this.updateSyncItemRetries(item.id, item.retries)
+      return false
     }
   }
 
-  // Изпълнява конкретно действие
-  private async executeAction(action: OfflineAction): Promise<void> {
-    const adminToken = localStorage.getItem('adminToken')
-    if (!adminToken) {
-      throw new Error('No admin token')
-    }
-
-    const headers = {
-      'Content-Type': 'application/json',
-      'x-admin-token': adminToken
-    }
-
-    switch (action.type) {
-      case 'CREATE_BOOKING':
-        const createResponse = await fetch('/api/admin/bookings', {
-          method: 'POST',
-          headers,
-          body: JSON.stringify(action.data)
-        })
-        if (!createResponse.ok) {
-          throw new Error(`Failed to create booking: ${createResponse.status}`)
+  private async updateSyncItemRetries(id: string, retries: number): Promise<void> {
+    try {
+      const db = await this.getDB()
+      const transaction = db.transaction([this.config.stores.syncQueue], 'readwrite')
+      const store = transaction.objectStore(this.config.stores.syncQueue)
+      
+      const getRequest = store.get(id)
+      getRequest.onsuccess = () => {
+        const item = getRequest.result
+        if (item) {
+          item.retries = retries
+          store.put(item)
         }
-        break
-
-      case 'UPDATE_BOOKING':
-        const updateResponse = await fetch(`/api/admin/bookings/${action.data.id}`, {
-          method: 'PUT',
-          headers,
-          body: JSON.stringify(action.data)
-        })
-        if (!updateResponse.ok) {
-          throw new Error(`Failed to update booking: ${updateResponse.status}`)
-        }
-        break
-
-      case 'DELETE_BOOKING':
-        const deleteResponse = await fetch(`/api/admin/bookings/${action.data.id}`, {
-          method: 'DELETE',
-          headers
-        })
-        if (!deleteResponse.ok) {
-          throw new Error(`Failed to delete booking: ${deleteResponse.status}`)
-        }
-        break
-
-      case 'CREATE_USER':
-        const createUserResponse = await fetch('/api/admin/users', {
-          method: 'POST',
-          headers,
-          body: JSON.stringify(action.data)
-        })
-        if (!createUserResponse.ok) {
-          throw new Error(`Failed to create user: ${createUserResponse.status}`)
-        }
-        break
-
-      case 'UPDATE_USER':
-        const updateUserResponse = await fetch(`/api/admin/users/${action.data.id}`, {
-          method: 'PUT',
-          headers,
-          body: JSON.stringify(action.data)
-        })
-        if (!updateUserResponse.ok) {
-          throw new Error(`Failed to update user: ${updateUserResponse.status}`)
-        }
-        break
-
-      case 'DELETE_USER':
-        const deleteUserResponse = await fetch(`/api/admin/users/${action.data.id}`, {
-          method: 'DELETE',
-          headers
-        })
-        if (!deleteUserResponse.ok) {
-          throw new Error(`Failed to delete user: ${deleteUserResponse.status}`)
-        }
-        break
-
-      default:
-        throw new Error(`Unknown action type: ${action.type}`)
+      }
+    } catch (error) {
+      console.error('[OfflineStorage] Error updating sync item retries:', error)
     }
   }
 
-  // Проверява дали има запазени действия
-  hasPendingActions(): boolean {
-    return this.getActions().length > 0
+  // Cleanup methods
+  public async clearExpiredCache(): Promise<void> {
+    try {
+      const db = await this.getDB()
+      const transaction = db.transaction([this.config.stores.cache], 'readwrite')
+      const store = transaction.objectStore(this.config.stores.cache)
+      const index = store.index('expires')
+      
+      const now = Date.now()
+      const range = IDBKeyRange.upperBound(now)
+      
+      await new Promise<void>((resolve, reject) => {
+        const request = index.openCursor(range)
+        request.onsuccess = () => {
+          const cursor = request.result
+          if (cursor) {
+            cursor.delete()
+            cursor.continue()
+          } else {
+            resolve()
+          }
+        }
+        request.onerror = () => reject(request.error)
+      })
+    } catch (error) {
+      console.error('[OfflineStorage] Error clearing expired cache:', error)
+    }
   }
 
-  // Изчиства всички запазени действия
-  clearActions(): void {
-    localStorage.removeItem(this.storageKey)
-    console.log('🗑️ All offline actions cleared')
-  }
-
-  // Връща броя на запазените действия
-  getPendingCount(): number {
-    return this.getActions().length
+  public async clearAllData(): Promise<void> {
+    try {
+      const db = await this.getDB()
+      const storeNames = Object.values(this.config.stores)
+      
+      for (const storeName of storeNames) {
+        const transaction = db.transaction([storeName], 'readwrite')
+        const store = transaction.objectStore(storeName)
+        await new Promise<void>((resolve, reject) => {
+          const request = store.clear()
+          request.onsuccess = () => resolve()
+          request.onerror = () => reject(request.error)
+        })
+      }
+    } catch (error) {
+      console.error('[OfflineStorage] Error clearing all data:', error)
+    }
   }
 }
 
-// Singleton instance
+// Export singleton instance
 export const offlineStorage = new OfflineStorage()
 
-// Автоматично синхронизиране при връщане на връзката
-if (typeof window !== 'undefined') {
-  window.addEventListener('online', () => {
-    console.log('🌐 Connection restored, syncing offline actions...')
-    offlineStorage.syncActions()
-  })
-
-  // Синхронизиране при зареждане на страницата
-  window.addEventListener('load', () => {
-    if (navigator.onLine) {
-      offlineStorage.syncActions()
-    }
-  })
-}
+// Export types
+export type { StoredData, SyncAction, OfflineStorageConfig }

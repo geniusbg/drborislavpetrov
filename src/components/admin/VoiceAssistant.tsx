@@ -1,6 +1,8 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
 import React, { useState, useEffect, useRef, useCallback } from 'react'
 import { Mic, MicOff, Volume2, X, Check, AlertCircle, Type, Zap } from 'lucide-react'
+import { useOffline } from '@/hooks/useOffline'
+import { offlineAPI } from '@/lib/offline-api'
 
 // Type declarations for Web Speech API
 declare global {
@@ -42,7 +44,7 @@ const VoiceAssistant: React.FC<VoiceAssistantProps> = ({ onCommand, isListening,
   const recognitionRef = useRef<any>(null)
   const [isHolding, setIsHolding] = useState(false)
   const [statusLabel, setStatusLabel] = useState('')
-  const [isOnline, setIsOnline] = useState(true)
+  const { isOnline, isOffline } = useOffline()
 
   // IndexedDB setup for offline queue
   const dbPromiseRef = useRef<Promise<IDBDatabase> | null>(null)
@@ -132,23 +134,32 @@ const VoiceAssistant: React.FC<VoiceAssistantProps> = ({ onCommand, isListening,
       const parsedCommand = parseVoiceCommand(command)
       
       if (parsedCommand.action) {
-        const adminToken = localStorage.getItem('adminToken');
-        const response = await fetch('/api/admin/voice-commands', {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-            'x-admin-token': adminToken || ''
-          },
-          body: JSON.stringify(parsedCommand)
-        })
-
-        const result = await response.json()
-
-        if (result.success) {
-          setSuccess(result.message || 'Командата е изпълнена успешно')
-          onCommand(command)
+        if (isOnline) {
+          // Online mode - send immediately
+          const response = await offlineAPI.post('/api/admin/voice-commands', parsedCommand)
+          
+          if (response.data?.success) {
+            setSuccess(response.data.message || 'Командата е изпълнена успешно')
+            onCommand(command)
+          } else {
+            setError(response.data?.error || response.error || 'Грешка при изпълнение на командата')
+          }
         } else {
-          setError(result.error || 'Грешка при изпълнение на командата')
+          // Offline mode - queue for later
+          await offlineStorage.addToSyncQueue({
+            id: `voice-command-${Date.now()}`,
+            action: 'create',
+            data: {
+              type: 'voice_command',
+              command: parsedCommand,
+              timestamp: Date.now()
+            },
+            timestamp: Date.now(),
+            retries: 0,
+            maxRetries: 3
+          })
+          
+          setSuccess('Командата е запазена за синхронизация. Ще се изпълни когато се върне интернет връзката.')
         }
       } else {
         setError('Не разпознавам командата. Моля, опитайте отново.')
@@ -159,7 +170,7 @@ const VoiceAssistant: React.FC<VoiceAssistantProps> = ({ onCommand, isListening,
     } finally {
       setIsProcessing(false)
     }
-  }, [onCommand])
+  }, [onCommand, isOnline])
 
   const flushQueue = useCallback(async () => {
     try {
@@ -271,19 +282,12 @@ const VoiceAssistant: React.FC<VoiceAssistantProps> = ({ onCommand, isListening,
     }
   }, [])
 
-  // Online/offline listeners
+  // Auto-flush queue when coming online
   useEffect(() => {
-    const update = () => setIsOnline(typeof navigator !== 'undefined' ? navigator.onLine : true)
-    const onOnline = () => { setIsOnline(true); flushQueue() }
-    const onOffline = () => setIsOnline(false)
-    update()
-    window.addEventListener('online', onOnline)
-    window.addEventListener('offline', onOffline)
-    return () => {
-      window.removeEventListener('online', onOnline)
-      window.removeEventListener('offline', onOffline)
+    if (isOnline) {
+      flushQueue()
     }
-  }, [flushQueue])
+  }, [isOnline, flushQueue])
 
 
 

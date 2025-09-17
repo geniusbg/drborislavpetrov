@@ -5,6 +5,8 @@ import { Trash2, Clock } from 'lucide-react'
 import type { Booking, Service as ServiceType } from '@/types/global'
 import { getBulgariaTime } from '@/lib/bulgaria-time'
 import { offlineStorage } from '@/lib/offline-storage'
+import { offlineAPI } from '@/lib/offline-api'
+import { useOffline } from '@/hooks/useOffline'
 
 interface BookingFormProps {
   booking: Booking | null
@@ -18,7 +20,26 @@ const BookingForm = ({ booking, onSubmit, onCancel, onDelete }: BookingFormProps
   const [services, setServices] = useState<ServiceType[]>([])
   const [availableTimeSlots, setAvailableTimeSlots] = useState<string[]>([])
   const [loadingTimeSlots, setLoadingTimeSlots] = useState(false)
+  const { isOnline, isOffline } = useOffline()
   const [isSubmitting, setIsSubmitting] = useState(false)
+
+  // Generate basic time slots for offline mode
+  const generateBasicTimeSlots = (duration: number): string[] => {
+    const slots: string[] = []
+    const startHour = 9
+    const endHour = 18
+    
+    for (let hour = startHour; hour < endHour; hour++) {
+      for (let minute = 0; minute < 60; minute += duration) {
+        if (hour === endHour - 1 && minute + duration > 60) break
+        
+        const timeString = `${hour.toString().padStart(2, '0')}:${minute.toString().padStart(2, '0')}`
+        slots.push(timeString)
+      }
+    }
+    
+    return slots
+  }
   const [formData, setFormData] = useState({
     name: booking?.name || '',
     email: booking?.email || '',
@@ -35,18 +56,23 @@ const BookingForm = ({ booking, onSubmit, onCancel, onDelete }: BookingFormProps
   useEffect(() => {
     const loadServices = async () => {
       try {
-        const adminToken = localStorage.getItem('adminToken')
-        const response = await fetch('/api/admin/services', {
-          headers: {
-            'x-admin-token': adminToken || 'test'
-          }
-        })
-        if (response.ok) {
-          const data = await response.json()
-          setServices(data.services)
+        const response = await offlineAPI.getServices()
+        if (response.data) {
+          setServices(response.data.services || response.data)
+        } else if (response.offline) {
+          // Fallback to offline storage
+          const cachedServices = await offlineStorage.getServices()
+          setServices(cachedServices)
         }
       } catch (error) {
         console.error('Error loading services:', error)
+        // Fallback to offline storage
+        try {
+          const cachedServices = await offlineStorage.getServices()
+          setServices(cachedServices)
+        } catch (offlineError) {
+          console.error('Error loading cached services:', offlineError)
+        }
       }
     }
     loadServices()
@@ -81,18 +107,20 @@ const BookingForm = ({ booking, onSubmit, onCancel, onDelete }: BookingFormProps
         const apiUrl = `/api/admin/available-time-slots?${params}`
 
         
-        const response = await fetch(apiUrl, {
+        const response = await offlineAPI.get(apiUrl, {
           headers: {
             'x-admin-token': adminToken || 'mock-token'
           }
         })
         
-        if (response.ok) {
-          const data = await response.json()
-
-          setAvailableTimeSlots(data.availableSlots || [])
+        if (response.data) {
+          setAvailableTimeSlots(response.data.availableSlots || [])
+        } else if (response.offline) {
+          // Generate basic time slots for offline mode
+          const basicSlots = generateBasicTimeSlots(formData.serviceDuration)
+          setAvailableTimeSlots(basicSlots)
         } else {
-          console.error('Failed to load available time slots')
+          console.error('Failed to load available time slots:', response.error)
           setAvailableTimeSlots([])
         }
       } catch (error) {
@@ -251,19 +279,22 @@ const BookingForm = ({ booking, onSubmit, onCancel, onDelete }: BookingFormProps
     
     try {
       // Проверяваме дали сме онлайн
-      if (navigator.onLine) {
+      if (isOnline) {
         // Онлайн режим - изпращаме веднага
         await onSubmit(submissionData, isStatusOnlyUpdate)
       } else {
         // Офлайн режим - запазваме за синхронизация
-        const actionType = booking ? 'UPDATE_BOOKING' : 'CREATE_BOOKING'
+        const actionType = booking ? 'update' : 'create'
         const actionData = booking ? 
           { ...submissionData, id: booking.id } : 
           submissionData
         
-        offlineStorage.saveAction({
-          type: actionType,
+        await offlineStorage.addToSyncQueue({
+          id: `${actionType}-booking-${Date.now()}`,
+          action: actionType,
           data: actionData,
+          timestamp: Date.now(),
+          retries: 0,
           maxRetries: 3
         })
         
@@ -275,7 +306,7 @@ const BookingForm = ({ booking, onSubmit, onCancel, onDelete }: BookingFormProps
       }
     } catch (error) {
       console.error('Error submitting booking:', error)
-      if (navigator.onLine) {
+      if (isOnline) {
         alert('Грешка при запазване на резервацията. Моля, опитайте отново.')
       }
     } finally {

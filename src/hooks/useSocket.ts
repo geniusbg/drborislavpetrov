@@ -2,6 +2,7 @@
 
 import { useEffect, useRef, useState, useCallback } from 'react'
 import { io, Socket } from 'socket.io-client'
+import { offlineDetector } from '@/lib/offline-detector'
 
 interface UseSocketReturn {
   socket: Socket | null
@@ -22,18 +23,9 @@ export function useSocket(): UseSocketReturn {
   // const maxAttempts = 5 // Increased for better reliability
   const isCreatingSocket = useRef(false) // Prevent multiple socket creation attempts
 
-  // Lightweight reachability probe to avoid console errors when server is down
+  // Use offline detector for reachability check
   const serverReachable = useCallback(async (): Promise<boolean> => {
-    if (typeof window === 'undefined') return false
-    try {
-      const ctrl = new AbortController()
-      const t = setTimeout(() => ctrl.abort(), 1500)
-      const res = await fetch('/manifest.json', { method: 'HEAD', cache: 'no-store', signal: ctrl.signal })
-      clearTimeout(t)
-      return !!res.ok
-    } catch {
-      return false
-    }
+    return await offlineDetector.forceCheck()
   }, [])
 
   const createSocket = useCallback(async () => {
@@ -41,7 +33,7 @@ export function useSocket(): UseSocketReturn {
     if (typeof window !== 'undefined' && !socketRef.current && !isCreatingSocket.current) {
       isCreatingSocket.current = true
       // Do not attempt to connect when offline
-      if (typeof navigator !== 'undefined' && navigator.onLine === false) {
+      if (!offlineDetector.canMakeRequest()) {
         setIsOnline(false)
         isCreatingSocket.current = false
         return null
@@ -135,29 +127,25 @@ export function useSocket(): UseSocketReturn {
   }, [serverReachable])
 
   useEffect(() => {
-    // Track online/offline
-    const update = () => setIsOnline(typeof navigator !== 'undefined' ? navigator.onLine : true)
-    const handleOnline = () => {
-      setIsOnline(true)
-      // Try reconnect on coming online
-      if (!socketRef.current) createSocket()
-    }
-    const handleOffline = () => {
-      setIsOnline(false)
-      setIsConnected(false)
-      if (socketRef.current) {
-        socketRef.current.close()
-        socketRef.current = null
-        setSocket(null)
+    // Subscribe to offline detector changes
+    const unsubscribe = offlineDetector.subscribe((state) => {
+      setIsOnline(state.isOnline)
+      
+      if (state.isOnline) {
+        // Try reconnect on coming online
+        if (!socketRef.current) createSocket()
+      } else {
+        // Disconnect when offline
+        setIsConnected(false)
+        if (socketRef.current) {
+          socketRef.current.close()
+          socketRef.current = null
+          setSocket(null)
+        }
       }
-    }
-    update()
-    window.addEventListener('online', handleOnline)
-    window.addEventListener('offline', handleOffline)
-    return () => {
-      window.removeEventListener('online', handleOnline)
-      window.removeEventListener('offline', handleOffline)
-    }
+    })
+
+    return unsubscribe
   }, [createSocket])
 
   useEffect(() => {

@@ -12,11 +12,14 @@ import UserForm from '@/components/admin/UserForm'
 import BookingForm from '@/components/admin/BookingForm'
 import ServiceForm from '@/components/admin/ServiceForm'
 import NextBookingNotification from '@/components/admin/NextBookingNotification'
+import OfflineStatus from '@/components/OfflineStatus'
 
 import AnalyticsDashboard from '@/components/admin/AnalyticsDashboard'
 import VoiceInterface from '@/components/admin/VoiceInterface'
 import VoiceAssistant from '@/components/admin/VoiceAssistant'
 import { useSocket } from '@/hooks/useSocket'
+import { useOffline } from '@/hooks/useOffline'
+import { offlineAPI } from '@/lib/offline-api'
 import type { Booking, User as UserType, Service as ServiceType } from '@/types/global'
 import BugTracker from '@/components/admin/BugTracker'
 import BackupManager from '@/components/admin/BackupManager'
@@ -104,6 +107,7 @@ export default function AdminPage() {
 
   // WebSocket connection
   const { socket, isConnected, isSupported, joinAdmin } = useSocket()
+  const { isOnline, isOffline, syncPendingActions, getPendingCount } = useOffline()
 
   // Save sort state to localStorage
   useEffect(() => {
@@ -540,24 +544,17 @@ export default function AdminPage() {
 
   const loadBookings = async () => {
     try {
-      const adminToken = typeof window !== 'undefined' ? localStorage.getItem('adminToken') : null
-      console.log('🔍 Loading bookings with token:', adminToken ? 'present' : 'missing')
+      console.log('🔍 Loading bookings with offline API')
       
-      const response = await fetch('/api/admin/bookings', {
-        headers: {
-          'x-admin-token': adminToken || ''
-        }
-      })
+      const response = await offlineAPI.getBookings()
       
-      console.log('📊 Bookings response status:', response.status)
+      console.log('📊 Bookings response:', response)
       
-      if (response.ok) {
-        const data = await response.json()
-        console.log('📊 Bookings data:', data)
-        setBookings(data.bookings || [])
-      } else {
-        const errorText = await response.text()
-        console.error('❌ Failed to load bookings:', response.status, errorText)
+      if (response.data) {
+        console.log('📊 Bookings data:', response.data)
+        setBookings(response.data)
+      } else if (response.error) {
+        console.error('❌ Failed to load bookings:', response.error)
       }
     } catch (error) {
       console.error('❌ Error loading bookings:', error)
@@ -567,16 +564,10 @@ export default function AdminPage() {
   const loadServices = async () => {
     try {
       setIsLoadingServices(true)
-      const adminToken = localStorage.getItem('adminToken')
-      const response = await fetch('/api/admin/services', {
-        headers: {
-          'x-admin-token': adminToken || ''
-        }
-      })
-      if (response.ok) {
-        const data = await response.json()
+      const response = await offlineAPI.getServices()
+      if (response.data) {
         // Map database fields to interface fields
-        const mappedServices = data.services.map((service: any) => ({
+        const mappedServices = response.data.services.map((service: any) => ({
           id: service.id,
           name: service.name,
           description: service.description,
@@ -609,24 +600,17 @@ export default function AdminPage() {
 
   const loadUsers = async () => {
     try {
-      const adminToken = typeof window !== 'undefined' ? localStorage.getItem('adminToken') : null
-      console.log('🔍 Loading users with token:', adminToken ? 'present' : 'missing')
+      console.log('🔍 Loading users with offline API')
       
-      const response = await fetch('/api/admin/users', {
-        headers: {
-          'x-admin-token': adminToken || ''
-        }
-      })
+      const response = await offlineAPI.getUsers()
       
-      console.log('👥 Users response status:', response.status)
+      console.log('👥 Users response:', response)
       
-      if (response.ok) {
-        const data = await response.json()
-        console.log('👥 Users data:', data)
-        setUsers(data.users || [])
-      } else {
-        const errorText = await response.text()
-        console.error('❌ loadUsers - failed:', response.status, errorText)
+      if (response.data) {
+        console.log('👥 Users data:', response.data)
+        setUsers(response.data.users || [])
+      } else if (response.error) {
+        console.error('❌ loadUsers - failed:', response.error)
       }
     } catch (error) {
       console.error('❌ Error loading users:', error)
@@ -1031,6 +1015,7 @@ export default function AdminPage() {
 
             {/* Actions (Desktop) */}
             <div className="hidden sm:flex items-center space-x-2 md:space-x-2.5 lg:space-x-3 flex-wrap overflow-x-auto scrollbar-hide">
+              <OfflineStatus showDetails={false} />
               <Link href="/" className="text-blue-100 hover:text-white transition-colors inline-flex items-center space-x-2 flex-shrink-0">
                 <ArrowLeft className="w-4 h-4" />
                 <span className="hidden lg:inline">Към сайта</span>
