@@ -35,7 +35,7 @@ yarn-debug.log*
 yarn-error.log*
 lerna-debug.log*
 .pnpm-debug.log*
-logs/
+# logs/ - REMOVED - logs directory needs to be tracked
 *.log
 
 # Runtime data
