@@ -51,13 +51,13 @@ const DailySchedule = ({ date, onClose, onEditWorkingHours, onEditBooking, onDel
       ])
 
       if (scheduleResponse.data) {
-        setSchedule(scheduleResponse.data as any)
+        setSchedule(scheduleResponse.data as { date: string; workingHours: WorkingHours; bookings: Booking[]; totalBookings: number })
       } else if (scheduleResponse.error) {
         console.error('Error loading daily schedule:', scheduleResponse.error)
       }
       
       if (servicesResponse.data) {
-        setServices((servicesResponse.data.services as any[]) || [])
+        setServices((servicesResponse.data.services as { id: number; name: string }[]) || [])
       } else if (servicesResponse.error) {
         console.error('Error loading services:', servicesResponse.error)
       }
