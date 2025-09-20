@@ -13,6 +13,7 @@ interface OfflineFetchOptions extends Omit<RequestInit, 'cache'> {
   fallbackData?: unknown
   retryAttempts?: number
   retryDelay?: number
+  forceRefresh?: boolean
 }
 
 interface OfflineFetchResponse extends Response {
@@ -45,6 +46,7 @@ class OfflineFetchManager {
       fallbackData,
       retryAttempts = this.defaultRetryAttempts,
       retryDelay = this.defaultRetryDelay,
+      forceRefresh = false,
       ...fetchOptions
     } = options
 
@@ -64,6 +66,7 @@ class OfflineFetchManager {
         fallbackData,
         retryAttempts,
         retryDelay,
+        forceRefresh,
         ...fetchOptions
       }
     )
@@ -85,15 +88,17 @@ class OfflineFetchManager {
     options: OfflineFetchOptions
   ): Promise<OfflineFetchResponse> {
     const url = typeof input === 'string' ? input : input instanceof URL ? input.toString() : input.url
-    const { timeout, cache, cacheTTL, fallbackData, retryAttempts, retryDelay, ...fetchOptions } = options
+    const { timeout, cache, cacheTTL, fallbackData, retryAttempts, retryDelay, forceRefresh, ...fetchOptions } = options
 
-    // Check cache first if enabled
-    if (cache) {
+    // Check cache first if enabled and not forcing refresh
+    if (cache && !forceRefresh) {
       const cachedData = await offlineStorage.getCachedData(url)
       if (cachedData) {
         console.log(`[OfflineFetch] Serving from cache: ${url}`)
         return this.createResponse(cachedData, { fromCache: true })
       }
+    } else if (forceRefresh) {
+      console.log(`[OfflineFetch] Force refresh requested for ${url}, bypassing cache`)
     }
 
     // Check if we can make network requests

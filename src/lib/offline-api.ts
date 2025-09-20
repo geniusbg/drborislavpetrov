@@ -26,6 +26,7 @@ interface ApiRequestOptions extends OfflineFetchOptions {
   fallbackData?: unknown
   retryAttempts?: number
   retryDelay?: number
+  forceRefresh?: boolean
 }
 
 class OfflineAPI {
@@ -47,6 +48,7 @@ class OfflineAPI {
       fallbackData,
       retryAttempts = 3,
       retryDelay = 1000,
+      forceRefresh = false,
       ...fetchOptions
     } = options
 
@@ -104,6 +106,7 @@ class OfflineAPI {
         },
         body: data ? JSON.stringify(data) : undefined,
         timeout,
+        forceRefresh,
         ...fetchOptions
       })
 

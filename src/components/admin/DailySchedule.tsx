@@ -40,13 +40,13 @@ const DailySchedule = ({ date, onClose, onEditWorkingHours, onEditBooking, onDel
   // WebSocket connection for real-time updates
   const { socket, isConnected, isSupported, joinAdmin } = useSocket()
 
-  const loadDailySchedule = useCallback(async () => {
+  const loadDailySchedule = useCallback(async (forceRefresh = false) => {
     try {
       setLoading(true)
       
       // Load both schedule and services using offlineAPI
       const [scheduleResponse, servicesResponse] = await Promise.all([
-        offlineAPI.get(`/api/admin/daily-schedule?date=${date}`),
+        offlineAPI.get(`/api/admin/daily-schedule?date=${date}`, { cache: !forceRefresh, forceRefresh }),
         offlineAPI.getServices()
       ])
 
@@ -125,21 +125,8 @@ const DailySchedule = ({ date, onClose, onEditWorkingHours, onEditBooking, onDel
       const handleBookingAdded = (newBooking: Booking) => {
         if (newBooking.date !== date) return
 
-        setSchedule(prev => {
-          if (!prev) return null
-          // Check if booking already exists to prevent duplicates
-          const existingBooking = prev.bookings.find(b => b.id === newBooking.id)
-          if (existingBooking) {
-            return prev
-          }
-          
-          const updatedBookings = [...prev.bookings, newBooking]
-          return {
-            ...prev,
-            bookings: updatedBookings,
-            totalBookings: updatedBookings.length
-          }
-        })
+        console.log('📅 DailySchedule: Booking added for current date, force reloading schedule')
+        loadDailySchedule(true) // Force refresh to bypass cache
 
         // Only close modal if the added booking is the one we're currently editing
         if (showBookingForm && editingBooking && newBooking.id === editingBooking.id) {
@@ -151,29 +138,17 @@ const DailySchedule = ({ date, onClose, onEditWorkingHours, onEditBooking, onDel
       }
 
       const handleBookingUpdated = (updatedBooking: Booking) => {
-        setSchedule(prev => {
-          if (!prev) return null
-          const replaced = prev.bookings.map(booking => (
-            booking.id === updatedBooking.id ? updatedBooking : booking
-          ))
-          // Deduplicate by id-time-duration triple
-          const seen = new Set<string>()
-          const deduped = replaced.filter(b => {
-            const k = `${b.id}-${b.time}-${b.serviceDuration || 30}`
-            if (seen.has(k)) return false
-            seen.add(k)
-            return true
-          })
-          return { ...prev, bookings: deduped }
-        })
+        if (updatedBooking.date !== date) return
+
+        console.log('📅 DailySchedule: Booking updated for current date, force reloading schedule')
+        loadDailySchedule(true) // Force refresh to bypass cache
       }
 
-      const handleBookingDeleted = (bookingId: string) => {
-        setSchedule(prev => prev ? {
-          ...prev,
-          bookings: prev.bookings.filter(booking => booking.id !== bookingId),
-          totalBookings: Math.max(0, prev.totalBookings - 1)
-        } : null)
+      const handleBookingDeleted = (deletedBooking: Booking) => {
+        if (deletedBooking.date !== date) return
+
+        console.log('📅 DailySchedule: Booking deleted for current date, force reloading schedule')
+        loadDailySchedule(true) // Force refresh to bypass cache
       }
 
       const handleWorkingHoursUpdated = () => {
