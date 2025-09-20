@@ -553,6 +553,7 @@ export default function AdminPage() {
       
       if (response.data) {
         console.log('📊 Bookings data:', response.data)
+        console.log('📊 Bookings count:', response.data.bookings?.length || 0)
         setBookings(response.data.bookings as Booking[])
       } else if (response.error) {
         console.error('❌ Failed to load bookings:', response.error)

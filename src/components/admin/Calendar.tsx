@@ -7,7 +7,7 @@ import DailySchedule from './DailySchedule'
 import { useSocket } from '@/hooks/useSocket'
 import type { Booking, WorkingHours } from '@/types/global'
 import { emitWorkingHoursUpdated } from '@/lib/socket'
-import { getBulgariaTime, getBulgariaDateStringDB, dateToLocalDateString, createCalendarDate, calendarDateToString } from '@/lib/bulgaria-time'
+import { getBulgariaTime, getBulgariaDateStringDB, dateToLocalDateString, createCalendarDate, calendarDateToString, toBulgariaTime } from '@/lib/bulgaria-time'
 
 interface CalendarProps {
   bookings: Booking[]
@@ -458,7 +458,8 @@ const Calendar = ({ bookings, onBookingClick, onAddBooking, onNavigateToDailySch
   }
 
   const isSunday = (date: Date) => {
-    return date.getUTCDay() === 0 // 0 = Sunday
+    const bulgariaDate = toBulgariaTime(date)
+    return bulgariaDate.getDay() === 0 // 0 = Sunday (в българско време)
   }
 
   const isNonWorkingDay = (date: Date) => {
@@ -469,11 +470,28 @@ const Calendar = ({ bookings, onBookingClick, onAddBooking, onNavigateToDailySch
     }
     
     // Използваме настройките за работни дни
-    // За календарни дати използваме UTC методи за консистентност
-    const dayOfWeek = date.getUTCDay() // 0 = Sunday, 1 = Monday, ..., 6 = Saturday
+    // Използваме Intl.DateTimeFormat за да получим деня от седмицата в българската timezone
+    const formatter = new Intl.DateTimeFormat('en-US', {
+      timeZone: 'Europe/Sofia',
+      weekday: 'long' // Monday, Tuesday, ..., Sunday
+    })
+    
+    const weekdayName = formatter.format(date) // Monday, Tuesday, ..., Sunday
+    const weekdayMap: { [key: string]: number } = {
+      'Monday': 1,
+      'Tuesday': 2,
+      'Wednesday': 3,
+      'Thursday': 4,
+      'Friday': 5,
+      'Saturday': 6,
+      'Sunday': 0
+    }
+    const dayOfWeek = weekdayMap[weekdayName] || 0 // 0-6 (Sunday-Saturday)
+    
+    // defaultWorkingHours.workingDays съдържа [1, 2, 3, 4, 5] (понеделник-петък)
+    // dayOfWeek е 0-6 (неделя-събота) в българската timezone
     const isNonWorking = !defaultWorkingHours.workingDays.includes(dayOfWeek)
     
-
     
     return isNonWorking
   }
@@ -868,7 +886,22 @@ const Calendar = ({ bookings, onBookingClick, onAddBooking, onNavigateToDailySch
 
       if (response.ok) {
         setShowWorkingHoursForm(false)
-        loadWorkingHours() // Reload working hours
+        
+        // Update working hours state immediately
+        setWorkingHours(prev => {
+          const existingIndex = prev.findIndex(wh => wh.date === workingHoursData.date)
+          if (existingIndex >= 0) {
+            // Update existing working hours
+            return prev.map(wh => wh.date === workingHoursData.date ? workingHoursData : wh)
+          } else {
+            // Add new working hours
+            return [...prev, workingHoursData]
+          }
+        })
+        
+        // Recalculate available slots
+        setTimeout(() => calculateAvailableSlots(), 100)
+        
         emitWorkingHoursUpdated(workingHoursData) // Emit the updated event
         
         // Принудително обновяване на DailySchedule

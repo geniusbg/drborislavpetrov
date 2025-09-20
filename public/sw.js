@@ -1,5 +1,5 @@
 // Service Worker for offline caching
-const CACHE_NAME = 'drborislavpetrov-v5';
+const CACHE_NAME = 'drborislavpetrov-v9';
 const urlsToCache = [
   '/',
   '/admin',
@@ -13,32 +13,62 @@ const urlsToCache = [
   '/admin-icon-512.png'
 ];
 
+// Extended patterns for caching
+const shouldCacheUrl = (url) => {
+  // Cache main navigation pages
+  if (url === '/' || url === '/admin' || url.endsWith('/')) return true;
+  
+  // Cache static assets
+  if (url.includes('/_next/static/')) return true;
+  if (url.includes('/static/')) return true;
+  
+  // Cache specific file types
+  if (url.match(/\.(js|css|png|jpg|jpeg|gif|svg|ico|webp|woff|woff2|ttf|eot)$/)) return true;
+  
+  // Don't cache API endpoints
+  if (url.includes('/api/')) return false;
+  
+  // Don't cache socket connections
+  if (url.includes('socket')) return false;
+  
+  return false;
+};
+
 function canCacheRequest(request) {
   return request.method === 'GET' && 
          (request.url.startsWith('http://') || request.url.startsWith('https://')) &&
-         !request.url.includes('/api/') && // Не кешираме API заявки
-         request.destination !== 'document' && // Не кешираме navigation requests тук
-         !request.url.includes('socket') && // Не кешираме socket заявки
+         shouldCacheUrl(request.url) &&
          request.mode !== 'no-cors'; // Не кешираме no-cors заявки
 }
 
 self.addEventListener('install', (event) => {
+  console.log('[SW] Installing Service Worker v9');
+  
   event.waitUntil(
     caches.open(CACHE_NAME)
       .then((cache) => {
+        console.log('[SW] Caching initial files...');
         // Кешираме файловете поотделно за по-добра обработка на грешки
         return Promise.allSettled(
           urlsToCache.map(url => 
-            cache.add(url).catch(error => {
-              console.warn(`Failed to cache ${url}:`, error);
+            cache.add(url).then(() => {
+              console.log(`[SW] Cached: ${url}`);
+              return url;
+            }).catch(error => {
+              console.warn(`[SW] Failed to cache ${url}:`, error);
               return null; // Продължаваме дори ако някой файл не може да бъде кеширан
             })
           )
         );
       })
-      .then(() => self.skipWaiting())
+      .then((results) => {
+        const successful = results.filter(r => r.status === 'fulfilled' && r.value !== null).length;
+        const total = urlsToCache.length;
+        console.log(`[SW] Cached ${successful}/${total} initial files`);
+        self.skipWaiting();
+      })
       .catch((error) => {
-        console.error('Service Worker: Cache failed:', error);
+        console.error('[SW] Cache failed:', error);
         // Продължаваме дори ако кеширането не успее
         self.skipWaiting();
       })
@@ -118,36 +148,56 @@ self.addEventListener('fetch', (event) => {
   // Navigation requests: hybrid strategy - network-first for online, cache-first for offline
   if (event.request.mode === 'navigate') {
     event.respondWith(
-      // Първо опитваме се от мрежата за актуални данни
-      fetch(event.request)
-        .then((response) => {
-          // Cache successful navigation responses
-          if (response.status === 200 && event.request.method === 'GET') {
-            const copy = response.clone();
-            caches.open(CACHE_NAME).then((cache) => {
-              try {
-                cache.put(event.request, copy);
-                console.log('[SW] Cached fresh navigation response:', event.request.url);
-              } catch (error) {
-                console.warn('Failed to cache navigation request:', error);
-              }
-            });
+      // Първо проверяваме кеша за по-бързо зареждане
+      caches.match(event.request)
+        .then((cached) => {
+          if (cached) {
+            console.log('[SW] Serving cached navigation:', event.request.url);
+            
+            // В background опитваме да обновим кеша
+            fetch(event.request)
+              .then((response) => {
+                if (response.status === 200 && event.request.method === 'GET') {
+                  const copy = response.clone();
+                  caches.open(CACHE_NAME).then((cache) => {
+                    try {
+                      cache.put(event.request, copy);
+                      console.log('[SW] Updated cached navigation response:', event.request.url);
+                    } catch (error) {
+                      console.warn('Failed to update cached navigation request:', error);
+                    }
+                  });
+                }
+              })
+              .catch(() => {
+                console.log('[SW] Background update failed for:', event.request.url);
+              });
+            
+            return cached;
           }
-          console.log('[SW] Serving fresh navigation from network:', event.request.url);
-          return response;
-        })
-        .catch(() => {
-          // Ако мрежата fail-не, опитваме се от кеша
-          console.log('[SW] Network failed, trying cache for:', event.request.url);
-          return caches.match(event.request)
-            .then((cached) => {
-              if (cached) {
-                console.log('[SW] Serving cached navigation:', event.request.url);
-                return cached;
+          
+          // Ако няма кеширана версия, опитваме от мрежата
+          console.log('[SW] No cache available, fetching from network:', event.request.url);
+          return fetch(event.request)
+            .then((response) => {
+              // Cache successful navigation responses
+              if (response.status === 200 && event.request.method === 'GET') {
+                const copy = response.clone();
+                caches.open(CACHE_NAME).then((cache) => {
+                  try {
+                    cache.put(event.request, copy);
+                    console.log('[SW] Cached fresh navigation response:', event.request.url);
+                  } catch (error) {
+                    console.warn('Failed to cache navigation request:', error);
+                  }
+                });
               }
-              
-              // Ако няма кеширана версия, показваме offline страницата
-              console.log('[SW] No cache available, showing offline page for:', event.request.url);
+              console.log('[SW] Serving fresh navigation from network:', event.request.url);
+              return response;
+            })
+            .catch(() => {
+              // Ако мрежата fail-не, показваме offline страницата
+              console.log('[SW] Network failed, showing offline page for:', event.request.url);
               return caches.match('/offline.html').then((offlinePage) => {
                 if (offlinePage) {
                   // Запазваме оригиналния URL в sessionStorage
@@ -191,23 +241,61 @@ self.addEventListener('fetch', (event) => {
     return;
   }
 
-  // Static assets: cache-first with offline fallback
+  // Static assets: cache-first with aggressive caching
   event.respondWith(
     caches.match(event.request).then((cached) => {
-      if (cached) return cached;
+      if (cached) {
+        console.log('[SW] Serving cached static asset:', event.request.url);
+        // Ensure proper MIME type for cached responses
+        const url = event.request.url;
+        let contentType = 'text/plain';
+        
+        if (url.endsWith('.css')) {
+          contentType = 'text/css';
+        } else if (url.endsWith('.js')) {
+          contentType = 'application/javascript';
+        } else if (url.endsWith('.png')) {
+          contentType = 'image/png';
+        } else if (url.endsWith('.jpg') || url.endsWith('.jpeg')) {
+          contentType = 'image/jpeg';
+        } else if (url.endsWith('.svg')) {
+          contentType = 'image/svg+xml';
+        } else if (url.endsWith('.ico')) {
+          contentType = 'image/x-icon';
+        } else if (url.endsWith('.json')) {
+          contentType = 'application/json';
+        } else if (url.endsWith('.html')) {
+          contentType = 'text/html';
+        }
+        
+        // Return cached response with proper headers
+        return new Response(cached.body, {
+          status: cached.status,
+          statusText: cached.statusText,
+          headers: {
+            ...cached.headers,
+            'Content-Type': contentType
+          }
+        });
+      }
+      
+      console.log('[SW] Fetching and caching static asset:', event.request.url);
       return fetch(event.request).then((response) => {
-        if (response && response.status === 200 && canCacheRequest(event.request)) {
+        if (response && response.status === 200) {
+          // Cache all successful GET requests for static assets
           const copy = response.clone();
           caches.open(CACHE_NAME).then((cache) => {
             try {
               cache.put(event.request, copy);
+              console.log('[SW] Cached static asset:', event.request.url);
             } catch (error) {
               console.warn('Failed to cache request:', error);
             }
           });
         }
         return response;
-      }).catch(() => {
+      }).catch((error) => {
+        console.log('[SW] Failed to fetch static asset:', event.request.url, error);
         // Offline fallback for static assets
         if (event.request.destination === 'image') {
           // Return placeholder for images

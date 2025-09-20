@@ -25,6 +25,7 @@ interface OfflineFetchResponse extends Response {
   offline?: boolean
   fromCache?: boolean
   cached?: boolean
+  data?: unknown
 }
 
 class OfflineFetchManager {
@@ -127,13 +128,18 @@ class OfflineFetchManager {
         // Mark successful request
         offlineDetector.markRequestAttempted()
         
-        // Cache successful responses
+        // Cache successful responses and set data property
         if (cache && response.ok) {
           const responseData = await response.clone().json().catch(() => response.clone().text())
           await offlineStorage.cacheResponse(url, responseData, cacheTTL)
+          
+          // Create response with data property to avoid body stream issues
+          return this.createResponse(responseData, { fromCache: false })
         }
         
-        return response as OfflineFetchResponse
+        // For non-cached responses, parse and set data property
+        const responseData = await response.clone().json().catch(() => response.clone().text())
+        return this.createResponse(responseData, { fromCache: false })
         
       } catch (error) {
         console.warn(`[OfflineFetch] Request attempt ${attempt + 1} failed for ${url}:`, error)
@@ -193,16 +199,14 @@ class OfflineFetchManager {
       headers: {
         'Content-Type': 'application/json'
       }
-    })
-
-    // Create a new response object instead of modifying the existing one
-    return new Response(JSON.stringify(data), {
-      status: 200,
-      statusText: 'OK',
-      headers: {
-        'Content-Type': 'application/json'
-      }
     }) as OfflineFetchResponse
+
+    // Add metadata properties
+    response.offline = metadata.offline || false
+    response.fromCache = metadata.fromCache || false
+    response.data = data
+
+    return response
   }
 
   private createOfflineResponse(url: string): OfflineFetchResponse {

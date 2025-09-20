@@ -73,17 +73,23 @@ class OfflineDetector {
       return false
     }
 
+    let timeout: NodeJS.Timeout | undefined
+    
     try {
       // Use a lightweight endpoint for connection testing
       const controller = new AbortController()
-      const timeout = setTimeout(() => controller.abort(), 2000) // Reduce timeout
+      timeout = setTimeout(() => controller.abort(), 5000) // Increase timeout for dev
       
-      // Use a simple API endpoint that's more likely to be cached
+      // Use a simple endpoint that doesn't have rate limiting
       const baseUrl = window.location.origin
-      const testUrl = `${baseUrl}/api/services`
+      const testUrl = `${baseUrl}/manifest.json`
+      
+      if (process.env.NODE_ENV === 'development') {
+        console.log('[OfflineDetector] Testing connection to:', testUrl)
+      }
       
       const response = await fetch(testUrl, {
-        method: 'HEAD',
+        method: 'GET',
         cache: 'no-store',
         signal: controller.signal
       })
@@ -93,6 +99,10 @@ class OfflineDetector {
       const isOnline = response.ok
       const connectionQuality = this.assessConnectionQuality(response)
       
+      if (process.env.NODE_ENV === 'development') {
+        console.log('[OfflineDetector] Connection test result:', { isOnline, status: response.status, quality: connectionQuality })
+      }
+      
       this.updateState({
         isOnline,
         connectionQuality,
@@ -101,7 +111,25 @@ class OfflineDetector {
       
       return isOnline
     } catch (error) {
-      // Only log errors in development
+      if (timeout) {
+        clearTimeout(timeout) // Ensure timeout is cleared
+      }
+      
+      // Handle AbortError as expected offline behavior, not an error
+      if (error instanceof Error && error.name === 'AbortError') {
+        // Only log in development for debugging
+        if (process.env.NODE_ENV === 'development') {
+          console.log('[OfflineDetector] Connection timeout (expected offline behavior)')
+        }
+        this.updateState({
+          isOnline: false,
+          connectionQuality: 'offline',
+          retryCount: this.state.retryCount + 1
+        })
+        return false
+      }
+      
+      // Only log other errors in development
       if (process.env.NODE_ENV === 'development') {
         console.log('[OfflineDetector] Connection check failed:', error)
       }
@@ -185,6 +213,11 @@ class OfflineDetector {
   }
 
   public canMakeRequest(): boolean {
+    // In development, always allow requests if we haven't explicitly detected offline
+    if (process.env.NODE_ENV === 'development' && this.state.retryCount === 0) {
+      return true
+    }
+    
     if (!this.state.isOnline) {
       return false
     }

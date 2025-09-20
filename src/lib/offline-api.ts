@@ -111,7 +111,8 @@ class OfflineAPI {
       })
 
       if (response.ok) {
-        const responseData = await response.json() as T
+        // offline-fetch now always sets response.data, so we can use it directly
+        const responseData = response.data as T
         
         // Cache the response only if we should cache (offline mode)
         if (shouldCache) {
@@ -123,7 +124,8 @@ class OfflineAPI {
           fromCache: response.fromCache || false
         }
       } else {
-        const errorData = await response.json().catch(() => ({ error: 'Unknown error' })) as { error?: string }
+        // offline-fetch now always sets response.data, so we can use it directly
+        const errorData = response.data as { error?: string } || { error: 'Unknown error' }
         return {
           error: errorData.error || `HTTP ${response.status}: ${response.statusText}`,
           offline: response.offline || false
@@ -176,27 +178,92 @@ class OfflineAPI {
 
   // Specific API methods
   async getBookings(): Promise<ApiResponse<{ bookings: unknown[] }>> {
-    return this.get('/api/admin/bookings', {
+    const response = await this.get<{ bookings: unknown[] }>('/api/admin/bookings', {
       cache: true,
       cacheTTL: 2 * 60 * 1000, // 2 minutes
       fallbackData: { bookings: [] }
     })
+    
+    // Store bookings in dedicated store for offline access
+    if (response.data && !response.offline) {
+      const bookingsData = response.data as { bookings: unknown[] }
+      if (bookingsData.bookings && bookingsData.bookings.length > 0) {
+        await offlineStorage.storeBookings(bookingsData.bookings)
+        console.log(`[OfflineAPI] Stored ${bookingsData.bookings.length} bookings in dedicated store`)
+      }
+    }
+    
+    // If no data from cache, try dedicated store
+    if (response.offline && (!response.data || (response.data as { bookings: unknown[] }).bookings.length === 0)) {
+      try {
+        const storedBookings = await offlineStorage.getBookings()
+        if (storedBookings.length > 0) {
+          console.log(`[OfflineAPI] Fallback to dedicated store: ${storedBookings.length} bookings`)
+          return {
+            data: { bookings: storedBookings },
+            offline: true
+          } as ApiResponse<{ bookings: unknown[] }>
+        }
+      } catch (error) {
+        console.warn('[OfflineAPI] Failed to get bookings from dedicated store:', error)
+      }
+    }
+    
+    return response
   }
 
   async getServices(): Promise<ApiResponse<{ services: unknown[] }>> {
-    return this.get('/api/admin/services', {
+    const response = await this.get<{ services: unknown[] }>('/api/admin/services', {
       cache: true,
       cacheTTL: 5 * 60 * 1000, // 5 minutes
       fallbackData: { services: [] }
     })
+    
+    // Store services in dedicated store for offline access
+    if (response.data && !response.offline) {
+      const servicesData = response.data as { services: unknown[] }
+      if (servicesData.services && servicesData.services.length > 0) {
+        await offlineStorage.storeServices(servicesData.services)
+        console.log(`[OfflineAPI] Stored ${servicesData.services.length} services in dedicated store`)
+      }
+    }
+    
+    // If no data from cache, try dedicated store
+    if (response.offline && (!response.data || (response.data as { services: unknown[] }).services.length === 0)) {
+      try {
+        const storedServices = await offlineStorage.getServices()
+        if (storedServices.length > 0) {
+          console.log(`[OfflineAPI] Fallback to dedicated store: ${storedServices.length} services`)
+          return {
+            data: { services: storedServices },
+            offline: true
+          } as ApiResponse<{ services: unknown[] }>
+        }
+      } catch (error) {
+        console.warn('[OfflineAPI] Failed to get services from dedicated store:', error)
+      }
+    }
+    
+    return response
   }
 
   async getUsers(): Promise<ApiResponse<{ users: unknown[] }>> {
-    return this.get('/api/admin/users', {
+    const response = await this.get<{ users: unknown[] }>('/api/admin/users', {
       cache: true,
       cacheTTL: 10 * 60 * 1000, // 10 minutes
       fallbackData: { users: [] }
     })
+    
+    // Store users in dedicated store for offline access
+    if (response.data && !response.offline) {
+      const usersData = response.data as { users: unknown[] }
+      if (usersData.users && usersData.users.length > 0) {
+        await offlineStorage.storeUsers(usersData.users)
+        console.log(`[OfflineAPI] Stored ${usersData.users.length} users in dedicated store`)
+      }
+    }
+    
+    return response
   }
 
   // Cache management
