@@ -1007,7 +1007,7 @@ export default function AdminPage() {
   // Removed unused formatDateTime function
 
   return (
-    <Suspense fallback={<div className="min-h-screen bg-gray-50 flex items-center justify-center"><div className="text-gray-600">Зареждане…</div></div>}>
+    <Suspense fallback={null}>
     <div className="min-h-screen bg-gray-50">
       {/* Full-screen initial overlay (SSR-safe): same markup SSR & first client render */}
       {!hideOverlay && (
