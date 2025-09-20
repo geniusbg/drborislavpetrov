@@ -3,6 +3,7 @@
 import React, { useState, useEffect, useCallback, useMemo } from 'react'
 import { Phone, Clock, Copy, X, ChevronLeft, ChevronRight } from 'lucide-react'
 import { getBulgariaTime, formatBulgariaDate } from '@/lib/bulgaria-time'
+import { offlineAPI } from '@/lib/offline-api'
 
 interface TimeSlot {
   time: string
@@ -107,21 +108,19 @@ const QuickResponseWidget: React.FC<QuickResponseWidgetProps> = ({ onClose, onCr
   const loadAvailableSlots = async (date: string, limit: number = 10) => {
     setIsLoading(true)
     try {
-      const adminToken = localStorage.getItem('adminToken')
-      const response = await fetch(`/api/admin/available-time-slots?date=${date}&limit=${limit}&serviceDuration=${selectedServiceDuration}`, {
-        headers: {
-          'x-admin-token': adminToken || ''
-        }
-      })
+      const response = await offlineAPI.get(`/api/admin/available-time-slots?date=${date}&limit=${limit}&serviceDuration=${selectedServiceDuration}`)
       
-      if (response.ok) {
-        const data = await response.json()
-        const slots = (data.availableSlots || []).map((time: string) => ({
+      if (response.data) {
+        const slots = ((response.data as { availableSlots?: string[] }).availableSlots || []).map((time: string) => ({
           time,
           date,
           service: 'Общ преглед'
         }))
         setAvailableSlots(slots)
+      } else if (response.offline) {
+        // Fallback to offline storage or generate basic slots
+        console.log('📦 Using offline fallback for available slots')
+        setAvailableSlots([])
       } else {
         console.error('Failed to load available slots')
         setAvailableSlots([])

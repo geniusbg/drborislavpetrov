@@ -78,11 +78,11 @@ class OfflineDetector {
       const controller = new AbortController()
       const timeout = setTimeout(() => controller.abort(), 2000) // Reduce timeout
       
-      // Build absolute URL for manifest.json
+      // Use a simple API endpoint that's more likely to be cached
       const baseUrl = window.location.origin
-      const manifestUrl = `${baseUrl}/manifest.json`
+      const testUrl = `${baseUrl}/api/services`
       
-      const response = await fetch(manifestUrl, {
+      const response = await fetch(testUrl, {
         method: 'HEAD',
         cache: 'no-store',
         signal: controller.signal
