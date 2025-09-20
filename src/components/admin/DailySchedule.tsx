@@ -8,6 +8,7 @@ import { createPortal } from 'react-dom'
 import { User, Phone, Calendar, X, Edit, Plus } from 'lucide-react'
 import BookingForm from './BookingForm'
 import { useSocket } from '@/hooks/useSocket'
+import { offlineAPI } from '@/lib/offline-api'
 import type { Booking, WorkingHours } from '@/types/global'
 import { getBulgariaTime, formatBulgariaDate, getBulgariaDateStringDB } from '@/lib/bulgaria-time'
 
@@ -42,31 +43,23 @@ const DailySchedule = ({ date, onClose, onEditWorkingHours, onEditBooking, onDel
   const loadDailySchedule = useCallback(async () => {
     try {
       setLoading(true)
-      const adminToken = localStorage.getItem('adminToken')
       
-      
-      // Load both schedule and services
+      // Load both schedule and services using offlineAPI
       const [scheduleResponse, servicesResponse] = await Promise.all([
-        fetch(`/api/admin/daily-schedule?date=${date}`, {
-          headers: {
-            'x-admin-token': adminToken || 'test'
-          }
-        }),
-        fetch('/api/admin/services', {
-          headers: {
-            'x-admin-token': adminToken || 'test'
-          }
-        })
+        offlineAPI.get(`/api/admin/daily-schedule?date=${date}`),
+        offlineAPI.getServices()
       ])
 
-      if (scheduleResponse.ok) {
-        const scheduleData = await scheduleResponse.json()
-        setSchedule(scheduleData)
+      if (scheduleResponse.data) {
+        setSchedule(scheduleResponse.data as any)
+      } else if (scheduleResponse.error) {
+        console.error('Error loading daily schedule:', scheduleResponse.error)
       }
       
-      if (servicesResponse.ok) {
-        const servicesData = await servicesResponse.json()
-        setServices(servicesData.services)
+      if (servicesResponse.data) {
+        setServices((servicesResponse.data.services as any[]) || [])
+      } else if (servicesResponse.error) {
+        console.error('Error loading services:', servicesResponse.error)
       }
     } catch (error) {
       console.error('Error loading daily schedule:', error)

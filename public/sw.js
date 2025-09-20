@@ -1,6 +1,8 @@
 // Service Worker for offline caching
-const CACHE_NAME = 'drborislavpetrov-v2';
+const CACHE_NAME = 'drborislavpetrov-v3';
 const urlsToCache = [
+  '/',
+  '/admin',
   '/offline.html',
   '/manifest.json',
   '/admin-manifest.json',
