@@ -50,6 +50,10 @@ class OfflineAPI {
       ...fetchOptions
     } = options
 
+    // When online, disable caching for fresh data
+    const isOnline = offlineDetector.canMakeRequest()
+    const shouldCache = cache && !isOnline
+
     const url = `${this.baseURL}${endpoint}`
     const cacheKey = `${method}:${url}`
 
@@ -79,6 +83,9 @@ class OfflineAPI {
         error: 'No internet connection and no cached data available',
         offline: true
       }
+    } else {
+      // When online, skip cached data and always fetch fresh
+      console.log(`[OfflineAPI] Online detected for ${url}, fetching fresh data`)
     }
 
     try {
@@ -103,8 +110,8 @@ class OfflineAPI {
       if (response.ok) {
         const responseData = await response.json() as T
         
-        // Cache the response if caching is enabled
-        if (cache) {
+        // Cache the response only if we should cache (offline mode)
+        if (shouldCache) {
           await this.cacheResponse(cacheKey, responseData, cacheTTL)
         }
 

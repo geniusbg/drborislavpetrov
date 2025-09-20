@@ -22,24 +22,6 @@ interface UseOfflineReturn {
 export function useOffline(): UseOfflineReturn {
   const [offlineState, setOfflineState] = useState<OfflineState>(() => offlineDetector.getState())
 
-  useEffect(() => {
-    // Subscribe to offline state changes
-    const unsubscribe = offlineDetector.subscribe((state) => {
-      setOfflineState(state)
-    })
-
-    // Initial sync if online
-    if (offlineState.isOnline) {
-      syncPendingActions()
-    }
-
-    return unsubscribe
-  }, [])
-
-  const checkConnection = useCallback(async (): Promise<boolean> => {
-    return await offlineDetector.forceCheck()
-  }, [])
-
   const syncPendingActions = useCallback(async (): Promise<{ success: number; failed: number }> => {
     try {
       await offlineAPI.syncPendingActions()
@@ -48,6 +30,30 @@ export function useOffline(): UseOfflineReturn {
       console.error('[useOffline] Sync failed:', error)
       return { success: 0, failed: 1 }
     }
+  }, [])
+
+  useEffect(() => {
+    // Subscribe to offline state changes
+    const unsubscribe = offlineDetector.subscribe((state) => {
+      setOfflineState(state)
+      
+      // When coming back online, sync pending actions
+      if (state.isOnline && !offlineState.isOnline) {
+        console.log('🔄 Coming back online, syncing pending actions...')
+        syncPendingActions()
+      }
+    })
+
+    // Initial sync if online
+    if (offlineState.isOnline) {
+      syncPendingActions()
+    }
+
+    return unsubscribe
+  }, [offlineState.isOnline, syncPendingActions])
+
+  const checkConnection = useCallback(async (): Promise<boolean> => {
+    return await offlineDetector.forceCheck()
   }, [])
 
   const getPendingCount = useCallback(async (): Promise<number> => {
