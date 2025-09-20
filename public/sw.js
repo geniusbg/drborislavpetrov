@@ -1,5 +1,5 @@
 // Service Worker for offline caching
-const CACHE_NAME = 'drborislavpetrov-v3';
+const CACHE_NAME = 'drborislavpetrov-v5';
 const urlsToCache = [
   '/',
   '/admin',
@@ -115,9 +115,10 @@ self.addEventListener('fetch', (event) => {
     return;
   }
 
-  // Navigation requests: network-first with offline fallback
+  // Navigation requests: hybrid strategy - network-first for online, cache-first for offline
   if (event.request.mode === 'navigate') {
     event.respondWith(
+      // Първо опитваме се от мрежата за актуални данни
       fetch(event.request)
         .then((response) => {
           // Cache successful navigation responses
@@ -126,19 +127,27 @@ self.addEventListener('fetch', (event) => {
             caches.open(CACHE_NAME).then((cache) => {
               try {
                 cache.put(event.request, copy);
+                console.log('[SW] Cached fresh navigation response:', event.request.url);
               } catch (error) {
                 console.warn('Failed to cache navigation request:', error);
               }
             });
           }
+          console.log('[SW] Serving fresh navigation from network:', event.request.url);
           return response;
         })
         .catch(() => {
-          // Offline fallback - try cached version first, then offline page
+          // Ако мрежата fail-не, опитваме се от кеша
+          console.log('[SW] Network failed, trying cache for:', event.request.url);
           return caches.match(event.request)
             .then((cached) => {
-              if (cached) return cached;
-              // If no cached version, show offline page with original URL
+              if (cached) {
+                console.log('[SW] Serving cached navigation:', event.request.url);
+                return cached;
+              }
+              
+              // Ако няма кеширана версия, показваме offline страницата
+              console.log('[SW] No cache available, showing offline page for:', event.request.url);
               return caches.match('/offline.html').then((offlinePage) => {
                 if (offlinePage) {
                   // Запазваме оригиналния URL в sessionStorage
