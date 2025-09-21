@@ -35,7 +35,7 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
       </head>
       <div className="min-h-screen">
         <OfflineIndicator />
-        <Suspense fallback={<div className="p-6 text-gray-600">Зареждане…</div>}>
+        <Suspense fallback={null}>
           {children}
         </Suspense>
       </div>

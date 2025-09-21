@@ -13,7 +13,13 @@ import PWAInstallButton from '@/components/PWAInstallButton'
 
 export default function HomePage() {
   // Loading overlay state
-  const [hideOverlay, setHideOverlay] = useState(false)
+  const [hideOverlay, setHideOverlay] = useState(() => {
+    // Check immediately if app has been loaded before
+    if (typeof window !== 'undefined') {
+      return !!sessionStorage.getItem('app-loaded')
+    }
+    return false
+  })
   const [isClosing, setIsClosing] = useState(false)
   const [overlayProgress, setOverlayProgress] = useState(0)
   const initLoadStartedRef = useRef(false)

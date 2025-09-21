@@ -82,7 +82,13 @@ export default function AdminPage() {
   // const [showBackupManager, setShowBackupManager] = useState(false)
   const [showSupportNotes, setShowSupportNotes] = useState(false)
   // SSR-safe loading overlay with real progress
-  const [hideOverlay, setHideOverlay] = useState(false)
+  const [hideOverlay, setHideOverlay] = useState(() => {
+    // Check immediately if admin has been loaded before
+    if (typeof window !== 'undefined') {
+      return !!sessionStorage.getItem('admin-loaded')
+    }
+    return false
+  })
   const [isClosing, setIsClosing] = useState(false)
   const [overlayProgress, setOverlayProgress] = useState(0)
   const initLoadStartedRef = useRef(false)
