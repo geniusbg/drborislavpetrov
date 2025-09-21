@@ -284,7 +284,7 @@ const BookingForm = ({ booking, onSubmit, onCancel, onDelete }: BookingFormProps
         await onSubmit(submissionData, isStatusOnlyUpdate)
       } else {
         // Офлайн режим - запазваме за синхронизация
-        const actionType = booking ? 'update' : 'create'
+        const actionType = booking ? 'update-booking' : 'create-booking'
         const actionData = booking ? 
           { ...submissionData, id: booking.id } : 
           submissionData
@@ -467,7 +467,7 @@ const BookingForm = ({ booking, onSubmit, onCancel, onDelete }: BookingFormProps
                 // Офлайн режим - запазваме за синхронизация
                 await offlineStorage.addToSyncQueue({
                   id: `delete-booking-${Date.now()}`,
-                  action: 'delete',
+                  action: 'delete-booking',
                   data: { id: booking.id },
                   timestamp: Date.now(),
                   retries: 0,
