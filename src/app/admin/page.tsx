@@ -435,6 +435,20 @@ export default function AdminPage() {
     if (initLoadStartedRef.current) return
     initLoadStartedRef.current = true
 
+    // Check if admin has been loaded before in this session
+    const hasLoadedBefore = typeof window !== 'undefined' && sessionStorage.getItem('admin-loaded')
+    
+    if (hasLoadedBefore) {
+      // Skip loading animation for subsequent navigations, but still load data
+      setHideOverlay(true)
+      setIsLoading(false)
+      const loadInitialData = async () => {
+        await Promise.all([loadBookings(), loadServices(), loadUsers()])
+      }
+      loadInitialData()
+      return
+    }
+
     const loadInitialData = async () => {
       const tasks = [loadBookings, loadServices, loadUsers]
       const totalTasks = tasks.length
@@ -460,7 +474,13 @@ export default function AdminPage() {
       if (!overlayFinalizedRef.current) {
         overlayFinalizedRef.current = true
         setTimeout(() => setIsClosing(true), closeDelayMs)
-        setTimeout(() => setHideOverlay(true), closeDelayMs + animDurationMs + 100)
+        setTimeout(() => {
+          setHideOverlay(true)
+          // Mark admin as loaded for this session
+          if (typeof window !== 'undefined') {
+            sessionStorage.setItem('admin-loaded', 'true')
+          }
+        }, closeDelayMs + animDurationMs + 100)
       }
     }
     

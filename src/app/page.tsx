@@ -23,6 +23,15 @@ export default function HomePage() {
     if (initLoadStartedRef.current) return
     initLoadStartedRef.current = true
 
+    // Check if app has been loaded before in this session
+    const hasLoadedBefore = typeof window !== 'undefined' && sessionStorage.getItem('app-loaded')
+    
+    if (hasLoadedBefore) {
+      // Skip loading animation for subsequent navigations
+      setHideOverlay(true)
+      return
+    }
+
     const simulateLoading = async () => {
       // Simulate different loading phases
       const phases = [
@@ -44,7 +53,13 @@ export default function HomePage() {
       if (!overlayFinalizedRef.current) {
         overlayFinalizedRef.current = true
         setTimeout(() => setIsClosing(true), closeDelayMs)
-        setTimeout(() => setHideOverlay(true), closeDelayMs + animDurationMs + 100)
+        setTimeout(() => {
+          setHideOverlay(true)
+          // Mark app as loaded for this session
+          if (typeof window !== 'undefined') {
+            sessionStorage.setItem('app-loaded', 'true')
+          }
+        }, closeDelayMs + animDurationMs + 100)
       }
     }
 
