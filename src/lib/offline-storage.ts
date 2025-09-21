@@ -13,11 +13,18 @@ interface StoredData {
 
 interface SyncAction {
   id: string
-  action: 'create' | 'update' | 'delete'
+  action: 'create' | 'update' | 'delete' | 'create-booking' | 'update-booking' | 'delete-booking' | 'voice-command'
   data: unknown
   timestamp: number
   retries: number
   maxRetries: number
+}
+
+interface CacheEntry {
+  key: string
+  data: unknown
+  timestamp: number
+  expires: number
 }
 
 interface OfflineStorageConfig {
@@ -394,14 +401,75 @@ class OfflineStorage {
   // Process sync item without requiring apiCall parameter
   public async processSyncItemSimple(item: SyncAction): Promise<boolean> {
     try {
-      // For now, just simulate successful sync
-      // In a real implementation, you would call the appropriate API based on item.type
       console.log(`[OfflineStorage] Processing sync item: ${item.action}`, item.data)
       
-      // Simulate API call delay
-      await new Promise(resolve => setTimeout(resolve, 100))
+      // Make real API calls based on action type
+      const adminToken = typeof window !== 'undefined' ? localStorage.getItem('adminToken') : null
+    const headers = {
+      'Content-Type': 'application/json',
+        ...(adminToken && { 'x-admin-token': adminToken })
+      }
       
-      return true
+      let response: Response
+      
+      switch (item.action) {
+        case 'create-booking':
+          response = await fetch('/api/booking', {
+          method: 'POST',
+          headers,
+            body: JSON.stringify(item.data)
+        })
+        break
+
+        case 'update-booking':
+          const updateData = item.data as { id?: string }
+          const bookingId = updateData.id
+          if (!bookingId) {
+            // If no ID, treat as create
+            response = await fetch('/api/booking', {
+              method: 'POST',
+              headers,
+              body: JSON.stringify(item.data)
+            })
+          } else {
+            response = await fetch(`/api/admin/bookings/${bookingId}`, {
+          method: 'PUT',
+          headers,
+              body: JSON.stringify(item.data)
+        })
+        }
+        break
+
+        case 'delete-booking':
+          const deleteData = item.data as { id: string }
+          response = await fetch(`/api/admin/bookings/${deleteData.id}`, {
+          method: 'DELETE',
+          headers
+        })
+        break
+
+        case 'voice-command':
+          response = await fetch('/api/admin/voice-commands', {
+          method: 'POST',
+          headers,
+            body: JSON.stringify(item.data)
+        })
+        break
+
+        default:
+          console.warn(`[OfflineStorage] Unknown sync action: ${item.action}`)
+          return false
+      }
+      
+      if (response.ok) {
+        const result = await response.json()
+        console.log(`[OfflineStorage] Successfully synced ${item.action}:`, result)
+        return true
+      } else {
+        console.error(`[OfflineStorage] Sync failed for ${item.action}:`, response.status, response.statusText)
+        return false
+      }
+      
     } catch (error) {
       console.error('[OfflineStorage] Sync item failed:', error)
       return false
@@ -433,6 +501,14 @@ class OfflineStorage {
           if (success) {
             await this.removeFromSyncQueue(item.id)
             console.log(`[OfflineStorage] Successfully synced item ${item.id}`)
+            
+            // Refresh cached data after successful sync
+            if (item.action.includes('booking')) {
+              // Clear booking-related cache to force refresh
+              await this.clearCacheByPattern('/api/admin/bookings')
+              await this.clearCacheByPattern('/api/admin/daily-schedule')
+              console.log(`[OfflineStorage] Cleared booking cache after sync`)
+            }
           } else {
             item.retries++
             await this.updateSyncItemRetries(item.id, item.retries)
@@ -465,6 +541,28 @@ class OfflineStorage {
       }
     } catch (error) {
       console.error('[OfflineStorage] Error updating sync item retries:', error)
+    }
+  }
+
+  // Clear cache entries that match a pattern
+  private async clearCacheByPattern(pattern: string): Promise<void> {
+    try {
+      const db = await this.getDB()
+      const transaction = db.transaction([this.config.stores.cache], 'readwrite')
+      const store = transaction.objectStore(this.config.stores.cache)
+      
+      const getAllRequest = store.getAll()
+      getAllRequest.onsuccess = () => {
+        const items = getAllRequest.result
+        items.forEach((item: CacheEntry) => {
+          if (item.key.includes(pattern)) {
+            store.delete(item.key)
+            console.log(`[OfflineStorage] Cleared cache entry: ${item.key}`)
+          }
+        })
+      }
+    } catch (error) {
+      console.error('[OfflineStorage] Error clearing cache by pattern:', error)
     }
   }
 
