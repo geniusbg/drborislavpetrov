@@ -9,6 +9,7 @@ import Booking from '@/components/home/Booking'
 import Contact from '@/components/home/Contact'
 import Footer from '@/components/layout/Footer'
 import { SectionTransition } from '@/components/layout/SectionTransition'
+import PWAInstallButton from '@/components/PWAInstallButton'
 
 export default function HomePage() {
   // Loading overlay state
@@ -116,6 +117,9 @@ export default function HomePage() {
         <Contact />
       </SectionTransition>
       <Footer />
+      
+      {/* PWA Install Banner */}
+      <PWAInstallButton showBanner={true} />
     </main>
   )
 }

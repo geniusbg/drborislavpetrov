@@ -12,7 +12,6 @@ import UserForm from '@/components/admin/UserForm'
 import BookingForm from '@/components/admin/BookingForm'
 import ServiceForm from '@/components/admin/ServiceForm'
 import NextBookingNotification from '@/components/admin/NextBookingNotification'
-import OfflineStatus from '@/components/OfflineStatus'
 
 import AnalyticsDashboard from '@/components/admin/AnalyticsDashboard'
 import VoiceInterface from '@/components/admin/VoiceInterface'
@@ -1083,7 +1082,6 @@ export default function AdminPage() {
 
             {/* Actions (Desktop) */}
             <div className="hidden sm:flex items-center space-x-2 md:space-x-2.5 lg:space-x-3 flex-wrap overflow-x-auto scrollbar-hide">
-              <OfflineStatus showDetails={false} />
               <Link href="/" className="text-blue-100 hover:text-white transition-colors inline-flex items-center space-x-2 flex-shrink-0">
                 <ArrowLeft className="w-4 h-4" />
                 <span className="hidden lg:inline">Към сайта</span>

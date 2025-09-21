@@ -3,7 +3,6 @@ import { getSiteDomain } from '@/lib/site'
 import { Inter } from 'next/font/google'
 import './globals.css'
 import UnderConstructionBanner from '@/components/UnderConstructionBanner'
-import OfflineBanner from '@/components/OfflineBanner'
 import Script from 'next/script'
 
 // Extend Window interface for service worker registration flag and socket
@@ -71,6 +70,10 @@ export default function RootLayout({
         <meta name="msapplication-TileColor" content="#1e40af" />
         <meta name="msapplication-tap-highlight" content="no" />
         
+        {/* PWA Install Hints */}
+        <meta name="mobile-web-app-status-bar-style" content="default" />
+        <meta name="format-detection" content="telephone=no" />
+        
         {/* Apple Touch Icons */}
         <link rel="apple-touch-icon" href="/icon-192.png" />
         <link rel="apple-touch-icon" sizes="152x152" href="/icon-192.png" />
@@ -84,7 +87,6 @@ export default function RootLayout({
       </head>
       <body className={inter.className}>
         <UnderConstructionBanner />
-        <OfflineBanner />
         <div className="pt-16"></div>
         {children}
           <Script
@@ -106,29 +108,20 @@ export default function RootLayout({
                   }
                   
                   window.addEventListener('load', function() {
-                    console.log('[SW] Attempting to register...');
-                    
-                    // Check if service worker file exists before registering
-                    fetch('/sw.js', { method: 'HEAD' })
-                      .then(function(response) {
-                        if (response.ok) {
-                          console.log('[SW] Service worker file found, registering...');
-                          return navigator.serviceWorker.register('/sw.js');
-                        } else {
-                          console.warn('[SW] Service worker file not found (404), skipping registration');
-                          return Promise.reject('Service worker file not found');
-                        }
-                      })
+                    navigator.serviceWorker.register('/sw.js')
                       .then(function(registration) {
-                        console.log('[SW] Registered successfully:', registration.scope);
+                        // Service Worker registered successfully
+                        registration.addEventListener('updatefound', function() {
+                          // Service Worker update found
+                        });
                       })
                       .catch(function(error) {
-                        console.warn('[SW] Registration failed or skipped:', error);
+                        // Service Worker registration failed
                       });
                   });
                   
                   navigator.serviceWorker.addEventListener('message', function(event) {
-                    console.log('[SW] message:', event.data);
+                    // Handle Service Worker messages
                   });
                 } else if (!('serviceWorker' in navigator)) {
                   console.log('[SW] Not supported');

@@ -3,6 +3,7 @@
 import { useState } from 'react'
 import Link from 'next/link'
 import { Menu, X, Phone } from 'lucide-react'
+import PWAInstallButton from '@/components/PWAInstallButton'
 
 const Header = () => {
   const [isMenuOpen, setIsMenuOpen] = useState(false)
@@ -49,10 +50,15 @@ const Header = () => {
               <Phone className="w-4 h-4" />
               <span>Резервирай час</span>
             </Link>
+            <div className="animate-fade-in" style={{ animationDelay: '0.5s' }}>
+              <PWAInstallButton 
+                showBanner={false}
+              />
+            </div>
             <Link
               href="/admin/login"
               className="text-secondary-700 hover:text-primary-600 transition-colors duration-200 font-medium animate-fade-in"
-              style={{ animationDelay: '0.5s' }}
+              style={{ animationDelay: '0.6s' }}
             >
               Админ
             </Link>

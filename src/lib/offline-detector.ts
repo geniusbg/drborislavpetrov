@@ -20,7 +20,7 @@ class OfflineDetector {
 
   private listeners: Set<(state: OfflineState) => void> = new Set()
   private checkInterval: NodeJS.Timeout | null = null
-  private readonly CHECK_INTERVAL = 15000 // 15 seconds
+  private readonly CHECK_INTERVAL = 60000 // 60 seconds
   private readonly RETRY_DELAY = 2000 // 2 seconds
   private readonly MAX_RETRIES = 3
 
@@ -46,7 +46,7 @@ class OfflineDetector {
     const now = Date.now()
     
     // Don't check too frequently - increase to 10 seconds
-    if (now - this.state.lastCheck < 10000) {
+    if (now - this.state.lastCheck < 30000) {
       return this.state.isOnline
     }
 

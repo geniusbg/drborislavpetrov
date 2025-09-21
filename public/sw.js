@@ -1,5 +1,5 @@
 // Service Worker for offline caching
-const CACHE_NAME = 'drborislavpetrov-v9';
+const CACHE_NAME = 'drborislavpetrov-v14';
 const urlsToCache = [
   '/',
   '/admin',
@@ -7,11 +7,28 @@ const urlsToCache = [
   '/manifest.json',
   '/admin-manifest.json',
   '/favicon.ico',
+  '/favicon-32x32.png',
+  '/icon-144.svg',
   '/icon-192.png',
   '/icon-512.png',
+  '/icon-192-maskable.png',
+  '/icon-512-maskable.png',
+  '/admin-icon-144.svg',
   '/admin-icon-192.png',
-  '/admin-icon-512.png'
+  '/admin-icon-512.png',
+  '/admin-icon-192-maskable.png',
+  '/admin-icon-512-maskable.png'
 ];
+
+// Listen for PWA install prompt
+self.addEventListener('beforeinstallprompt', (event) => {
+  // The event will be handled by the main thread
+});
+
+// Handle app installation
+self.addEventListener('appinstalled', (event) => {
+  // PWA installed successfully
+});
 
 // Extended patterns for caching
 const shouldCacheUrl = (url) => {
@@ -42,34 +59,25 @@ function canCacheRequest(request) {
 }
 
 self.addEventListener('install', (event) => {
-  console.log('[SW] Installing Service Worker v9');
-  
   event.waitUntil(
     caches.open(CACHE_NAME)
       .then((cache) => {
-        console.log('[SW] Caching initial files...');
-        // Кешираме файловете поотделно за по-добра обработка на грешки
+        // Cache files without verbose logging
         return Promise.allSettled(
           urlsToCache.map(url => 
             cache.add(url).then(() => {
-              console.log(`[SW] Cached: ${url}`);
               return url;
             }).catch(error => {
-              console.warn(`[SW] Failed to cache ${url}:`, error);
-              return null; // Продължаваме дори ако някой файл не може да бъде кеширан
+              return null; // Continue even if some files can't be cached
             })
           )
         );
       })
       .then((results) => {
-        const successful = results.filter(r => r.status === 'fulfilled' && r.value !== null).length;
-        const total = urlsToCache.length;
-        console.log(`[SW] Cached ${successful}/${total} initial files`);
         self.skipWaiting();
       })
       .catch((error) => {
-        console.error('[SW] Cache failed:', error);
-        // Продължаваме дори ако кеширането не успее
+        // Continue even if caching fails
         self.skipWaiting();
       })
   );
@@ -152,7 +160,7 @@ self.addEventListener('fetch', (event) => {
       caches.match(event.request)
         .then((cached) => {
           if (cached) {
-            console.log('[SW] Serving cached navigation:', event.request.url);
+            // Serving cached navigation
             
             // В background опитваме да обновим кеша
             fetch(event.request)
@@ -192,7 +200,7 @@ self.addEventListener('fetch', (event) => {
                   }
                 });
               }
-              console.log('[SW] Serving fresh navigation from network:', event.request.url);
+              // Serving fresh navigation from network
               return response;
             })
             .catch(() => {
@@ -245,7 +253,7 @@ self.addEventListener('fetch', (event) => {
   event.respondWith(
     caches.match(event.request).then((cached) => {
       if (cached) {
-        console.log('[SW] Serving cached static asset:', event.request.url);
+        // Serving cached static asset
         // Ensure proper MIME type for cached responses
         const url = event.request.url;
         let contentType = 'text/plain';

@@ -151,7 +151,7 @@ export function useSocket(): UseSocketReturn {
   useEffect(() => {
     // Only create socket if it doesn't exist and not already creating
     if (!socketRef.current && !isCreatingSocket.current && isOnline) {
-      // Add small delay to prevent rapid socket creation
+      // Add delay to prevent rapid socket creation and rate limiting
       const timer = setTimeout(() => {
         const maybePromise = createSocket()
         
@@ -175,7 +175,7 @@ export function useSocket(): UseSocketReturn {
             })
           }
         }
-      }, 100) // 100ms delay
+      }, 5000) // 5s delay to reduce rate limiting
       
       return () => {
         clearTimeout(timer)

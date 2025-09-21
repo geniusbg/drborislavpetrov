@@ -1,0 +1,35 @@
+<svg width="144" height="144" viewBox="0 0 144 144" xmlns="http://www.w3.org/2000/svg">
+  <defs>
+    <linearGradient id="bgGradient" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" style="stop-color:#2563eb;stop-opacity:1" />
+      <stop offset="100%" style="stop-color:#3b82f6;stop-opacity:1" />
+    </linearGradient>
+    <linearGradient id="textGradient" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" style="stop-color:#ffffff;stop-opacity:1" />
+      <stop offset="100%" style="stop-color:#e5e7eb;stop-opacity:1" />
+    </linearGradient>
+  </defs>
+  
+  <!-- Background -->
+  <rect width="144" height="144" rx="20" fill="url(#bgGradient)"/>
+  
+  <!-- Border -->
+  <rect x="2" y="2" width="140" height="140" rx="18" fill="none" stroke="rgba(255,255,255,0.1)" stroke-width="2"/>
+  
+  <!-- Icon Content -->
+  <g transform="translate(72, 72)">
+    <!-- Tooth icon -->
+    <g transform="translate(-24, -28)">
+      <!-- Main tooth shape -->
+      <path d="M24 8c-8.8 0-16 7.2-16 16 0 4.4 1.8 8.4 4.7 11.3L20 42.6c1.1 1.1 2.9 1.1 4 0l7.3-7.3c2.9-2.9 4.7-6.9 4.7-11.3 0-8.8-7.2-16-16-16z" 
+            fill="url(#textGradient)" opacity="0.9"/>
+      
+      <!-- Tooth details -->
+      <circle cx="24" cy="20" r="3" fill="#2563eb"/>
+      <path d="M18 28h12v8c0 2.2-1.8 4-4 4h-4c-2.2 0-4-1.8-4-4v-8z" fill="#2563eb" opacity="0.7"/>
+    </g>
+  </g>
+  
+  <!-- Text -->
+  <text x="72" y="120" text-anchor="middle" font-family="Arial, sans-serif" font-size="12" font-weight="bold" fill="url(#textGradient)">Д-р ПЕТРОВ</text>
+</svg>

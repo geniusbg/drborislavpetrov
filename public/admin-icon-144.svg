@@ -1,0 +1,39 @@
+<svg width="144" height="144" viewBox="0 0 144 144" xmlns="http://www.w3.org/2000/svg">
+  <defs>
+    <linearGradient id="bgGradient" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" style="stop-color:#1f2937;stop-opacity:1" />
+      <stop offset="100%" style="stop-color:#374151;stop-opacity:1" />
+    </linearGradient>
+    <linearGradient id="textGradient" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" style="stop-color:#ffffff;stop-opacity:1" />
+      <stop offset="100%" style="stop-color:#e5e7eb;stop-opacity:1" />
+    </linearGradient>
+  </defs>
+  
+  <!-- Background -->
+  <rect width="144" height="144" rx="20" fill="url(#bgGradient)"/>
+  
+  <!-- Border -->
+  <rect x="2" y="2" width="140" height="140" rx="18" fill="none" stroke="rgba(255,255,255,0.1)" stroke-width="2"/>
+  
+  <!-- Icon Content -->
+  <g transform="translate(72, 72)">
+    <!-- Stethoscope icon -->
+    <g transform="translate(-32, -32)">
+      <!-- Stethoscope body -->
+      <path d="M20 4a16 16 0 0 1 16 16v12a4 4 0 0 1-4 4h-4a4 4 0 0 1-4-4V20a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v12a4 4 0 0 1-4 4H0a4 4 0 0 1-4-4V20A16 16 0 0 1 12 4h8z" 
+            fill="url(#textGradient)" opacity="0.9"/>
+      
+      <!-- Earpieces -->
+      <circle cx="8" cy="12" r="6" fill="none" stroke="url(#textGradient)" stroke-width="3"/>
+      <circle cx="56" cy="12" r="6" fill="none" stroke="url(#textGradient)" stroke-width="3"/>
+      
+      <!-- Chest piece -->
+      <circle cx="32" cy="48" r="8" fill="url(#textGradient)"/>
+      <circle cx="32" cy="48" r="5" fill="#1f2937"/>
+    </g>
+  </g>
+  
+  <!-- Admin text -->
+  <text x="72" y="120" text-anchor="middle" font-family="Arial, sans-serif" font-size="14" font-weight="bold" fill="url(#textGradient)">АДМИН</text>
+</svg>

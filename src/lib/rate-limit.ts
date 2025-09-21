@@ -9,7 +9,7 @@ const store: RateLimitStore = {}
 
 // Rate limiting configuration
 const RATE_LIMIT_WINDOW = 15 * 60 * 1000 // 15 minutes
-const MAX_REQUESTS_PER_WINDOW = process.env.NODE_ENV === 'development' ? 100 : 5 // 100 for dev, 5 for production
+const MAX_REQUESTS_PER_WINDOW = process.env.NODE_ENV === 'development' ? 1000 : 20 // 1000 for dev, 20 for production
 
 export const checkRateLimit = (identifier: string): { allowed: boolean; remaining: number } => {
   const now = Date.now()

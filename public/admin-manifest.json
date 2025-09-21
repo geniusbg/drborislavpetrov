@@ -1,20 +1,64 @@
 {
+  "id": "/admin",
   "name": "Д-р Борислав Петров - Админ панел",
-  "short_name": "Админ панел",
+  "short_name": "Админ панел", 
   "description": "Административен панел за управление на стоматологичната практика",
-  "start_url": "/admin",
+  "start_url": "/admin?utm_source=pwa",
+  "scope": "/admin",
   "display": "standalone",
+  "orientation": "portrait-primary",
   "background_color": "#ffffff",
   "theme_color": "#1f2937",
+  "categories": ["medical", "health", "business"],
+  "lang": "bg",
+  "dir": "ltr",
+  "prefer_related_applications": false,
+  "screenshots": [
+    {
+      "src": "/admin-icon-512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "form_factor": "wide",
+      "label": "Desktop скрийншот на админ панела"
+    },
+    {
+      "src": "/admin-icon-192.png",
+      "sizes": "192x192",
+      "type": "image/png",
+      "label": "Mobile скрийншот на админ панела"
+    }
+  ],
   "icons": [
+    {
+      "src": "/admin-icon-144.svg",
+      "sizes": "144x144",
+      "type": "image/svg+xml"
+    },
     {
       "src": "/admin-icon-192.png",
       "sizes": "192x192",
       "type": "image/png"
     },
     {
+      "src": "/admin-icon-192-maskable.png",
+      "sizes": "192x192",
+      "type": "image/png",
+      "purpose": "maskable"
+    },
+    {
       "src": "/admin-icon-512.png",
       "sizes": "512x512",
+      "type": "image/png"
+    },
+    {
+      "src": "/admin-icon-512-maskable.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "maskable"
+    },
+    {
+      "src": "/favicon-32x32.png",
+      "sizes": "32x32",
       "type": "image/png"
     }
   ]
