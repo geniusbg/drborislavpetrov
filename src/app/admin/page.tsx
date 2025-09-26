@@ -59,6 +59,7 @@ export default function AdminPage() {
   const [users, setUsers] = useState<UserType[]>([])
   const [services, setServices] = useState<ServiceType[]>([])
   const [isLoading, setIsLoading] = useState(true)
+  const [isLoadingBookings, setIsLoadingBookings] = useState(false)
   const [showUserModal, setShowUserModal] = useState(false)
   const [showBookingModal, setShowBookingModal] = useState(false)
   const [showServiceModal, setShowServiceModal] = useState(false)
@@ -82,13 +83,7 @@ export default function AdminPage() {
   // const [showBackupManager, setShowBackupManager] = useState(false)
   const [showSupportNotes, setShowSupportNotes] = useState(false)
   // SSR-safe loading overlay with real progress
-  const [hideOverlay, setHideOverlay] = useState(() => {
-    // Check immediately if admin has been loaded before
-    if (typeof window !== 'undefined') {
-      return !!sessionStorage.getItem('admin-loaded')
-    }
-    return false
-  })
+  const [hideOverlay, setHideOverlay] = useState(false)
   const [isClosing, setIsClosing] = useState(false)
   const [overlayProgress, setOverlayProgress] = useState(0)
   const initLoadStartedRef = useRef(false)
@@ -441,14 +436,20 @@ export default function AdminPage() {
     initLoadStartedRef.current = true
 
     // Check if admin has been loaded before in this session
-    const hasLoadedBefore = typeof window !== 'undefined' && sessionStorage.getItem('admin-loaded')
+    const hasLoadedBefore = sessionStorage.getItem('admin-loaded')
     
     if (hasLoadedBefore) {
       // Skip loading animation for subsequent navigations, but still load data
       setHideOverlay(true)
       setIsLoading(false)
       const loadInitialData = async () => {
-        await Promise.all([loadBookings(), loadServices(), loadUsers()])
+        // Force refresh when online to get latest data
+        const isOnline = navigator.onLine
+        await Promise.all([
+          loadBookings(isOnline), 
+          loadServices(true), // Force refresh after deletion
+          loadUsers()
+        ])
       }
       loadInitialData()
       return
@@ -466,7 +467,14 @@ export default function AdminPage() {
       }
 
       await Promise.all(
-        tasks.map(fn => fn().then(bump).catch(bump))
+        tasks.map(fn => {
+          if (fn === loadBookings) {
+            // Force refresh bookings when online
+            const isOnline = navigator.onLine
+            return fn(isOnline).then(bump).catch(bump)
+          }
+          return fn().then(bump).catch(bump)
+        })
       )
 
       // finalize
@@ -482,9 +490,7 @@ export default function AdminPage() {
         setTimeout(() => {
           setHideOverlay(true)
           // Mark admin as loaded for this session
-          if (typeof window !== 'undefined') {
-            sessionStorage.setItem('admin-loaded', 'true')
-          }
+          sessionStorage.setItem('admin-loaded', 'true')
         }, closeDelayMs + animDurationMs + 100)
       }
     }
@@ -568,11 +574,18 @@ export default function AdminPage() {
     }
   }, [socket, isConnected, isSupported, joinAdmin])
 
-  const loadBookings = async () => {
+  const loadBookings = async (forceRefresh = false) => {
+    // Prevent multiple simultaneous calls
+    if (isLoadingBookings) {
+      console.log('🔍 [AdminPage] loadBookings already in progress, skipping')
+      return
+    }
+    
     try {
+      setIsLoadingBookings(true)
       console.log('🔍 Loading bookings with offline API')
       
-      const response = await offlineAPI.getBookings()
+      const response = await offlineAPI.getBookings(forceRefresh)
       
       console.log('📊 Bookings response:', response)
       
@@ -596,13 +609,15 @@ export default function AdminPage() {
       }
     } catch (error) {
       console.error('❌ Error loading bookings:', error)
+    } finally {
+      setIsLoadingBookings(false)
     }
   }
 
-  const loadServices = async () => {
+  const loadServices = async (forceRefresh = false) => {
     try {
       setIsLoadingServices(true)
-      const response = await offlineAPI.getServices()
+      const response = await offlineAPI.getServices(forceRefresh)
       if (response.data) {
         // Map database fields to interface fields
         const mappedServices = (response.data.services as any[]).map((service: any) => ({
@@ -782,7 +797,7 @@ export default function AdminPage() {
     
     if (response.ok) {
       // Зареждаме услугите ПРЕДИ да затворим модала
-      await loadServices()
+      await loadServices(true) // Force refresh to get latest data
       
       // Изчакваме малко преди да затворим модала
       await new Promise(resolve => setTimeout(resolve, 200))
@@ -815,7 +830,7 @@ export default function AdminPage() {
       })
       
       if (response.ok) {
-        loadServices()
+        loadServices(true) // Force refresh after deletion
       } else {
         console.error('Failed to delete service')
       }
@@ -1992,8 +2007,16 @@ export default function AdminPage() {
                       
                       <div className="flex justify-end space-x-2 pt-3 border-t border-gray-200">
                         <button
+                          onClick={() => user.id && openModal('userHistory', user.id.toString())}
+                          className="text-green-600 hover:text-green-900 p-2 rounded-md hover:bg-green-50"
+                          title="История на резервациите"
+                        >
+                          <Calendar className="w-4 h-4" />
+                        </button>
+                        <button
                           onClick={() => user.id && openModal('user', user.id.toString())}
                           className="text-blue-600 hover:text-blue-900 p-2 rounded-md hover:bg-blue-50"
+                          title="Редактирай"
                         >
                           <Edit className="w-4 h-4" />
                         </button>
@@ -2021,6 +2044,7 @@ export default function AdminPage() {
                             }
                           }}
                           className="text-red-600 hover:text-red-900 p-2 rounded-md hover:bg-red-50"
+                          title="Изтрий"
                         >
                           <Trash2 className="w-4 h-4" />
                         </button>
@@ -2376,6 +2400,14 @@ export default function AdminPage() {
           onEditBooking={handleEditBookingFromHistory}
           onDeleteBooking={deleteBooking}
           onCreateBooking={handleCreateBookingFromHistory}
+          onRefreshBookings={async () => {
+            // Debounce to prevent too many requests
+            if (isLoadingBookings) {
+              console.log('🔍 [AdminPage] Skipping refresh - already loading')
+              return
+            }
+            await loadBookings(true)
+          }}
         />
       )}
 

@@ -177,44 +177,42 @@ class OfflineAPI {
   }
 
   // Specific API methods
-  async getBookings(): Promise<ApiResponse<{ bookings: unknown[] }>> {
+  async getBookings(forceRefresh = false): Promise<ApiResponse<{ bookings: unknown[] }>> {
+    console.log('🔍 OfflineAPI.getBookings - Starting request...')
     const response = await this.get<{ bookings: unknown[] }>('/api/admin/bookings', {
-      cache: true,
+      cache: false, // Always bypass cache for now
+      forceRefresh: true, // Always force refresh
       cacheTTL: 2 * 60 * 1000, // 2 minutes
       fallbackData: { bookings: [] }
     })
     
-    // Store bookings in dedicated store for offline access
-    if (response.data && !response.offline) {
-      const bookingsData = response.data as { bookings: unknown[] }
-      if (bookingsData.bookings && bookingsData.bookings.length > 0) {
-        await offlineStorage.storeBookings(bookingsData.bookings)
-        console.log(`[OfflineAPI] Stored ${bookingsData.bookings.length} bookings in dedicated store`)
-      }
-    }
+    console.log('🔍 OfflineAPI.getBookings - Response received:', {
+      hasData: !!response.data,
+      hasError: !!response.error,
+      offline: response.offline,
+      fromCache: response.fromCache,
+      bookingsCount: response.data ? (response.data as { bookings: unknown[] }).bookings?.length : 0,
+      firstBooking: response.data ? (response.data as { bookings: unknown[] }).bookings?.[0] : null
+    })
     
-    // If no data from cache, try dedicated store
-    if (response.offline && (!response.data || (response.data as { bookings: unknown[] }).bookings.length === 0)) {
-      try {
-        const storedBookings = await offlineStorage.getBookings()
-        if (storedBookings.length > 0) {
-          console.log(`[OfflineAPI] Fallback to dedicated store: ${storedBookings.length} bookings`)
-          return {
-            data: { bookings: storedBookings },
-            offline: true
-          } as ApiResponse<{ bookings: unknown[] }>
-        }
-      } catch (error) {
-        console.warn('[OfflineAPI] Failed to get bookings from dedicated store:', error)
-      }
+    // Debug: Check if firstBooking has serviceName
+    if (response.data && (response.data as { bookings: unknown[] }).bookings?.[0]) {
+      const firstBooking = (response.data as { bookings: unknown[] }).bookings[0] as any
+      console.log('🔍 OfflineAPI.getBookings - First booking details:', {
+        id: firstBooking.id,
+        service: firstBooking.service,
+        serviceName: firstBooking.serviceName,
+        hasServiceName: 'serviceName' in firstBooking
+      })
     }
     
     return response
   }
 
-  async getServices(): Promise<ApiResponse<{ services: unknown[] }>> {
+  async getServices(forceRefresh = false): Promise<ApiResponse<{ services: unknown[] }>> {
     const response = await this.get<{ services: unknown[] }>('/api/admin/services', {
-      cache: true,
+      cache: !forceRefresh,
+      forceRefresh: forceRefresh,
       cacheTTL: 5 * 60 * 1000, // 5 minutes
       fallbackData: { services: [] }
     })

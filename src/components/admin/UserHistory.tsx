@@ -14,9 +14,10 @@ interface UserHistoryProps {
   onEditBooking?: (booking: Booking) => void
   onDeleteBooking?: (bookingId: string) => void
   onCreateBooking?: (user: UserType) => void
+  onRefreshBookings?: () => Promise<void>
 }
 
-const UserHistory = ({ user, bookings, onClose, onUpdateTreatmentNotes, onEditBooking, onDeleteBooking, onCreateBooking }: UserHistoryProps) => {
+const UserHistory = ({ user, bookings, onClose, onUpdateTreatmentNotes, onEditBooking, onDeleteBooking, onCreateBooking, onRefreshBookings }: UserHistoryProps) => {
   // Drag state
   const [isDragging, setIsDragging] = useState(false)
   const [dragOffset, setDragOffset] = useState({ x: 0, y: 0 })
@@ -24,6 +25,13 @@ const UserHistory = ({ user, bookings, onClose, onUpdateTreatmentNotes, onEditBo
 
   const [editingNotes, setEditingNotes] = useState<string | null>(null)
   const [notesText, setNotesText] = useState('')
+
+  // Refresh bookings when component mounts if online
+  useEffect(() => {
+    if (onRefreshBookings && navigator.onLine) {
+      onRefreshBookings()
+    }
+  }, [onRefreshBookings])
 
   // Normalize phone numbers for comparison (BG): compare by last 9 digits
   const normalizePhone = (phone: string | undefined) => {
@@ -88,11 +96,13 @@ const UserHistory = ({ user, bookings, onClose, onUpdateTreatmentNotes, onEditBo
   }
 
   const getServiceDisplayName = (booking: Booking) => {
+    // Always trust the serviceName from API - it handles all cases properly
     if (booking.serviceName) {
       return booking.serviceName
     }
-    // Fallback to service ID if no name is available
-    return `Услуга ${booking.service}`
+    
+    // Only fallback if serviceName is missing (shouldn't happen with new API)
+    return booking.service || 'Неизвестна услуга'
   }
 
   const handleEditNotes = (booking: Booking) => {

@@ -416,12 +416,12 @@ class OfflineStorage {
         case 'create-booking':
         case 'create': // Backward compatibility
           response = await fetch('/api/booking', {
-            method: 'POST',
-            headers,
+          method: 'POST',
+          headers,
             body: JSON.stringify(item.data)
-          })
-          break
-          
+        })
+        break
+
         case 'update-booking':
         case 'update': // Backward compatibility
           const updateData = item.data as { id?: string }
@@ -435,21 +435,21 @@ class OfflineStorage {
             })
           } else {
             response = await fetch(`/api/admin/bookings/${bookingId}`, {
-              method: 'PUT',
-              headers,
+          method: 'PUT',
+          headers,
               body: JSON.stringify(item.data)
-            })
-          }
-          break
-          
+        })
+        }
+        break
+
         case 'delete-booking':
         case 'delete': // Backward compatibility
           const deleteData = item.data as { id: string }
           response = await fetch(`/api/admin/bookings/${deleteData.id}`, {
-            method: 'DELETE',
-            headers
-          })
-          break
+          method: 'DELETE',
+          headers
+        })
+        break
 
         case 'voice-command':
           response = await fetch('/api/admin/voice-commands', {

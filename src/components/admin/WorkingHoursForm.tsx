@@ -65,6 +65,13 @@ const WorkingHoursForm = ({ selectedDate, onSave, onCancel, onDelete, initialDat
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
+    
+    // Prevent double submission
+    if (isSubmitting) {
+      console.log('[WorkingHoursForm] ⚠️ Already submitting, skipping')
+      return
+    }
+    
     setIsSubmitting(true)
     try {
       await onSave(formData)

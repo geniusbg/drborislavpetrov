@@ -49,7 +49,7 @@ export async function GET(request: NextRequest) {
       SELECT b.*, s.name as serviceName, s.duration as serviceDuration, u.name as userName, b.service
       FROM bookings b
       LEFT JOIN services s ON (
-        b.service::text = s.id::text OR b.service = s.name
+        s.id::text = b.service::text OR s.name = b.service::text
       )
       LEFT JOIN users u ON b.phone = u.phone
       WHERE b.date = $1
@@ -101,7 +101,9 @@ export async function GET(request: NextRequest) {
     }
 
     // Determine if the date is a working day based on settings
-    const dateObj = new Date(date)
+    // Parse date as local time to avoid timezone issues
+    const [year, month, day] = date.split('-').map(Number)
+    const dateObj = new Date(year, month - 1, day) // month is 0-indexed
     const dayOfWeek = dateObj.getDay() // 0 = Sunday, 1 = Monday, ..., 6 = Saturday
     const isWorkingDayByDefault = defaultSettings.workingDays.includes(dayOfWeek)
 

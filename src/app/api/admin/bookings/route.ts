@@ -212,7 +212,7 @@ export async function GET(request: NextRequest) {
                u.email as userEmail
         FROM bookings b
         LEFT JOIN services s ON (
-          b.service::text = s.id::text OR b.service = s.name
+          s.id::text = b.service::text OR s.name = b.service::text
         )
         LEFT JOIN users u ON (
           b.user_id = u.id
@@ -229,14 +229,23 @@ export async function GET(request: NextRequest) {
       `
           : `
         SELECT b.*, 
-               COALESCE(s.name, b.service::text) as serviceName, 
+               CASE 
+                 WHEN s.name IS NOT NULL THEN s.name
+                 WHEN b.service ~ '^[0-9]+$' THEN '[Изтрита] Услуга ' || b.service
+                 ELSE '[Изтрита] ' || b.service
+               END as "serviceName", 
                COALESCE(b.serviceduration, s.duration, 30) as serviceDuration,
                u.id as userId,
                u.name as userName, 
-               u.email as userEmail
+               u.email as userEmail,
+               s.id as serviceId,
+               b.service as originalService
         FROM bookings b
         LEFT JOIN services s ON (
-          b.service::text = s.id::text OR b.service = s.name
+          CASE 
+            WHEN b.service ~ '^[0-9]+$' THEN s.id = CAST(b.service AS INTEGER)
+            ELSE s.name = b.service
+          END
         )
         LEFT JOIN users u ON (
           (b.phone IS NOT NULL AND u.phone IS NOT NULL AND right(regexp_replace(b.phone, '[^0-9]', '', 'g'), 9) = right(regexp_replace(u.phone, '[^0-9]', '', 'g'), 9))
@@ -514,13 +523,22 @@ export async function PUT(request: NextRequest) {
     // Get the updated booking for WebSocket event
     const updatedBooking = await db.query(`
       SELECT b.*, 
-             COALESCE(s.name, b.service::text) as serviceName,
+             CASE 
+               WHEN s.name IS NOT NULL THEN s.name
+               WHEN b.service ~ '^[0-9]+$' THEN '[Изтрита] Услуга ' || b.service
+               ELSE '[Изтрита] ' || b.service
+             END as "serviceName",
              COALESCE(b.serviceduration, s.duration, 30) as serviceDuration,
              u.name as userName, 
-             u.email as userEmail
+             u.email as userEmail,
+             s.id as serviceId,
+             b.service as originalService
       FROM bookings b
       LEFT JOIN services s ON (
-        b.service::text = s.id::text OR b.service = s.name
+        CASE 
+          WHEN b.service ~ '^[0-9]+$' THEN s.id = CAST(b.service AS INTEGER)
+          ELSE s.name = b.service
+        END
       )
       LEFT JOIN users u ON b.phone = u.phone
       WHERE b.id = $1

@@ -193,6 +193,21 @@ class OfflineFetchManager {
   }
 
   private createResponse(data: unknown, metadata: { offline?: boolean; fromCache?: boolean } = {}): OfflineFetchResponse {
+    // Debug: Log the data being processed
+    if (typeof data === 'object' && data !== null && 'bookings' in data) {
+      const bookings = (data as any).bookings
+      if (Array.isArray(bookings) && bookings.length > 0) {
+        console.log('🔍 OfflineFetch.createResponse - First booking data:', {
+          id: bookings[0].id,
+          service: bookings[0].service,
+          serviceName: bookings[0].serviceName,
+          servicename: bookings[0].servicename,
+          hasServiceName: 'serviceName' in bookings[0],
+          hasServicename: 'servicename' in bookings[0]
+        })
+      }
+    }
+
     const response = new Response(JSON.stringify(data), {
       status: 200,
       statusText: 'OK',

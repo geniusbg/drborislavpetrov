@@ -51,7 +51,8 @@ const DailySchedule = ({ date, onClose, onEditWorkingHours, onEditBooking, onDel
       ])
 
       if (scheduleResponse.data) {
-        setSchedule(scheduleResponse.data as { date: string; workingHours: WorkingHours; bookings: Booking[]; totalBookings: number })
+        const scheduleData = scheduleResponse.data as { date: string; workingHours: WorkingHours; bookings: Booking[]; totalBookings: number }
+        setSchedule(scheduleData)
       } else if (scheduleResponse.error) {
         console.error('Error loading daily schedule:', scheduleResponse.error)
       }
@@ -79,7 +80,7 @@ const DailySchedule = ({ date, onClose, onEditWorkingHours, onEditBooking, onDel
       const now = Date.now()
       if (now - lastLoadTime > LOAD_DEBOUNCE_DELAY) {
         setLastLoadTime(now)
-        loadDailySchedule()
+        loadDailySchedule(true) // Force refresh to get latest data
       }
     }
   }, [date, showBookingForm, isModalClosing, lastLoadTime, loadDailySchedule, schedule])
@@ -153,12 +154,12 @@ const DailySchedule = ({ date, onClose, onEditWorkingHours, onEditBooking, onDel
 
       const handleWorkingHoursUpdated = () => {
         // Reload the schedule when working hours are updated
-        loadDailySchedule()
+        loadDailySchedule(true) // Force refresh to get latest data
       }
 
       const handleWorkingHoursDeleted = () => {
         // Reload the schedule when working hours are deleted
-        loadDailySchedule()
+        loadDailySchedule(true) // Force refresh to get latest data
       }
 
       socket.on('booking-added', handleBookingAdded)
@@ -599,7 +600,7 @@ const DailySchedule = ({ date, onClose, onEditWorkingHours, onEditBooking, onDel
         setEditingBooking(null)
         
         // Reload data after successful update
-        loadDailySchedule()
+        loadDailySchedule(true) // Force refresh to get latest data
         
         // Reduced delay since AdminPage no longer interferes
         setTimeout(() => {

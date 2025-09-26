@@ -150,15 +150,29 @@ export async function DELETE(request: NextRequest) {
     }
 
     const db = await getDatabase()
-    const result = await db.query('DELETE FROM services WHERE id = $1', [id])
     
-    if (result.rowCount === 0) {
+    // First, get the service name before deleting
+    const serviceResult = await db.query('SELECT name FROM services WHERE id = $1', [id])
+    
+    if (serviceResult.rowCount === 0) {
       db.release()
       return NextResponse.json(
         { error: 'Service not found' },
         { status: 404 }
       )
     }
+    
+    const serviceName = serviceResult.rows[0].name
+    
+    // Update all bookings that reference this service to store the service name instead of ID
+    await db.query(`
+      UPDATE bookings 
+      SET service = $2 
+      WHERE service = $1
+    `, [id, serviceName])
+    
+    // Now delete the service
+    const result = await db.query('DELETE FROM services WHERE id = $1', [id])
 
     db.release()
     

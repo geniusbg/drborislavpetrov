@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useEffect, useCallback, useMemo } from 'react'
+import { useState, useEffect, useCallback, useMemo, useRef } from 'react'
 import { ChevronLeft, ChevronRight, Plus, Settings, Calendar as CalendarIcon, Clock } from 'lucide-react'
 import WorkingHoursForm from './WorkingHoursForm'
 import DailySchedule from './DailySchedule'
@@ -43,6 +43,7 @@ const Calendar = ({ bookings, onBookingClick, onAddBooking, onNavigateToDailySch
   const [dailyScheduleKey, setDailyScheduleKey] = useState(0)
   const [dailyScheduleWorkingHours, setDailyScheduleWorkingHours] = useState<WorkingHours | null>(null)
   
+  
   // Month/Year picker state
   const [showMonthYearPicker, setShowMonthYearPicker] = useState(false)
   const [tempSelectedMonth, setTempSelectedMonth] = useState(0)
@@ -63,10 +64,35 @@ const Calendar = ({ bookings, onBookingClick, onAddBooking, onNavigateToDailySch
   
   // Настройки за работно време по подразбиране
   const [defaultWorkingHours, setDefaultWorkingHours] = useState({
-    workingDays: [1, 2, 3, 4, 5], // Понеделник до Петък
+    workingDays: [1, 2, 3, 4, 5], // Понеделник до Петък (fallback)
     startTime: '09:00',
     endTime: '18:00'
   })
+  
+  // Зареждане на настройките от API-то
+  useEffect(() => {
+    const loadSettings = async () => {
+      try {
+        const adminToken = localStorage.getItem('adminToken')
+        const response = await fetch('/api/admin/settings', {
+          headers: {
+            'x-admin-token': adminToken || ''
+          }
+        })
+        
+        if (response.ok) {
+          const data = await response.json()
+          if (data.settings?.defaultWorkingHours) {
+            setDefaultWorkingHours(data.settings.defaultWorkingHours)
+          }
+        }
+      } catch (error) {
+        console.error('❌ Error loading settings:', error)
+      }
+    }
+    
+    loadSettings()
+  }, [])
   
   // Избрана услуга за изчисляване на свободни часове
   const [selectedService, setSelectedService] = useState<number | string>('')
@@ -194,7 +220,6 @@ const Calendar = ({ bookings, onBookingClick, onAddBooking, onNavigateToDailySch
       // Зареждаме данни само за текущия месец
       const startDate = dateToLocalDateString(new Date(currentDate.getFullYear(), currentDate.getMonth(), 1))
       const endDate = dateToLocalDateString(new Date(currentDate.getFullYear(), currentDate.getMonth() + 1, 0))
-      
       
       const response = await fetch(`/api/admin/working-hours?startDate=${startDate}&endDate=${endDate}`, {
         headers: {
@@ -464,12 +489,13 @@ const Calendar = ({ bookings, onBookingClick, onAddBooking, onNavigateToDailySch
 
   const isNonWorkingDay = (date: Date) => {
     const workingHoursData = getWorkingHoursForDate(date)
+    
     // Ако има зададено работно време за тази дата, използваме него
     if (workingHoursData) {
       return !workingHoursData.isWorkingDay
     }
     
-    // Използваме настройките за работни дни
+    // Ако няма зададено работно време за тази дата, използваме настройките за работни дни
     // Използваме Intl.DateTimeFormat за да получим деня от седмицата в българската timezone
     const formatter = new Intl.DateTimeFormat('en-US', {
       timeZone: 'Europe/Sofia',
@@ -492,7 +518,6 @@ const Calendar = ({ bookings, onBookingClick, onAddBooking, onNavigateToDailySch
     // dayOfWeek е 0-6 (неделя-събота) в българската timezone
     const isNonWorking = !defaultWorkingHours.workingDays.includes(dayOfWeek)
     
-    
     return isNonWorking
   }
 
@@ -504,7 +529,8 @@ const Calendar = ({ bookings, onBookingClick, onAddBooking, onNavigateToDailySch
 
   const getWorkingHoursForDate = (date: Date) => {
     const dateString = calendarDateToString(date)
-    return workingHours.find(wh => wh.date === dateString)
+    const result = workingHours.find(wh => wh.date === dateString)
+    return result
   }
 
     // Функция за изчисляване на свободните часове
@@ -513,6 +539,11 @@ const Calendar = ({ bookings, onBookingClick, onAddBooking, onNavigateToDailySch
     
     // Проверяваме дали имаме нужните данни
     if (services.length === 0) {
+      return
+    }
+    
+    // Skip calculation if working hours is empty (race condition)
+    if (workingHours.length === 0) {
       return
     }
     
@@ -872,8 +903,11 @@ const Calendar = ({ bookings, onBookingClick, onAddBooking, onNavigateToDailySch
 
 
 
-  const handleSaveWorkingHours = async (workingHoursData: WorkingHours) => {
+  const handleSaveWorkingHours = useCallback(async (workingHoursData: WorkingHours) => {
+    console.log('[Calendar] 💾 Saving working hours:', workingHoursData.date, workingHoursData.isWorkingDay)
+    
     try {
+      
       const adminToken = localStorage.getItem('adminToken')
       const response = await fetch('/api/admin/working-hours', {
         method: 'POST',
@@ -885,22 +919,12 @@ const Calendar = ({ bookings, onBookingClick, onAddBooking, onNavigateToDailySch
       })
 
       if (response.ok) {
+        console.log('[Calendar] ✅ Server saved successfully')
         setShowWorkingHoursForm(false)
         
-        // Update working hours state immediately
-        setWorkingHours(prev => {
-          const existingIndex = prev.findIndex(wh => wh.date === workingHoursData.date)
-          if (existingIndex >= 0) {
-            // Update existing working hours
-            return prev.map(wh => wh.date === workingHoursData.date ? workingHoursData : wh)
-          } else {
-            // Add new working hours
-            return [...prev, workingHoursData]
-          }
-        })
-        
-        // Recalculate available slots
-        setTimeout(() => calculateAvailableSlots(), 100)
+        // Reload working hours from server to ensure consistency
+        await loadWorkingHours()
+        calculateAvailableSlots()
         
         emitWorkingHoursUpdated(workingHoursData) // Emit the updated event
         
@@ -912,10 +936,12 @@ const Calendar = ({ bookings, onBookingClick, onAddBooking, onNavigateToDailySch
           setWorkingHoursFromDailySchedule(false)
           setShowDailySchedule(true)
         }
+        
       }
     } catch (error) {
+      // Error saving working hours
     }
-  }
+  }, [])
 
   const handleDeleteWorkingHours = async () => {
     try {
