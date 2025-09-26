@@ -197,7 +197,7 @@ class OfflineAPI {
     
     // Debug: Check if firstBooking has serviceName
     if (response.data && (response.data as { bookings: unknown[] }).bookings?.[0]) {
-      const firstBooking = (response.data as { bookings: unknown[] }).bookings[0] as any
+      const firstBooking = (response.data as { bookings: unknown[] }).bookings[0] as { id: unknown; service: unknown; serviceName: unknown; hasServiceName: boolean }
       console.log('🔍 OfflineAPI.getBookings - First booking details:', {
         id: firstBooking.id,
         service: firstBooking.service,

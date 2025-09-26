@@ -197,13 +197,14 @@ class OfflineFetchManager {
     if (typeof data === 'object' && data !== null && 'bookings' in data) {
       const bookings = (data as { bookings: unknown[] }).bookings
       if (Array.isArray(bookings) && bookings.length > 0) {
+        const firstBooking = bookings[0] as { id: unknown; service: unknown; serviceName: unknown; servicename: unknown }
         console.log('🔍 OfflineFetch.createResponse - First booking data:', {
-          id: bookings[0].id,
-          service: bookings[0].service,
-          serviceName: bookings[0].serviceName,
-          servicename: bookings[0].servicename,
-          hasServiceName: 'serviceName' in bookings[0],
-          hasServicename: 'servicename' in bookings[0]
+          id: firstBooking.id,
+          service: firstBooking.service,
+          serviceName: firstBooking.serviceName,
+          servicename: firstBooking.servicename,
+          hasServiceName: 'serviceName' in firstBooking,
+          hasServicename: 'servicename' in firstBooking
         })
       }
     }
