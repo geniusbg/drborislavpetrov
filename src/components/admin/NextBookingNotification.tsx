@@ -100,7 +100,7 @@ const NextBookingNotification = ({ currentTime }: NextBookingNotificationProps) 
     } catch (error) {
       console.error('Error checking next booking:', error)
     }
-  }, [cachedBookings.length, lastCheck, isOnline])
+  }, [lastCheck, isOnline])
 
   const checkUrgentBooking = useCallback(() => {
     if (!cachedBookings.length) return
@@ -211,6 +211,7 @@ const NextBookingNotification = ({ currentTime }: NextBookingNotificationProps) 
   // Safe polling loop with guards to avoid mass requests
   useEffect(() => {
     let stopped = false
+    let interval: NodeJS.Timeout | null = null
 
     const run = async () => {
       if (stopped) return
@@ -242,16 +243,17 @@ const NextBookingNotification = ({ currentTime }: NextBookingNotificationProps) 
     }
 
     // run every 60s; internal 5-min cache prevents excess API calls
-    const interval = setInterval(run, 60_000)
+    interval = setInterval(run, 60_000)
 
     return () => {
       stopped = true
-      clearInterval(interval)
+      if (interval) clearInterval(interval)
       if (typeof document !== 'undefined') {
         document.removeEventListener('visibilitychange', onVisibility)
       }
     }
-  }, [checkNextBooking, checkUrgentBooking])
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []) // Empty deps - functions are stable via useCallback
 
   // Separate useEffect for urgent booking checks
   useEffect(() => {
@@ -285,10 +287,7 @@ const NextBookingNotification = ({ currentTime }: NextBookingNotificationProps) 
 
       socket.on('booking-added', (booking: Booking) => {
         // Update cache and check immediately (no wait)
-        setCachedBookings(prev => {
-          const next = [...prev, booking]
-          return next
-        })
+        setCachedBookings(prev => [...prev, booking])
         setTimeout(() => checkUrgentBooking(), 0)
         console.log('🔔 NextBookingNotification: Booking added via WebSocket (instant check)')
       })

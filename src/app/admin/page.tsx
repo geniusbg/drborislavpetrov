@@ -4,6 +4,7 @@ import React, { useEffect, useMemo, Suspense } from 'react'
 import { useSearchParams } from 'next/navigation'
 import { useSocket } from '@/hooks/useSocket'
 import { useOffline } from '@/hooks/useOffline'
+import { getBulgariaDateStringDB, getBulgariaTime } from '@/lib/bulgaria-time'
 
 // Context and Hooks
 import { AdminStateProvider, useAdminState, type SortState } from '@/contexts/AdminStateContext'
@@ -52,6 +53,7 @@ function AdminPageContent() {
     isHeaderVisible,
     lastScrollY,
     bookingSearchTerm,
+    bookingDateFilter,
     userSearchTerm,
     serviceSearchTerm,
     sortState,
@@ -68,6 +70,7 @@ function AdminPageContent() {
     setIsHeaderVisible,
     setLastScrollY,
     setBookingSearchTerm,
+    setBookingDateFilter,
     setUserSearchTerm,
     setServiceSearchTerm,
     setCurrentBookingsPage,
@@ -172,18 +175,80 @@ function AdminPageContent() {
   // Filter functions
   const filteredBookings = useMemo(() => {
     const searchTerm = bookingSearchTerm.toLowerCase()
+    const now = getBulgariaTime()
+    const today = getBulgariaDateStringDB()
+    
+    // Helper function to get date string in YYYY-MM-DD format
+    const getDateString = (dateStr: string): string => {
+      // If already in YYYY-MM-DD format, return as is
+      if (/^\d{4}-\d{2}-\d{2}$/.test(dateStr)) {
+        return dateStr
+      }
+      // Try to parse and format
+      try {
+        const date = new Date(dateStr)
+        const year = date.getFullYear()
+        const month = String(date.getMonth() + 1).padStart(2, '0')
+        const day = String(date.getDate()).padStart(2, '0')
+        return `${year}-${month}-${day}`
+      } catch {
+        return dateStr
+      }
+    }
+    
+    // Helper function to calculate days difference
+    const getDaysDifference = (dateStr: string): number => {
+      try {
+        const bookingDate = new Date(getDateString(dateStr) + 'T00:00:00')
+        const todayDate = new Date(today + 'T00:00:00')
+        const diffTime = todayDate.getTime() - bookingDate.getTime()
+        const diffDays = Math.floor(diffTime / (1000 * 60 * 60 * 24))
+        return diffDays
+      } catch {
+        return Infinity
+      }
+    }
+    
     return bookings.filter(booking => {
-      return (
-        booking.name.toLowerCase().includes(searchTerm) ||
-        (booking.phone && booking.phone.includes(searchTerm)) ||
-        (booking.email && booking.email.toLowerCase().includes(searchTerm)) ||
-        booking.date.includes(searchTerm) ||
-        booking.time.includes(searchTerm) ||
-        (booking.serviceName && booking.serviceName.toLowerCase().includes(searchTerm)) ||
-        (booking.service && booking.service.toLowerCase().includes(searchTerm))
-      )
+      // Date filter
+      if (bookingDateFilter !== 'all') {
+        const bookingDate = getDateString(booking.date)
+        const daysDiff = getDaysDifference(booking.date)
+        
+        switch (bookingDateFilter) {
+          case 'today':
+            if (bookingDate !== today) return false
+            break
+          case 'yesterday':
+            if (daysDiff !== 1) return false
+            break
+          case '7days':
+            // Include today and past 7 days (0 to 7 days ago)
+            if (daysDiff < 0 || daysDiff > 7) return false
+            break
+          case '30days':
+            // Include today and past 30 days (0 to 30 days ago)
+            if (daysDiff < 0 || daysDiff > 30) return false
+            break
+        }
+      }
+      
+      // Search filter
+      if (searchTerm) {
+        return (
+          booking.name.toLowerCase().includes(searchTerm) ||
+          (booking.phone && booking.phone.includes(searchTerm)) ||
+          (booking.email && booking.email.toLowerCase().includes(searchTerm)) ||
+          booking.date.includes(searchTerm) ||
+          booking.time.includes(searchTerm) ||
+          (booking.serviceName && booking.serviceName.toLowerCase().includes(searchTerm)) ||
+          (booking.service && booking.service.toLowerCase().includes(searchTerm))
+        )
+      }
+      
+      return true
     })
-  }, [bookings, bookingSearchTerm])
+  }, [bookings, bookingSearchTerm, bookingDateFilter])
 
   const filteredUsers = useMemo(() => {
     const searchTerm = userSearchTerm.toLowerCase()
@@ -304,6 +369,7 @@ function AdminPageContent() {
               filteredBookings={filteredBookings}
               paginatedBookings={paginatedBookings}
               bookingSearchTerm={bookingSearchTerm}
+              bookingDateFilter={bookingDateFilter}
               sortState={sortState}
               currentBookingsPage={currentBookingsPage}
               totalBookingsPages={totalBookingsPagesCalc}
@@ -311,6 +377,7 @@ function AdminPageContent() {
               bookingsEndIndex={bookingsEndIndexCalc}
               bookingsPerPage={bookingsPerPage}
               onBookingSearchChange={setBookingSearchTerm}
+              onBookingDateFilterChange={setBookingDateFilter}
               onSortChange={handleSort}
               onBookingPageChange={setCurrentBookingsPage}
               onBookingsPerPageChange={setBookingsPerPage}

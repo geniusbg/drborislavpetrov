@@ -42,6 +42,9 @@ interface AdminState {
   userSearchTerm: string
   serviceSearchTerm: string
   
+  // Date filter state
+  bookingDateFilter: 'all' | 'today' | 'yesterday' | '7days' | '30days'
+  
   // Sort state
   sortState: SortState
   
@@ -90,6 +93,7 @@ interface AdminStateContextType extends AdminState {
   setBookingSearchTerm: (term: string) => void
   setUserSearchTerm: (term: string) => void
   setServiceSearchTerm: (term: string) => void
+  setBookingDateFilter: (filter: 'all' | 'today' | 'yesterday' | '7days' | '30days') => void
   setSortState: React.Dispatch<React.SetStateAction<SortState>>
   setCurrentBookingsPage: (page: number) => void
   setBookingsPerPage: (perPage: number) => void
@@ -145,6 +149,9 @@ export function AdminStateProvider({ children }: { children: React.ReactNode }) 
   const [bookingSearchTerm, setBookingSearchTerm] = useState('')
   const [userSearchTerm, setUserSearchTerm] = useState('')
   const [serviceSearchTerm, setServiceSearchTerm] = useState('')
+  
+  // Date filter state
+  const [bookingDateFilter, setBookingDateFilter] = useState<'all' | 'today' | 'yesterday' | '7days' | '30days'>('all')
   
   // Sort state
   const [sortState, setSortState] = useState<SortState>(() => {
@@ -218,6 +225,9 @@ export function AdminStateProvider({ children }: { children: React.ReactNode }) 
     userSearchTerm,
     serviceSearchTerm,
     
+    // Date filter state
+    bookingDateFilter,
+    
     // Sort state
     sortState,
     
@@ -264,6 +274,7 @@ export function AdminStateProvider({ children }: { children: React.ReactNode }) 
     setBookingSearchTerm,
     setUserSearchTerm,
     setServiceSearchTerm,
+    setBookingDateFilter,
     setSortState,
     setCurrentBookingsPage,
     setBookingsPerPage,

@@ -1,7 +1,7 @@
 'use client'
 
 import React from 'react'
-import { Plus, Edit, Trash2, ChevronUp, ChevronDown } from 'lucide-react'
+import { Plus, Edit, Trash2, ChevronUp, ChevronDown, Calendar } from 'lucide-react'
 import type { Booking } from '@/types/global'
 import Pagination from '@/components/admin/Pagination'
 
@@ -19,6 +19,7 @@ interface BookingsTabProps {
   filteredBookings: Booking[]
   paginatedBookings: Booking[]
   bookingSearchTerm: string
+  bookingDateFilter: 'all' | 'today' | 'yesterday' | '7days' | '30days'
   sortState: SortState
   currentBookingsPage: number
   totalBookingsPages: number
@@ -26,6 +27,7 @@ interface BookingsTabProps {
   bookingsEndIndex: number
   bookingsPerPage: number
   onBookingSearchChange: (term: string) => void
+  onBookingDateFilterChange: (filter: 'all' | 'today' | 'yesterday' | '7days' | '30days') => void
   onSortChange: (field: SortField) => void
   onBookingPageChange: (page: number) => void
   onBookingsPerPageChange: (perPage: number) => void
@@ -39,6 +41,7 @@ export default function BookingsTab({
   filteredBookings,
   paginatedBookings,
   bookingSearchTerm,
+  bookingDateFilter,
   sortState,
   currentBookingsPage,
   totalBookingsPages,
@@ -46,6 +49,7 @@ export default function BookingsTab({
   bookingsEndIndex,
   bookingsPerPage,
   onBookingSearchChange,
+  onBookingDateFilterChange,
   onSortChange,
   onBookingPageChange,
   onBookingsPerPageChange,
@@ -64,16 +68,84 @@ export default function BookingsTab({
       : <ChevronDown className="w-4 h-4 text-blue-600" />
   }
 
+  // Handle date filter change - reset to page 1
+  const handleDateFilterChange = (filter: 'all' | 'today' | 'yesterday' | '7days' | '30days') => {
+    onBookingDateFilterChange(filter)
+    onBookingPageChange(1)
+  }
+
   return (
     <div className="bg-white rounded-xl shadow-sm border border-gray-100">
       <div className="px-2 sm:px-2.5 md:px-4 lg:px-6 py-4 border-b border-gray-200 flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
         <div className="flex flex-col">
           <h2 className="text-xl font-semibold text-gray-900">Резервации</h2>
           <p className="text-sm text-gray-600 mt-1">
-            {bookingSearchTerm ? `${filteredBookings.length} от ${bookings.length} резервации` : `${bookings.length} резервации`}
+            {bookingSearchTerm || bookingDateFilter !== 'all' 
+              ? `${filteredBookings.length} от ${bookings.length} резервации` 
+              : `${bookings.length} резервации`}
           </p>
         </div>
-        <div className="flex flex-col sm:flex-row gap-2 w-full sm:w-auto">
+        <div className="flex flex-col gap-3 w-full sm:w-auto">
+          {/* Date Filter */}
+          <div className="flex items-center gap-2 flex-wrap">
+            <div className="flex items-center gap-1 text-sm text-gray-600">
+              <Calendar className="w-4 h-4" />
+              <span className="font-medium">Период:</span>
+            </div>
+            <div className="flex gap-1 flex-wrap">
+              <button
+                onClick={() => handleDateFilterChange('all')}
+                className={`px-3 py-1.5 text-sm font-medium rounded-lg transition-all ${
+                  bookingDateFilter === 'all'
+                    ? 'bg-blue-600 text-white shadow-sm'
+                    : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
+                }`}
+              >
+                Всички
+              </button>
+              <button
+                onClick={() => handleDateFilterChange('today')}
+                className={`px-3 py-1.5 text-sm font-medium rounded-lg transition-all ${
+                  bookingDateFilter === 'today'
+                    ? 'bg-blue-600 text-white shadow-sm'
+                    : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
+                }`}
+              >
+                Днес
+              </button>
+              <button
+                onClick={() => handleDateFilterChange('yesterday')}
+                className={`px-3 py-1.5 text-sm font-medium rounded-lg transition-all ${
+                  bookingDateFilter === 'yesterday'
+                    ? 'bg-blue-600 text-white shadow-sm'
+                    : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
+                }`}
+              >
+                Вчера
+              </button>
+              <button
+                onClick={() => handleDateFilterChange('7days')}
+                className={`px-3 py-1.5 text-sm font-medium rounded-lg transition-all ${
+                  bookingDateFilter === '7days'
+                    ? 'bg-blue-600 text-white shadow-sm'
+                    : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
+                }`}
+              >
+                7 дни
+              </button>
+              <button
+                onClick={() => handleDateFilterChange('30days')}
+                className={`px-3 py-1.5 text-sm font-medium rounded-lg transition-all ${
+                  bookingDateFilter === '30days'
+                    ? 'bg-blue-600 text-white shadow-sm'
+                    : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
+                }`}
+              >
+                30 дни
+              </button>
+            </div>
+          </div>
+          
           {/* Search Input */}
           <div className="relative flex-1 sm:flex-none">
             <input
