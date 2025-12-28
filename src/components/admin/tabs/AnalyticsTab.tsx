@@ -2,11 +2,12 @@
 
 import React from 'react'
 import AnalyticsDashboard from '@/components/admin/AnalyticsDashboard'
+import type { Booking, User, Service } from '@/types/global'
 
 interface AnalyticsTabProps {
-  bookings: any[]
-  users: any[]
-  services: any[]
+  bookings: Booking[]
+  users: User[]
+  services: Service[]
 }
 
 export default function AnalyticsTab({ bookings, users, services }: AnalyticsTabProps) {

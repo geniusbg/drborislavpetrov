@@ -1,0 +1,47 @@
+[33m7870701[m[33m ([m[1;36mHEAD[m[33m -> [m[1;32mstable-v4.0.1[m[33m, [m[1;31morigin/stable-v4.0.1[m[33m)[m Update app settings and enhance admin panel functionality with new components and improved documentation
+A	.cursor/rules/virtual-ui-designer.mdc
+M	README.md
+M	app-settings.json
+A	docs/README.md
+A	src/app/admin/page-minimal.tsx
+A	src/app/admin/page-new.tsx
+A	src/app/admin/page-old-large.tsx
+A	src/app/admin/page-old.tsx
+M	src/app/admin/page.tsx
+M	src/app/api/admin/backups/route.ts
+D	src/app/api/admin/settings/under-construction/route.ts
+M	src/app/layout.tsx
+D	src/components/UnderConstructionBanner.tsx
+A	src/components/admin/AdminHeader.tsx
+A	src/components/admin/AdminModals.tsx
+A	src/components/admin/AdminNavigation.tsx
+M	src/components/admin/Pagination.tsx
+D	src/components/admin/UnderConstructionSettings.tsx
+M	src/components/admin/UserHistory.tsx
+A	src/components/admin/tabs/AnalyticsTab.tsx
+A	src/components/admin/tabs/BookingsTab.tsx
+A	src/components/admin/tabs/ServicesTab.tsx
+A	src/components/admin/tabs/UsersTab.tsx
+A	src/contexts/AdminStateContext.tsx
+A	src/hooks/useAdminData.ts
+A	src/hooks/useAdminEventHandlers.ts
+M	tsconfig.tsbuildinfo
+[33m55fd9e1[m Fix security vulnerabilities with npm audit fix
+M	package-lock.json
+[33m129aaca[m[33m ([m[1;31morigin/stable-v4.0.0[m[33m, [m[1;32mstable-v4.0.0[m[33m)[m another build fix
+M	src/lib/offline-api.ts
+M	src/lib/offline-fetch.ts
+[33m7fef827[m build fix
+M	src/lib/offline-fetch.ts
+[33m8969857[m WOrking hours and other fixes
+M	src/app/admin/page.tsx
+M	src/app/api/admin/bookings/route.ts
+M	src/app/api/admin/daily-schedule/route.ts
+M	src/app/api/admin/services/route.ts
+M	src/components/admin/Calendar.tsx
+M	src/components/admin/DailySchedule.tsx
+M	src/components/admin/UserHistory.tsx
+M	src/components/admin/WorkingHoursForm.tsx
+M	src/lib/offline-api.ts
+M	src/lib/offline-fetch.ts
+M	src/lib/offline-storage.ts

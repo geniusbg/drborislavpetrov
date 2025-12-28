@@ -529,11 +529,11 @@ export default function AdminPage() {
       })
 
       // Listen for user updates
-      socket.on('user-added', (newUser: any) => {
+      socket.on('user-added', (newUser: UserType) => {
         setUsers(prev => [...prev, newUser])
       })
 
-      socket.on('user-updated', (updatedUser: any) => {
+      socket.on('user-updated', (updatedUser: UserType) => {
         setUsers(prev => prev.map(user => 
           user.id === updatedUser.id ? updatedUser : user
         ))

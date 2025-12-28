@@ -6,9 +6,10 @@ import { useSocket } from '@/hooks/useSocket'
 import { useOffline } from '@/hooks/useOffline'
 
 // Context and Hooks
-import { AdminStateProvider, useAdminState } from '@/contexts/AdminStateContext'
+import { AdminStateProvider, useAdminState, type SortState } from '@/contexts/AdminStateContext'
 import { useAdminData } from '@/hooks/useAdminData'
 import { useAdminEventHandlers } from '@/hooks/useAdminEventHandlers'
+import type { Booking } from '@/types/global'
 
 // Components
 import AdminHeader from '@/components/admin/AdminHeader'
@@ -51,19 +52,10 @@ function AdminPageContent() {
     serviceSearchTerm,
     sortState,
     currentBookingsPage,
-    totalBookingsPages,
-    bookingsStartIndex,
-    bookingsEndIndex,
     bookingsPerPage,
     currentUsersPage,
-    totalUsersPages,
-    usersStartIndex,
-    usersEndIndex,
     usersPerPage,
     currentServicesPage,
-    totalServicesPages,
-    servicesStartIndex,
-    servicesEndIndex,
     servicesPerPage,
     loadingActions,
     currentDateTime,
@@ -123,10 +115,10 @@ function AdminPageContent() {
   }, [lastScrollY])
 
   // Sort function
-  const sortBookings = (bookings: any[], sort: any) => {
+  const sortBookings = (bookings: Booking[], sort: SortState) => {
     return [...bookings].sort((a, b) => {
-      let aValue: any
-      let bValue: any
+      let aValue: string | number
+      let bValue: string | number
 
       switch (sort.field) {
         case 'date':
@@ -230,12 +222,12 @@ function AdminPageContent() {
 
     joinAdmin()
 
-    // Listen for booking updates
-    socket.on('booking-added', (newBooking: any) => {
+      // Listen for booking updates
+    socket.on('booking-added', (_newBooking: Booking) => {
       // Handle booking added
     })
 
-    socket.on('booking-updated', (updatedBooking: any) => {
+    socket.on('booking-updated', (_updatedBooking: Booking) => {
       // Handle booking updated
     })
 

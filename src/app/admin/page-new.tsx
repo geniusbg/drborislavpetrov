@@ -7,6 +7,7 @@ import { useOffline } from '@/hooks/useOffline'
 import { offlineAPI } from '@/lib/offline-api'
 import { offlineStorage } from '@/lib/offline-storage'
 import type { Booking, User as UserType, Service as ServiceType } from '@/types/global'
+import { type SortState, type SortField } from '@/contexts/AdminStateContext'
 
 // Import components
 import AdminHeader from '@/components/admin/AdminHeader'
@@ -33,15 +34,6 @@ import QuickResponseWidget from '@/components/admin/QuickResponseWidget'
 import { getBulgariaTime, formatBulgariaDate } from '@/lib/bulgaria-time'
 
 export const dynamic = 'force-dynamic'
-
-// Sort types
-type SortField = 'date' | 'time' | 'name' | 'phone' | 'service' | 'status' | 'createdAt'
-type SortDirection = 'asc' | 'desc'
-
-interface SortState {
-  field: SortField
-  direction: SortDirection
-}
 
 export default function AdminPage() {
   const router = useRouter()
@@ -169,8 +161,8 @@ export default function AdminPage() {
   // Sort function
   const sortBookings = (bookings: Booking[], sort: SortState) => {
     return [...bookings].sort((a, b) => {
-      let aValue: any
-      let bValue: any
+      let aValue: string | number
+      let bValue: string | number
 
       switch (sort.field) {
         case 'date':
@@ -278,7 +270,7 @@ export default function AdminPage() {
     try {
       console.log('🔍 Loading users with offline API')
       
-      const response = await offlineAPI.getUsers(forceRefresh)
+      const response = await offlineAPI.getUsers()
       
       console.log('👥 Users response:', response)
       
@@ -466,7 +458,7 @@ export default function AdminPage() {
       if (response.ok) {
         console.log('✅ Booking status updated successfully')
         setBookings(prev => prev.map(booking => 
-          booking.id === id ? { ...booking, status } : booking
+          booking.id === id.toString() ? { ...booking, status } : booking
         ))
       } else {
         console.error('❌ Failed to update booking status')
@@ -630,11 +622,11 @@ export default function AdminPage() {
     joinAdmin()
 
     // Listen for booking updates
-    socket.on('booking-added', (newBooking: any) => {
+    socket.on('booking-added', (newBooking: Booking) => {
       setBookings(prev => [...prev, newBooking])
     })
 
-    socket.on('booking-updated', (updatedBooking: any) => {
+    socket.on('booking-updated', (updatedBooking: Booking) => {
       setBookings(prev => prev.map(booking => 
         booking.id === updatedBooking.id ? updatedBooking : booking
       ))
@@ -645,11 +637,11 @@ export default function AdminPage() {
     })
 
     // Listen for user updates
-    socket.on('user-added', (newUser: any) => {
+    socket.on('user-added', (newUser: UserType) => {
       setUsers(prev => [...prev, newUser])
     })
 
-    socket.on('user-updated', (updatedUser: any) => {
+    socket.on('user-updated', (updatedUser: UserType) => {
       setUsers(prev => prev.map(user => 
         user.id === updatedUser.id ? updatedUser : user
       ))
@@ -660,11 +652,11 @@ export default function AdminPage() {
     })
 
     // Listen for service updates
-    socket.on('service-added', async (newService: any) => {
+    socket.on('service-added', async (_newService: ServiceType) => {
       await loadServices(true)
     })
 
-    socket.on('service-updated', async (updatedService: any) => {
+    socket.on('service-updated', async (_updatedService: ServiceType) => {
       await loadServices(true)
     })
 
@@ -778,7 +770,11 @@ export default function AdminPage() {
 
             {/* Calendar Tab */}
             {activeTab === 'calendar' && (
-              <CalendarComponent />
+              <CalendarComponent 
+                bookings={bookings}
+                onBookingClick={(booking) => handleEditBooking(booking)}
+                onAddBooking={(date) => handleAddBooking()}
+              />
             )}
 
             {/* Users Tab */}
@@ -835,7 +831,9 @@ export default function AdminPage() {
 
             {/* Bug Tracker Tab */}
             {activeTab === 'bugTracker' && (
-              <BugTracker />
+              <BugTracker 
+                onClose={() => setActiveTab('bookings')}
+              />
             )}
 
             {/* QA Tab */}
@@ -857,15 +855,7 @@ export default function AdminPage() {
         {showUserModal && (
           <UserForm
             user={editingUser}
-            onClose={() => {
-              setIsUserModalClosing(true)
-              setTimeout(() => {
-                setShowUserModal(false)
-                setIsUserModalClosing(false)
-                setEditingUser(null)
-              }, 300)
-            }}
-            onSave={async (userData) => {
+            onSubmit={async (userData) => {
               try {
                 const adminToken = localStorage.getItem('adminToken')
                 const method = editingUser ? 'PUT' : 'POST'
@@ -895,22 +885,21 @@ export default function AdminPage() {
                 alert('Грешка при запазване на потребителя')
               }
             }}
+            onCancel={() => {
+              setIsUserModalClosing(true)
+              setTimeout(() => {
+                setShowUserModal(false)
+                setIsUserModalClosing(false)
+                setEditingUser(null)
+              }, 300)
+            }}
           />
         )}
 
         {showBookingModal && (
           <BookingForm
             booking={editingBooking}
-            services={services}
-            onClose={() => {
-              setIsBookingModalClosing(true)
-              setTimeout(() => {
-                setShowBookingModal(false)
-                setIsBookingModalClosing(false)
-                setEditingBooking(null)
-              }, 300)
-            }}
-            onSave={async (bookingData) => {
+            onSubmit={async (bookingData) => {
               try {
                 const adminToken = localStorage.getItem('adminToken')
                 const isNewBooking = !editingBooking?.id
@@ -955,21 +944,21 @@ export default function AdminPage() {
                 alert('Грешка при запазване на резервацията')
               }
             }}
+            onCancel={() => {
+              setIsBookingModalClosing(true)
+              setTimeout(() => {
+                setShowBookingModal(false)
+                setIsBookingModalClosing(false)
+                setEditingBooking(null)
+              }, 300)
+            }}
           />
         )}
 
         {showServiceModal && (
           <ServiceForm
             service={editingService}
-            onClose={() => {
-              setIsServiceModalClosing(true)
-              setTimeout(() => {
-                setShowServiceModal(false)
-                setIsServiceModalClosing(false)
-                setEditingService(null)
-              }, 300)
-            }}
-            onSave={async (serviceData) => {
+            onSubmit={async (serviceData) => {
               try {
                 const adminToken = localStorage.getItem('adminToken')
                 const method = editingService ? 'PUT' : 'POST'
@@ -1005,28 +994,58 @@ export default function AdminPage() {
                 alert('Грешка при запазване на услугата')
               }
             }}
+            onCancel={() => {
+              setIsServiceModalClosing(true)
+              setTimeout(() => {
+                setShowServiceModal(false)
+                setIsServiceModalClosing(false)
+                setEditingService(null)
+              }, 300)
+            }}
           />
         )}
 
         {/* User History Modal */}
-        {searchParams?.get('modal') === 'userHistory' && searchParams?.get('userId') && (
-          <UserHistory
-            userId={parseInt(searchParams.get('userId')!)}
-            onClose={() => {
-              const params = new URLSearchParams(searchParams?.toString?.() || '')
-              params.delete('modal')
-              params.delete('userId')
-              router.push(`/admin?${params.toString()}`, { scroll: false })
-            }}
-            onRefreshBookings={() => loadBookings(true)}
-          />
-        )}
+        {searchParams?.get('modal') === 'userHistory' && searchParams?.get('userId') && (() => {
+          const selectedUser = users.find(u => u.id?.toString() === searchParams.get('userId'))
+          return selectedUser ? (
+            <UserHistory
+              user={selectedUser}
+              bookings={bookings}
+              onClose={() => {
+                const params = new URLSearchParams(searchParams?.toString?.() || '')
+                params.delete('modal')
+                params.delete('userId')
+                router.push(`/admin?${params.toString()}`, { scroll: false })
+              }}
+              onUpdateTreatmentNotes={async (bookingId, notes) => {
+                try {
+                  const adminToken = localStorage.getItem('adminToken')
+                  const response = await fetch(`/api/admin/bookings/${bookingId}`, {
+                    method: 'PATCH',
+                    headers: {
+                      'Content-Type': 'application/json',
+                      'x-admin-token': adminToken || ''
+                    },
+                    body: JSON.stringify({ treatment_notes: notes })
+                  })
+                  if (response.ok) {
+                    await loadBookings(true)
+                  }
+                } catch (error) {
+                  console.error('Error updating treatment notes:', error)
+                }
+              }}
+              onEditBooking={handleEditBooking}
+            />
+          ) : null
+        })()}
 
         {/* Voice Interface */}
         {showVoiceInterface && (
           <VoiceInterface
             onClose={() => setShowVoiceInterface(false)}
-            onVoiceCommand={(command) => {
+            onCommand={(command: string) => {
               console.log('Voice command received:', command)
               // Handle voice commands here
             }}
@@ -1037,10 +1056,12 @@ export default function AdminPage() {
         {isVoiceListening && (
           <VoiceAssistant
             onClose={() => setIsVoiceListening(false)}
-            onResult={(result) => {
-              console.log('Voice result:', result)
+            onCommand={(command: string) => {
+              console.log('Voice command:', command)
               setIsVoiceListening(false)
             }}
+            isListening={isVoiceListening}
+            setIsListening={setIsVoiceListening}
           />
         )}
 
@@ -1053,7 +1074,8 @@ export default function AdminPage() {
 
         {/* Quick Response Widget */}
         <QuickResponseWidget
-          onBookingCreated={() => {
+          onCreateBooking={(date: string, time: string) => {
+            handleAddBooking()
             loadBookings()
             // Flag to re-open Quick Response after the booking modal is closed
             setReopenQuickResponse(true)

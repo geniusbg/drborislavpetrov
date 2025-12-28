@@ -5,6 +5,7 @@ import { offlineAPI } from '@/lib/offline-api'
 import { offlineStorage } from '@/lib/offline-storage'
 import { useAdminState } from '@/contexts/AdminStateContext'
 import { getBulgariaTime } from '@/lib/bulgaria-time'
+import type { Booking, User, Service } from '@/types/global'
 
 export function useAdminData() {
   const {
@@ -47,7 +48,7 @@ export function useAdminData() {
       
       if (response.data) {
         console.log('📅 Bookings data:', response.data)
-        setBookings((response.data.bookings as any[]) || [])
+        setBookings((response.data.bookings as Booking[]) || [])
       } else if (response.error) {
         console.error('❌ loadBookings - failed:', response.error)
         
@@ -56,7 +57,7 @@ export function useAdminData() {
           const cachedBookings = await offlineStorage.getBookings()
           if (cachedBookings && cachedBookings.length > 0) {
             console.log('📦 Loading cached bookings from offline storage:', cachedBookings.length)
-            setBookings(cachedBookings as any[])
+            setBookings(cachedBookings as Booking[])
           }
         } catch (cacheError) {
           console.error('❌ Failed to load cached bookings:', cacheError)
@@ -79,7 +80,7 @@ export function useAdminData() {
       
       if (response.data) {
         console.log('👥 Users data:', response.data)
-        setUsers((response.data.users as any[]) || [])
+        setUsers((response.data.users as User[]) || [])
       } else if (response.error) {
         console.error('❌ loadUsers - failed:', response.error)
         
@@ -88,7 +89,7 @@ export function useAdminData() {
           const cachedUsers = await offlineStorage.getUsers()
           if (cachedUsers && cachedUsers.length > 0) {
             console.log('📦 Loading cached users from offline storage:', cachedUsers.length)
-            setUsers(cachedUsers as any[])
+            setUsers(cachedUsers as User[])
           }
         } catch (cacheError) {
           console.error('❌ Failed to load cached users:', cacheError)
@@ -110,7 +111,7 @@ export function useAdminData() {
       
       if (response.data) {
         console.log('⚙️ Services data:', response.data)
-        setServices((response.data.services as any[]) || [])
+        setServices((response.data.services as Service[]) || [])
       } else if (response.error) {
         console.error('❌ loadServices - failed:', response.error)
         
@@ -119,7 +120,7 @@ export function useAdminData() {
           const cachedServices = await offlineStorage.getServices()
           if (cachedServices && cachedServices.length > 0) {
             console.log('📦 Loading cached services from offline storage:', cachedServices.length)
-            setServices(cachedServices as any[])
+            setServices(cachedServices as Service[])
           }
         } catch (cacheError) {
           console.error('❌ Failed to load cached services:', cacheError)

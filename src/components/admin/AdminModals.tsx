@@ -218,9 +218,10 @@ export default function AdminModals() {
             params.delete('userId')
             router.push(`/admin?${params.toString()}`, { scroll: false })
           }}
-          onUpdateTreatmentNotes={(bookingId, notes) => {
+          onUpdateTreatmentNotes={async (bookingId, notes) => {
             // Handle treatment notes update
             console.log('Update treatment notes:', bookingId, notes)
+            await loadBookings()
           }}
           onEditBooking={(booking) => {
             setEditingBooking(booking)

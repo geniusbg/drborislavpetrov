@@ -7,6 +7,7 @@ import { useOffline } from '@/hooks/useOffline'
 import { offlineAPI } from '@/lib/offline-api'
 import { offlineStorage } from '@/lib/offline-storage'
 import type { Booking, User as UserType, Service as ServiceType } from '@/types/global'
+import { type SortState, type SortField } from '@/contexts/AdminStateContext'
 
 // Import components
 import AdminHeader from '@/components/admin/AdminHeader'
@@ -33,15 +34,6 @@ import QuickResponseWidget from '@/components/admin/QuickResponseWidget'
 import { getBulgariaTime, formatBulgariaDate } from '@/lib/bulgaria-time'
 
 export const dynamic = 'force-dynamic'
-
-// Sort types
-type SortField = 'date' | 'time' | 'name' | 'phone' | 'service' | 'status' | 'createdAt'
-type SortDirection = 'asc' | 'desc'
-
-interface SortState {
-  field: SortField
-  direction: SortDirection
-}
 
 export default function AdminPage() {
   const router = useRouter()
@@ -169,8 +161,8 @@ export default function AdminPage() {
   // Sort function
   const sortBookings = (bookings: Booking[], sort: SortState) => {
     return [...bookings].sort((a, b) => {
-      let aValue: any
-      let bValue: any
+      let aValue: string | number
+      let bValue: string | number
 
       switch (sort.field) {
         case 'date':
@@ -630,11 +622,11 @@ export default function AdminPage() {
     joinAdmin()
 
     // Listen for booking updates
-    socket.on('booking-added', (newBooking: any) => {
+    socket.on('booking-added', (newBooking: Booking) => {
       setBookings(prev => [...prev, newBooking])
     })
 
-    socket.on('booking-updated', (updatedBooking: any) => {
+    socket.on('booking-updated', (updatedBooking: Booking) => {
       setBookings(prev => prev.map(booking => 
         booking.id === updatedBooking.id ? updatedBooking : booking
       ))
@@ -645,11 +637,11 @@ export default function AdminPage() {
     })
 
     // Listen for user updates
-    socket.on('user-added', (newUser: any) => {
+    socket.on('user-added', (newUser: UserType) => {
       setUsers(prev => [...prev, newUser])
     })
 
-    socket.on('user-updated', (updatedUser: any) => {
+    socket.on('user-updated', (updatedUser: UserType) => {
       setUsers(prev => prev.map(user => 
         user.id === updatedUser.id ? updatedUser : user
       ))
@@ -660,11 +652,11 @@ export default function AdminPage() {
     })
 
     // Listen for service updates
-    socket.on('service-added', async (newService: any) => {
+    socket.on('service-added', async (_newService: ServiceType) => {
       await loadServices(true)
     })
 
-    socket.on('service-updated', async (updatedService: any) => {
+    socket.on('service-updated', async (_updatedService: ServiceType) => {
       await loadServices(true)
     })
 
