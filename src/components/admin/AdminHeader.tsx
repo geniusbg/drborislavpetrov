@@ -3,14 +3,12 @@
 import React from 'react'
 import Link from 'next/link'
 import { Calendar, ArrowLeft, Smartphone, LogOut, Settings, MessageSquare } from 'lucide-react'
+import { useAdminState } from '@/contexts/AdminStateContext'
+import { useAdminEventHandlers } from '@/hooks/useAdminEventHandlers'
 
-interface AdminHeaderProps {
-  isHeaderVisible: boolean
-  onSettingsClick: () => void
-  onLogout: () => void
-}
-
-export default function AdminHeader({ isHeaderVisible, onSettingsClick, onLogout }: AdminHeaderProps) {
+export default function AdminHeader() {
+  const { isHeaderVisible } = useAdminState()
+  const { handleSettingsClick, handleLogout } = useAdminEventHandlers()
   return (
     <header className={`fixed top-0 left-0 right-0 z-40 bg-gradient-to-r from-blue-600 to-blue-800 shadow transition-transform duration-0 ${
       isHeaderVisible ? 'translate-y-0' : '-translate-y-full'
@@ -54,7 +52,7 @@ export default function AdminHeader({ isHeaderVisible, onSettingsClick, onLogout
             </button>
             
             <button
-              onClick={onSettingsClick}
+              onClick={handleSettingsClick}
               className="text-blue-100 hover:text-white transition-colors inline-flex items-center space-x-2 flex-shrink-0"
             >
               <Settings className="w-4 h-4" />
@@ -63,7 +61,7 @@ export default function AdminHeader({ isHeaderVisible, onSettingsClick, onLogout
             
             <div className="h-5 w-px bg-blue-300/60 flex-shrink-0" />
             <button
-              onClick={onLogout}
+              onClick={handleLogout}
               className="text-blue-100 hover:text-white transition-colors inline-flex items-center space-x-2 flex-shrink-0"
             >
               <LogOut className="w-4 h-4" />
@@ -74,13 +72,13 @@ export default function AdminHeader({ isHeaderVisible, onSettingsClick, onLogout
           {/* Mobile actions */}
           <div className="sm:hidden flex items-center space-x-2">
             <button
-              onClick={onSettingsClick}
+              onClick={handleSettingsClick}
               className="p-2 text-blue-100 hover:text-white transition-colors"
             >
               <Settings className="w-5 h-5" />
             </button>
             <button
-              onClick={onLogout}
+              onClick={handleLogout}
               className="p-2 text-blue-100 hover:text-white transition-colors"
             >
               <LogOut className="w-5 h-5" />

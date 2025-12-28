@@ -9,19 +9,12 @@ import type { Booking, User, Service } from '@/types/global'
 
 export function useAdminData() {
   const {
-    bookings,
-    users,
-    services,
     isLoadingBookings,
     isLoadingServices,
     initLoadStartedRef,
-    overlayProgress,
     setOverlayProgress,
-    isClosing,
     setIsClosing,
-    hideOverlay,
     setHideOverlay,
-    isLoading,
     setIsLoading,
     overlayFinalizedRef,
     setBookings,
@@ -30,7 +23,6 @@ export function useAdminData() {
     setIsLoadingBookings,
     setIsLoadingServices,
     setIsMobileOrIOS,
-    currentDateTime,
     setCurrentDateTime
   } = useAdminState()
 
@@ -141,7 +133,6 @@ export function useAdminData() {
 
       // Load all data in parallel for better performance
       const tasks = [loadBookings(), loadServices(), loadUsers()]
-      const totalTasks = tasks.length
       
       try {
         await Promise.all(tasks)
@@ -162,7 +153,8 @@ export function useAdminData() {
     }
 
     loadInitialData()
-  }, [])
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []) // Intentionally empty - should only run once on mount
 
   // Detect iOS/mobile (for VoiceAssistant fallback)
   useEffect(() => {
@@ -172,7 +164,7 @@ export function useAdminData() {
       const isMobile = /Android|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(ua)
       setIsMobileOrIOS(isIOS || isMobile)
     }
-  }, [])
+  }, [setIsMobileOrIOS])
 
   // Current time update
   useEffect(() => {
@@ -184,7 +176,7 @@ export function useAdminData() {
     const interval = setInterval(updateTime, 1000)
 
     return () => clearInterval(interval)
-  }, [])
+  }, [setCurrentDateTime])
 
   return {
     loadBookings,

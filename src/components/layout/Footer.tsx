@@ -101,7 +101,15 @@ const Footer = () => {
           <div className="flex items-center space-x-2 text-secondary-300 text-sm mt-4 sm:mt-0 animate-fade-in" style={{ animationDelay: '0.2s' }}>
             <span>Създадено с</span>
             <Heart className="w-4 h-4 text-red-500" />
-            <span>от HitOps</span>
+            <span>от</span>
+            <a 
+              href="https://www.gsoft.bg" 
+              target="_blank" 
+              rel="noopener noreferrer"
+              className="text-secondary-300 hover:text-white transition-colors"
+            >
+              GSoft.bg
+            </a>
           </div>
         </div>
         </div>

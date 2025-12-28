@@ -1,6 +1,6 @@
 'use client'
 
-import React, { useState, useEffect, useMemo, Suspense } from 'react'
+import React, { useEffect, useMemo, Suspense } from 'react'
 import { useSearchParams } from 'next/navigation'
 import { useSocket } from '@/hooks/useSocket'
 import { useOffline } from '@/hooks/useOffline'
@@ -30,18 +30,7 @@ export const dynamic = 'force-dynamic'
 
 function AdminPageContent() {
   const searchParams = useSearchParams()
-  const [activeTab, setActiveTab] = useState(() => {
-    const tab = searchParams?.get?.('tab')
-    return tab || 'bookings'
-  })
-  
-  // Sync activeTab with URL changes
-  useEffect(() => {
-    const tab = searchParams?.get?.('tab')
-    if (tab) {
-      setActiveTab(tab)
-    }
-  }, [searchParams])
+  const activeTab = searchParams?.get?.('tab') || 'bookings'
   
   // Check authentication
   useEffect(() => {
@@ -57,7 +46,6 @@ function AdminPageContent() {
     bookings,
     users,
     services,
-    isLoading,
     hideOverlay,
     isClosing,
     overlayProgress,
@@ -88,7 +76,8 @@ function AdminPageContent() {
     setCurrentUsersPage,
     setUsersPerPage,
     setCurrentServicesPage,
-    setServicesPerPage
+    setServicesPerPage,
+    setShowVoiceInterface
   } = useAdminState()
 
   const { loadBookings } = useAdminData()
@@ -134,7 +123,7 @@ function AdminPageContent() {
 
     window.addEventListener('scroll', handleScroll, { passive: true })
     return () => window.removeEventListener('scroll', handleScroll)
-  }, [lastScrollY])
+  }, [lastScrollY, setIsHeaderVisible, setLastScrollY])
 
   // Sort function
   const sortBookings = (bookings: Booking[], sort: SortState) => {
@@ -245,16 +234,19 @@ function AdminPageContent() {
       joinAdmin()
       
       // Listen for booking updates
-    socket.on('booking-added', (_newBooking: Booking) => {
-      // Handle booking added
+    socket.on('booking-added', () => {
+      // Handle booking added - reload bookings
+      loadBookings()
     })
 
-    socket.on('booking-updated', (_updatedBooking: Booking) => {
-      // Handle booking updated
+    socket.on('booking-updated', () => {
+      // Handle booking updated - reload bookings
+      loadBookings()
       })
 
-      socket.on('booking-deleted', (bookingId: string) => {
-      // Handle booking deleted
+      socket.on('booking-deleted', () => {
+      // Handle booking deleted - reload bookings
+      loadBookings()
       })
 
       return () => {
@@ -262,7 +254,7 @@ function AdminPageContent() {
         socket.off('booking-updated')
         socket.off('booking-deleted')
     }
-  }, [socket, isConnected, joinAdmin])
+  }, [socket, isConnected, joinAdmin, loadBookings])
 
   return (
     <div className="min-h-screen bg-gray-50">
@@ -299,18 +291,10 @@ function AdminPageContent() {
       {currentDateTime && <NextBookingNotification currentTime={currentDateTime} />}
       
       {/* Header */}
-      <AdminHeader 
-        isHeaderVisible={isHeaderVisible}
-        onSettingsClick={handleSettingsClick}
-        onLogout={handleLogout}
-      />
+      <AdminHeader />
 
       {/* Navigation */}
-      <AdminNavigation 
-        activeTab={activeTab}
-        isHeaderVisible={isHeaderVisible}
-        onTabChange={changeTab}
-      />
+      <AdminNavigation />
 
       {/* Content */}
       <div className={`max-w-7xl mx-auto px-2 sm:px-2.5 md:px-4 lg:px-8 py-4 sm:py-8 transition-all duration-300 ${
@@ -331,7 +315,6 @@ function AdminPageContent() {
               bookingsStartIndex={bookingsStartIndexCalc}
               bookingsEndIndex={bookingsEndIndexCalc}
               bookingsPerPage={bookingsPerPage}
-              loadingActions={loadingActions}
               onBookingSearchChange={setBookingSearchTerm}
               onSortChange={handleSort}
               onBookingPageChange={setCurrentBookingsPage}
@@ -339,8 +322,6 @@ function AdminPageContent() {
               onAddBooking={handleAddBooking}
               onEditBooking={handleEditBooking}
               onDeleteBooking={handleDeleteBooking}
-              onUpdateBookingStatus={handleUpdateBookingStatus}
-              onUpdateBookingNotes={handleUpdateBookingNotes}
             />
           )}
 
@@ -349,7 +330,7 @@ function AdminPageContent() {
                 <CalendarComponent 
                   bookings={bookings}
               onBookingClick={(booking) => handleEditBooking(booking)}
-              onAddBooking={(date) => handleAddBooking()}
+              onAddBooking={() => handleAddBooking()}
             />
           )}
 

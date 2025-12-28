@@ -1,9 +1,10 @@
 'use client'
 
 import React, { useState, useEffect, useCallback, useMemo } from 'react'
-import { Phone, Clock, Copy, X, ChevronLeft, ChevronRight } from 'lucide-react'
+import { Phone, Clock, Copy, X, ChevronLeft, ChevronRight, Mic } from 'lucide-react'
 import { getBulgariaTime, formatBulgariaDate } from '@/lib/bulgaria-time'
 import { offlineAPI } from '@/lib/offline-api'
+import { useAdminState } from '@/contexts/AdminStateContext'
 
 interface TimeSlot {
   time: string
@@ -20,6 +21,22 @@ interface ServiceOption {
 interface QuickResponseWidgetProps {
   onClose?: () => void
   onCreateBooking?: (date: string, time: string) => void
+}
+
+// Voice Button Component
+const VoiceButton = () => {
+  const { setShowVoiceInterface } = useAdminState()
+  
+  return (
+    <button
+      onClick={() => setShowVoiceInterface(true)}
+      className="bg-blue-600 hover:bg-blue-700 text-white p-3 sm:p-4 rounded-full shadow-lg transition-all duration-200 hover:scale-110 flex items-center justify-center"
+      title="Гласови команди"
+      aria-label="Гласови команди"
+    >
+      <Mic className="w-5 h-5" />
+    </button>
+  )
 }
 
 const QuickResponseWidget: React.FC<QuickResponseWidgetProps> = ({ onClose, onCreateBooking }) => {
@@ -463,16 +480,22 @@ const QuickResponseWidget: React.FC<QuickResponseWidgetProps> = ({ onClose, onCr
 
   return (
     <>
-      {/* Floating Button (responsive, avoids overlapping header/actions) */}
-      <button
-        onClick={() => setIsOpen(true)}
-        className="fixed bottom-4 right-4 sm:right-20 z-50 bg-green-600 hover:bg-green-700 text-white p-3 sm:p-4 rounded-full shadow-lg transition-all duration-200 hover:scale-110 flex items-center space-x-2"
-        title="Бързо реагиране - свободни часове"
-        aria-label="Бързо реагиране"
-      >
-        <Phone className="w-5 h-5" />
-        <Clock className="w-5 h-5" />
-      </button>
+      {/* Floating Buttons (responsive, avoids overlapping header/actions) */}
+      <div className="fixed bottom-4 right-4 sm:right-20 z-50 flex flex-col gap-3 items-end">
+        {/* Voice Button */}
+        <VoiceButton />
+        
+        {/* Quick Response Button */}
+        <button
+          onClick={() => setIsOpen(true)}
+          className="bg-green-600 hover:bg-green-700 text-white p-3 sm:p-4 rounded-full shadow-lg transition-all duration-200 hover:scale-110 flex items-center space-x-2"
+          title="Бързо реагиране - свободни часове"
+          aria-label="Бързо реагиране"
+        >
+          <Phone className="w-5 h-5" />
+          <Clock className="w-5 h-5" />
+        </button>
+      </div>
 
       {/* Modal */}
       {isOpen && (

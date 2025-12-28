@@ -1150,7 +1150,14 @@ const Calendar = ({ bookings, onBookingClick, onAddBooking, onNavigateToDailySch
             return (
               <div
                 key={index}
-                onClick={() => handleDateClick(date)}
+                onClick={(e) => {
+                  // Don't open DailySchedule if clicking on a booking
+                  const target = e.target as HTMLElement
+                  const clickedBooking = target.closest('[data-booking-item]')
+                  if (!clickedBooking) {
+                    handleDateClick(date)
+                  }
+                }}
                 className={`
                   group relative ${getCellHeight()} ${getCellPadding()} cursor-pointer transition-all duration-300
                   rounded-xl border-2 hover:border-blue-300 hover:shadow-lg
@@ -1249,9 +1256,15 @@ const Calendar = ({ bookings, onBookingClick, onAddBooking, onNavigateToDailySch
                           (bookingIndicators as Booking[]).map((booking: Booking, bookingIndex: number) => (
                             <div
                               key={bookingIndex}
+                              data-booking-item="true"
                               onClick={(e) => {
                                 e.stopPropagation()
-                                onBookingClick(booking)
+                                e.preventDefault()
+                                // Prevent opening DailySchedule when clicking on booking
+                                // Call onBookingClick which opens the modal from AdminModals
+                                if (onBookingClick) {
+                                  onBookingClick(booking)
+                                }
                               }}
                               className={`
                                 text-sm px-2 py-1.5 rounded-lg border truncate transition-all duration-200 hover:scale-105
@@ -1429,7 +1442,14 @@ const Calendar = ({ bookings, onBookingClick, onAddBooking, onNavigateToDailySch
             })
             setShowWorkingHoursForm(true)
           }}
-          onEditBooking={handleEditBooking}
+          onEditBooking={(booking) => {
+            // When editing booking from DailySchedule, use the onBookingClick prop to open modal
+            if (onBookingClick) {
+              onBookingClick(booking)
+              // Close DailySchedule
+              setShowDailySchedule(false)
+            }
+          }}
           onDeleteBooking={handleDeleteBooking}
           key={`daily-schedule-${calendarDateToString(selectedDate)}-${dailyScheduleKey}`}
         />

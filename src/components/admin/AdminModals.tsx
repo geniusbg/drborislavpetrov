@@ -22,19 +22,14 @@ export default function AdminModals() {
     showUserModal,
     showBookingModal,
     showServiceModal,
-    isUserModalClosing,
-    isBookingModalClosing,
-    isServiceModalClosing,
     editingUser,
     editingBooking,
     editingService,
-    services,
     users,
     bookings,
     showVoiceInterface,
     isVoiceListening,
     showSupportNotes,
-    reopenQuickResponse,
     setReopenQuickResponse,
     setIsUserModalClosing,
     setShowUserModal,
@@ -98,9 +93,27 @@ export default function AdminModals() {
 
       {/* Booking Modal */}
       {showBookingModal && (
-        <BookingForm
-          booking={editingBooking}
-          onSubmit={async (bookingData) => {
+        <div className="fixed inset-0 bg-black bg-opacity-50 z-[60]" onClick={() => {
+          setIsBookingModalClosing(true)
+          setTimeout(() => {
+            setShowBookingModal(false)
+            setIsBookingModalClosing(false)
+            setEditingBooking(null)
+          }, 300)
+        }}>
+          <div className="bg-white rounded-lg shadow-2xl p-6 w-full max-w-2xl mx-4" 
+               onClick={(e) => e.stopPropagation()}
+               style={{ 
+                 position: 'fixed',
+                 top: '10vh', 
+                 left: '50%', 
+                 transform: 'translateX(-50%)',
+                 maxHeight: '80vh',
+                 overflowY: 'auto'
+               }}>
+            <BookingForm
+              booking={editingBooking}
+              onSubmit={async (bookingData) => {
             try {
               const adminToken = localStorage.getItem('adminToken')
               const isNewBooking = !editingBooking?.id
@@ -153,7 +166,9 @@ export default function AdminModals() {
               setEditingBooking(null)
             }, 300)
           }}
-        />
+            />
+          </div>
+        </div>
       )}
 
       {/* Service Modal */}
@@ -270,7 +285,7 @@ export default function AdminModals() {
 
       {/* Quick Response Widget */}
       <QuickResponseWidget
-        onCreateBooking={(date, time) => {
+        onCreateBooking={() => {
           loadBookings()
           // Flag to re-open Quick Response after the booking modal is closed
           setReopenQuickResponse(true)

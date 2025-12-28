@@ -11,19 +11,14 @@ export function useAdminEventHandlers() {
   const { loadBookings, loadUsers, loadServices } = useAdminData()
   
   const {
-    bookings,
     setBookings,
     setShowUserModal,
     setShowBookingModal,
     setShowServiceModal,
-    setIsUserModalClosing,
-    setIsBookingModalClosing,
-    setIsServiceModalClosing,
     setEditingUser,
     setEditingBooking,
     setEditingService,
-    setSortState,
-    sortState
+    setSortState
   } = useAdminState()
 
   // Function to change tabs with browser history
@@ -70,18 +65,19 @@ export function useAdminEventHandlers() {
     setShowBookingModal(true)
   }
 
-  const handleDeleteBooking = async (id: number) => {
+  const handleDeleteBooking = async (id: number | string) => {
     if (!confirm('Сигурни ли сте, че искате да изтриете тази резервация?')) return
 
     try {
       const adminToken = localStorage.getItem('adminToken')
-      const response = await fetch(`/api/admin/bookings`, {
+      // Convert id to string for API (API expects string in query params)
+      const idString = typeof id === 'number' ? id.toString() : id
+      const response = await fetch(`/api/admin/bookings?id=${idString}`, {
         method: 'DELETE',
         headers: {
           'Content-Type': 'application/json',
           'x-admin-token': adminToken || ''
-        },
-        body: JSON.stringify({ id })
+        }
       })
 
       if (response.ok) {

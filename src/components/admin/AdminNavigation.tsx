@@ -2,16 +2,18 @@
 
 import React from 'react'
 import { Calendar, Users, Settings, BarChart3, Bug, CheckCircle } from 'lucide-react'
+import { useSearchParams } from 'next/navigation'
+import { useAdminState } from '@/contexts/AdminStateContext'
+import { useAdminEventHandlers } from '@/hooks/useAdminEventHandlers'
 
-interface AdminNavigationProps {
-  activeTab: string
-  isHeaderVisible: boolean
-  onTabChange: (tab: string) => void
-}
-
-export default function AdminNavigation({ activeTab, isHeaderVisible, onTabChange }: AdminNavigationProps) {
+export default function AdminNavigation() {
+  const searchParams = useSearchParams()
+  const activeTab = searchParams?.get?.('tab') || 'bookings'
+  const { isHeaderVisible } = useAdminState()
+  const { changeTab } = useAdminEventHandlers()
+  
   const handleTabChange = (tab: string) => {
-    onTabChange(tab)
+    changeTab(tab)
     localStorage.setItem('adminActiveTab', tab)
   }
 

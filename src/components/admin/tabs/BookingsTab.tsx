@@ -1,7 +1,7 @@
 'use client'
 
 import React from 'react'
-import { Plus, Edit, Trash2, ChevronUp, ChevronDown, Clock } from 'lucide-react'
+import { Plus, Edit, Trash2, ChevronUp, ChevronDown } from 'lucide-react'
 import type { Booking } from '@/types/global'
 import Pagination from '@/components/admin/Pagination'
 
@@ -25,16 +25,13 @@ interface BookingsTabProps {
   bookingsStartIndex: number
   bookingsEndIndex: number
   bookingsPerPage: number
-  loadingActions: { [key: string]: boolean }
   onBookingSearchChange: (term: string) => void
   onSortChange: (field: SortField) => void
   onBookingPageChange: (page: number) => void
   onBookingsPerPageChange: (perPage: number) => void
   onAddBooking: () => void
   onEditBooking: (booking: Booking) => void
-  onDeleteBooking: (id: number) => void
-  onUpdateBookingStatus: (id: number, status: string) => void
-  onUpdateBookingNotes: (id: number, notes: string) => void
+  onDeleteBooking: (id: number | string) => void
 }
 
 export default function BookingsTab({
@@ -48,16 +45,13 @@ export default function BookingsTab({
   bookingsStartIndex,
   bookingsEndIndex,
   bookingsPerPage,
-  loadingActions,
   onBookingSearchChange,
   onSortChange,
   onBookingPageChange,
   onBookingsPerPageChange,
   onAddBooking,
   onEditBooking,
-  onDeleteBooking,
-  onUpdateBookingStatus,
-  onUpdateBookingNotes
+  onDeleteBooking
 }: BookingsTabProps) {
   
   // Get sort icon
@@ -104,7 +98,7 @@ export default function BookingsTab({
             <select
               value={`${sortState.field}-${sortState.direction}`}
               onChange={(e) => {
-                const [field, direction] = e.target.value.split('-') as [SortField, SortDirection]
+                const [field] = e.target.value.split('-') as [SortField, SortDirection]
                 onSortChange(field)
               }}
               className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
