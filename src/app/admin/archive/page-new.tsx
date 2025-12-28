@@ -458,7 +458,7 @@ export default function AdminPage() {
       if (response.ok) {
         console.log('✅ Booking status updated successfully')
         setBookings(prev => prev.map(booking => 
-          booking.id?.toString() === id.toString() ? { ...booking, status } : booking
+          booking.id === id.toString() ? { ...booking, status } : booking
         ))
       } else {
         console.error('❌ Failed to update booking status')
@@ -773,10 +773,7 @@ export default function AdminPage() {
               <CalendarComponent 
                 bookings={bookings}
                 onBookingClick={(booking) => handleEditBooking(booking)}
-                onAddBooking={(date) => {
-                  const dateStr = date.toISOString().split('T')[0]
-                  handleAddBooking()
-                }}
+                onAddBooking={(date) => handleAddBooking()}
               />
             )}
 
@@ -825,17 +822,13 @@ export default function AdminPage() {
 
             {/* Analytics Tab */}
             {activeTab === 'analytics' && (
-              <AnalyticsTab
-                bookings={bookings}
-                users={users}
-                services={services}
-              />
+              <AnalyticsTab />
             )}
 
             {/* Bug Tracker Tab */}
             {activeTab === 'bugTracker' && (
               <BugTracker 
-                onClose={() => changeTab('bookings')}
+                onClose={() => setActiveTab('bookings')}
               />
             )}
 
@@ -1009,44 +1002,62 @@ export default function AdminPage() {
         )}
 
         {/* User History Modal */}
-        {searchParams?.get('modal') === 'userHistory' && searchParams?.get('userId') && (
-          <UserHistory
-            user={users.find(u => u.id === parseInt(searchParams.get('userId')!))!}
-            bookings={bookings.filter(b => b.userId === parseInt(searchParams.get('userId')!))}
-            onClose={() => {
-              const params = new URLSearchParams(searchParams?.toString?.() || '')
-              params.delete('modal')
-              params.delete('userId')
-              router.push(`/admin?${params.toString()}`, { scroll: false })
-            }}
-            onUpdateTreatmentNotes={(bookingId, notes) => handleUpdateBookingNotes(parseInt(bookingId), notes)}
-            onEditBooking={handleEditBooking}
-            onDeleteBooking={(bookingId) => handleDeleteBooking(parseInt(bookingId))}
-            onRefreshBookings={() => loadBookings(true)}
-          />
-        )}
+        {searchParams?.get('modal') === 'userHistory' && searchParams?.get('userId') && (() => {
+          const selectedUser = users.find(u => u.id?.toString() === searchParams.get('userId'))
+          return selectedUser ? (
+            <UserHistory
+              user={selectedUser}
+              bookings={bookings}
+              onClose={() => {
+                const params = new URLSearchParams(searchParams?.toString?.() || '')
+                params.delete('modal')
+                params.delete('userId')
+                router.push(`/admin?${params.toString()}`, { scroll: false })
+              }}
+              onUpdateTreatmentNotes={async (bookingId, notes) => {
+                try {
+                  const adminToken = localStorage.getItem('adminToken')
+                  const response = await fetch(`/api/admin/bookings/${bookingId}`, {
+                    method: 'PATCH',
+                    headers: {
+                      'Content-Type': 'application/json',
+                      'x-admin-token': adminToken || ''
+                    },
+                    body: JSON.stringify({ treatment_notes: notes })
+                  })
+                  if (response.ok) {
+                    await loadBookings(true)
+                  }
+                } catch (error) {
+                  console.error('Error updating treatment notes:', error)
+                }
+              }}
+              onEditBooking={handleEditBooking}
+            />
+          ) : null
+        })()}
 
         {/* Voice Interface */}
         {showVoiceInterface && (
           <VoiceInterface
-            onCommand={(command) => {
+            onClose={() => setShowVoiceInterface(false)}
+            onCommand={(command: string) => {
               console.log('Voice command received:', command)
               // Handle voice commands here
             }}
-            onClose={() => setShowVoiceInterface(false)}
           />
         )}
 
         {/* Voice Assistant */}
         {isVoiceListening && (
           <VoiceAssistant
-            onCommand={(command) => {
-              console.log('Voice result:', command)
+            onClose={() => setIsVoiceListening(false)}
+            onCommand={(command: string) => {
+              console.log('Voice command:', command)
               setIsVoiceListening(false)
             }}
             isListening={isVoiceListening}
             setIsListening={setIsVoiceListening}
-            onClose={() => setIsVoiceListening(false)}
           />
         )}
 
@@ -1059,7 +1070,8 @@ export default function AdminPage() {
 
         {/* Quick Response Widget */}
         <QuickResponseWidget
-          onCreateBooking={(date, time) => {
+          onCreateBooking={(date: string, time: string) => {
+            handleAddBooking()
             loadBookings()
             // Flag to re-open Quick Response after the booking modal is closed
             setReopenQuickResponse(true)
