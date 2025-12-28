@@ -179,7 +179,7 @@ export async function PUT(request: NextRequest) {
 
     // Build update query dynamically
     const updates: string[] = []
-    const values: any[] = []
+    const values: (string | number | boolean | null)[] = []
     let paramIndex = 1
 
     if (username) {

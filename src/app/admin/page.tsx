@@ -176,7 +176,6 @@ function AdminPageContent() {
   // Filter functions
   const filteredBookings = useMemo(() => {
     const searchTerm = bookingSearchTerm.toLowerCase()
-    const now = getBulgariaTime()
     const today = getBulgariaDateStringDB()
     
     // Helper function to get date string in YYYY-MM-DD format
