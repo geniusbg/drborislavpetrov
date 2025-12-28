@@ -34,24 +34,6 @@ function AdminPageContent() {
     return tab || 'bookings'
   })
   
-  // Sync activeTab with URL changes
-  useEffect(() => {
-    const tab = searchParams?.get?.('tab')
-    if (tab) {
-      setActiveTab(tab)
-    }
-  }, [searchParams])
-  
-  // Check authentication
-  useEffect(() => {
-    const adminToken = localStorage.getItem('adminToken')
-    if (!adminToken) {
-      // Redirect to login if no token
-      window.location.href = '/admin/login'
-      return
-    }
-  }, [])
-  
   const {
     bookings,
     users,
@@ -62,23 +44,29 @@ function AdminPageContent() {
     overlayProgress,
     isHeaderVisible,
     lastScrollY,
+    setIsHeaderVisible,
+    setLastScrollY,
     bookingSearchTerm,
     userSearchTerm,
     serviceSearchTerm,
     sortState,
     currentBookingsPage,
+    totalBookingsPages,
+    bookingsStartIndex,
+    bookingsEndIndex,
     bookingsPerPage,
     currentUsersPage,
+    totalUsersPages,
+    usersStartIndex,
+    usersEndIndex,
     usersPerPage,
     currentServicesPage,
+    totalServicesPages,
+    servicesStartIndex,
+    servicesEndIndex,
     servicesPerPage,
     loadingActions,
-    currentDateTime
-  } = useAdminState()
-
-  const {
-    setIsHeaderVisible,
-    setLastScrollY,
+    currentDateTime,
     setBookingSearchTerm,
     setUserSearchTerm,
     setServiceSearchTerm,
@@ -119,14 +107,13 @@ function AdminPageContent() {
     const handleScroll = () => {
       const currentScrollY = window.scrollY
       
-      // Show header only when at the very top of the page
       if (currentScrollY < 10) {
         setIsHeaderVisible(true)
       } else if (currentScrollY > lastScrollY && currentScrollY > 100) {
-        // Hide header when scrolling down and past 100px
         setIsHeaderVisible(false)
+      } else if (currentScrollY < lastScrollY) {
+        setIsHeaderVisible(true)
       }
-      // Don't show header when scrolling up unless at the very top
       
       setLastScrollY(currentScrollY)
     }
@@ -241,25 +228,25 @@ function AdminPageContent() {
   useEffect(() => {
     if (!socket || !isConnected) return
 
-      joinAdmin()
-      
-      // Listen for booking updates
+    joinAdmin()
+
+    // Listen for booking updates
     socket.on('booking-added', (newBooking: any) => {
       // Handle booking added
     })
 
     socket.on('booking-updated', (updatedBooking: any) => {
       // Handle booking updated
-      })
+    })
 
-      socket.on('booking-deleted', (bookingId: string) => {
+    socket.on('booking-deleted', (bookingId: string) => {
       // Handle booking deleted
-      })
+    })
 
-      return () => {
-        socket.off('booking-added')
-        socket.off('booking-updated')
-        socket.off('booking-deleted')
+    return () => {
+      socket.off('booking-added')
+      socket.off('booking-updated')
+      socket.off('booking-deleted')
     }
   }, [socket, isConnected, joinAdmin])
 
@@ -312,10 +299,8 @@ function AdminPageContent() {
       />
 
       {/* Content */}
-      <div className={`max-w-7xl mx-auto px-2 sm:px-2.5 md:px-4 lg:px-8 py-4 sm:py-8 transition-all duration-300 ${
-        isHeaderVisible ? 'pt-44 sm:pt-48' : 'pt-16 sm:pt-20'
-      }`}>
-        {/* Show content immediately, but show loading state for individual tabs */}
+      {!isLoading && (
+        <div className="max-w-7xl mx-auto px-2 sm:px-2.5 md:px-4 lg:px-8 py-4 sm:py-8">
           
           {/* Bookings Tab */}
           {activeTab === 'bookings' && (
@@ -345,8 +330,8 @@ function AdminPageContent() {
 
           {/* Calendar Tab */}
           {activeTab === 'calendar' && (
-                <CalendarComponent 
-                  bookings={bookings}
+            <CalendarComponent 
+              bookings={bookings}
               onBookingClick={(booking) => handleEditBooking(booking)}
               onAddBooking={(date) => handleAddBooking()}
             />
@@ -413,17 +398,18 @@ function AdminPageContent() {
 
           {/* QA Tab */}
           {activeTab === 'qa' && (
-                <QADashboard />
+            <QADashboard />
           )}
 
           {/* Settings Tab */}
           {activeTab === 'settings' && (
             <div className="space-y-6">
-                  <SettingsWorkingHours />
-                  <BotProtectionSettings />
+              <SettingsWorkingHours />
+              <BotProtectionSettings />
             </div>
           )}
         </div>
+      )}
 
       {/* Modals */}
       <AdminModals />
@@ -439,4 +425,4 @@ export default function AdminPage() {
       </AdminStateProvider>
     </Suspense>
   )
-} 
+}

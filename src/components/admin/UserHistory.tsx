@@ -5,6 +5,7 @@ import { useState, useEffect, useCallback } from 'react'
 import { Calendar, Clock, User, Phone, Mail, FileText, Edit, X, Trash2, Plus } from 'lucide-react'
 import type { Booking, User as UserType } from '@/types/global'
 import { formatBulgariaDate, formatBulgariaTime } from '@/lib/bulgaria-time'
+import Pagination from '@/components/admin/Pagination'
 
 interface UserHistoryProps {
   user: UserType
@@ -25,6 +26,10 @@ const UserHistory = ({ user, bookings, onClose, onUpdateTreatmentNotes, onEditBo
 
   const [editingNotes, setEditingNotes] = useState<string | null>(null)
   const [notesText, setNotesText] = useState('')
+  
+  // Pagination state
+  const [currentPage, setCurrentPage] = useState(1)
+  const [itemsPerPage, setItemsPerPage] = useState(10)
 
   // Refresh bookings when component mounts if online
   useEffect(() => {
@@ -40,7 +45,8 @@ const UserHistory = ({ user, bookings, onClose, onUpdateTreatmentNotes, onEditBo
     // Take last 9 digits for Bulgarian numbers
     return digitsOnly.slice(-9)
   }
-  
+
+  // Filter bookings for this user
   const userBookings = bookings.filter(booking => {
     const userPhone9 = normalizePhone(user.phone)
     const bookingPhone9 = normalizePhone(booking.phone)
@@ -68,6 +74,19 @@ const UserHistory = ({ user, bookings, onClose, onUpdateTreatmentNotes, onEditBo
     }
     return false
   })
+
+  // Calculate pagination for user bookings
+  const totalPages = Math.max(1, Math.ceil(userBookings.length / itemsPerPage))
+  const safeCurrentPage = Math.max(1, Math.min(currentPage, totalPages))
+  const startIndex = (safeCurrentPage - 1) * itemsPerPage
+  const endIndex = Math.min(startIndex + itemsPerPage, userBookings.length)
+  const paginatedBookings = userBookings.slice(startIndex, endIndex)
+
+  // Reset to first page when user changes
+  useEffect(() => {
+    setCurrentPage(1)
+  }, [user.id])
+  
 
   const getStatusColor = (status: string) => {
     switch (status) {
@@ -271,9 +290,9 @@ const UserHistory = ({ user, bookings, onClose, onUpdateTreatmentNotes, onEditBo
               </div>
             ) : (
               <div className="space-y-4">
-                {userBookings.map((booking) => (
+                {paginatedBookings.map((booking) => (
                   <div key={booking.id} className="border rounded-lg p-4">
-                    <div className="flex items-center justify-between mb-3">
+                    <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between mb-3 gap-3">
                       <div className="flex items-center space-x-4">
                         <div className="flex items-center space-x-2">
                           <Calendar className="w-4 h-4 text-gray-500" />
@@ -283,11 +302,8 @@ const UserHistory = ({ user, bookings, onClose, onUpdateTreatmentNotes, onEditBo
                           <Clock className="w-4 h-4 text-gray-500" />
                           <span className="font-medium">{booking.time}</span>
                         </div>
-                        <span className={`px-2 py-1 rounded-full text-xs font-medium ${getStatusColor(booking.status)}`}>
-                          {getStatusText(booking.status)}
-                        </span>
                       </div>
-                      <div className="flex items-center space-x-2">
+                      <div className="flex items-center justify-end space-x-2">
                         {onEditBooking && (
                           <button
                             onClick={() => onEditBooking(booking)}
@@ -345,7 +361,7 @@ const UserHistory = ({ user, bookings, onClose, onUpdateTreatmentNotes, onEditBo
                       <div className="flex items-center justify-between mb-2">
                         <h4 className="font-medium flex items-center space-x-2">
                           <FileText className="w-4 h-4" />
-                          <span>Бележки за лечението</span>
+                          <span>Бележки</span>
                         </h4>
                         {editingNotes !== booking.id && (
                           <button
@@ -387,13 +403,30 @@ const UserHistory = ({ user, bookings, onClose, onUpdateTreatmentNotes, onEditBo
                           {booking.treatment_notes ? (
                             <p className="whitespace-pre-wrap">{booking.treatment_notes}</p>
                           ) : (
-                            <p className="text-gray-500 italic">Няма бележки за лечението</p>
+                            <p className="text-gray-500 italic">Няма бележки</p>
                           )}
                         </div>
                       )}
                     </div>
                   </div>
                 ))}
+              </div>
+            )}
+            
+            {/* Pagination Controls */}
+            {userBookings.length > 0 && (
+              <div className="mt-6">
+                <Pagination
+                  currentPage={safeCurrentPage}
+                  totalPages={totalPages}
+                  totalItems={userBookings.length}
+                  startIndex={startIndex}
+                  endIndex={endIndex}
+                  itemsPerPage={itemsPerPage}
+                  onPageChange={setCurrentPage}
+                  onItemsPerPageChange={setItemsPerPage}
+                  label="резервации"
+                />
               </div>
             )}
           </div>

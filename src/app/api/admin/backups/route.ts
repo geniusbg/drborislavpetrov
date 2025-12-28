@@ -219,16 +219,19 @@ async function performAutomaticBackup() {
       }
     }
 
-    // Retention cleanup
+    // Retention cleanup - only delete backup files
     try {
       const cutoff = Date.now() - cfg.retentionDays * 24 * 60 * 60 * 1000
       const entries = fs.readdirSync(dir)
       for (const f of entries) {
-        const full = path.join(dir, f)
-        const st = fs.statSync(full)
-        if (st.isFile() && st.mtime.getTime() < cutoff) {
-          fs.unlinkSync(full)
-          console.log(`🗑️ Deleted old automatic backup: ${f}`)
+        // Only delete backup files (JSON or SQL), not config files
+        if (f.endsWith('.json') || f.endsWith('.sql')) {
+          const full = path.join(dir, f)
+          const st = fs.statSync(full)
+          if (st.isFile() && st.mtime.getTime() < cutoff) {
+            fs.unlinkSync(full)
+            console.log(`🗑️ Deleted old automatic backup: ${f}`)
+          }
         }
       }
     } catch (cleanupError) {
@@ -396,16 +399,19 @@ export async function POST(request: NextRequest) {
       }
     }
 
-    // Retention cleanup
+    // Retention cleanup - only delete backup files
     try {
       const cutoff = Date.now() - cfg.retentionDays * 24 * 60 * 60 * 1000
       const entries = fs.readdirSync(dir)
       for (const f of entries) {
-        const full = path.join(dir, f)
-        const st = fs.statSync(full)
-        if (st.isFile() && st.mtime.getTime() < cutoff) {
-          fs.unlinkSync(full)
-          console.log(`🗑️ Deleted old backup: ${f}`)
+        // Only delete backup files (JSON or SQL), not config files
+        if (f.endsWith('.json') || f.endsWith('.sql')) {
+          const full = path.join(dir, f)
+          const st = fs.statSync(full)
+          if (st.isFile() && st.mtime.getTime() < cutoff) {
+            fs.unlinkSync(full)
+            console.log(`🗑️ Deleted old backup: ${f}`)
+          }
         }
       }
     } catch (cleanupError) {

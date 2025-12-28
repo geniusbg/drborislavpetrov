@@ -1,0 +1,280 @@
+'use client'
+
+import React from 'react'
+import { useRouter, useSearchParams } from 'next/navigation'
+import { useAdminState } from '@/contexts/AdminStateContext'
+import { useAdminData } from '@/hooks/useAdminData'
+import UserForm from '@/components/admin/UserForm'
+import BookingForm from '@/components/admin/BookingForm'
+import ServiceForm from '@/components/admin/ServiceForm'
+import UserHistory from '@/components/admin/UserHistory'
+import VoiceInterface from '@/components/admin/VoiceInterface'
+import VoiceAssistant from '@/components/admin/VoiceAssistant'
+import SupportNotes from '@/components/admin/SupportNotes'
+import QuickResponseWidget from '@/components/admin/QuickResponseWidget'
+
+export default function AdminModals() {
+  const router = useRouter()
+  const searchParams = useSearchParams()
+  const { loadBookings, loadUsers, loadServices } = useAdminData()
+  
+  const {
+    showUserModal,
+    showBookingModal,
+    showServiceModal,
+    isUserModalClosing,
+    isBookingModalClosing,
+    isServiceModalClosing,
+    editingUser,
+    editingBooking,
+    editingService,
+    services,
+    users,
+    bookings,
+    showVoiceInterface,
+    isVoiceListening,
+    showSupportNotes,
+    reopenQuickResponse,
+    setReopenQuickResponse,
+    setIsUserModalClosing,
+    setShowUserModal,
+    setEditingUser,
+    setIsBookingModalClosing,
+    setShowBookingModal,
+    setEditingBooking,
+    setIsServiceModalClosing,
+    setShowServiceModal,
+    setEditingService,
+    setShowVoiceInterface,
+    setIsVoiceListening
+  } = useAdminState()
+
+  return (
+    <>
+      {/* User Modal */}
+      {showUserModal && (
+        <UserForm
+          user={editingUser}
+          onSubmit={async (userData) => {
+            try {
+              const adminToken = localStorage.getItem('adminToken')
+              const method = editingUser ? 'PUT' : 'POST'
+              const response = await fetch('/api/admin/users', {
+                method,
+                headers: {
+                  'Content-Type': 'application/json',
+                  'x-admin-token': adminToken || ''
+                },
+                body: JSON.stringify(editingUser ? { ...userData, id: editingUser.id } : userData)
+              })
+
+              if (response.ok) {
+                setIsUserModalClosing(true)
+                setTimeout(() => {
+                  setShowUserModal(false)
+                  setIsUserModalClosing(false)
+                  setEditingUser(null)
+                  loadUsers(true)
+                }, 300)
+              } else {
+                const error = await response.json()
+                alert(`Грешка при запазване: ${error.message}`)
+              }
+            } catch (error) {
+              console.error('Error saving user:', error)
+              alert('Грешка при запазване на потребителя')
+            }
+          }}
+          onCancel={() => {
+            setIsUserModalClosing(true)
+            setTimeout(() => {
+              setShowUserModal(false)
+              setIsUserModalClosing(false)
+              setEditingUser(null)
+            }, 300)
+          }}
+        />
+      )}
+
+      {/* Booking Modal */}
+      {showBookingModal && (
+        <BookingForm
+          booking={editingBooking}
+          onSubmit={async (bookingData) => {
+            try {
+              const adminToken = localStorage.getItem('adminToken')
+              const isNewBooking = !editingBooking?.id
+              let response
+
+              if (isNewBooking) {
+                // Create new booking
+                response = await fetch('/api/admin/bookings', {
+                  method: 'POST',
+                  headers: {
+                    'Content-Type': 'application/json',
+                    'x-admin-token': adminToken || ''
+                  },
+                  body: JSON.stringify(bookingData)
+                })
+              } else {
+                // Update existing booking
+                response = await fetch('/api/admin/bookings', {
+                  method: 'PUT',
+                  headers: {
+                    'Content-Type': 'application/json',
+                    'x-admin-token': adminToken || ''
+                  },
+                  body: JSON.stringify({ ...bookingData, id: editingBooking?.id })
+                })
+              }
+              
+              if (response.ok) {
+                await loadBookings()
+                setIsBookingModalClosing(true)
+                setTimeout(() => {
+                  setShowBookingModal(false)
+                  setIsBookingModalClosing(false)
+                  setEditingBooking(null)
+                }, 300)
+              } else {
+                const error = await response.json()
+                alert(`Грешка при запазване: ${error.message}`)
+              }
+            } catch (error) {
+              console.error('Error saving booking:', error)
+              alert('Грешка при запазване на резервацията')
+            }
+          }}
+          onCancel={() => {
+            setIsBookingModalClosing(true)
+            setTimeout(() => {
+              setShowBookingModal(false)
+              setIsBookingModalClosing(false)
+              setEditingBooking(null)
+            }, 300)
+          }}
+        />
+      )}
+
+      {/* Service Modal */}
+      {showServiceModal && (
+        <ServiceForm
+          service={editingService}
+          onSubmit={async (serviceData) => {
+            try {
+              const adminToken = localStorage.getItem('adminToken')
+              const method = editingService ? 'PUT' : 'POST'
+              
+              const response = await fetch('/api/admin/services', {
+                method,
+                headers: {
+                  'Content-Type': 'application/json',
+                  'x-admin-token': adminToken || ''
+                },
+                body: JSON.stringify(editingService ? { ...serviceData, id: editingService.id } : serviceData)
+              })
+              
+              if (response.ok) {
+                // Зареждаме услугите ПРЕДИ да затворим модала
+                await loadServices(true) // Force refresh to get latest data
+                
+                // Изчакваме малко преди да затворим модала
+                setTimeout(() => {
+                  setIsServiceModalClosing(true)
+                  setTimeout(() => {
+                    setShowServiceModal(false)
+                    setIsServiceModalClosing(false)
+                    setEditingService(null)
+                  }, 300)
+                }, 100)
+              } else {
+                const error = await response.json()
+                alert(`Грешка при запазване: ${error.message}`)
+              }
+            } catch (error) {
+              console.error('Error saving service:', error)
+              alert('Грешка при запазване на услугата')
+            }
+          }}
+          onCancel={() => {
+            setIsServiceModalClosing(true)
+            setTimeout(() => {
+              setShowServiceModal(false)
+              setIsServiceModalClosing(false)
+              setEditingService(null)
+            }, 300)
+          }}
+        />
+      )}
+
+      {/* User History Modal */}
+      {searchParams?.get('modal') === 'userHistory' && searchParams?.get('userId') && (
+        <UserHistory
+          user={users.find(u => u.id === parseInt(searchParams.get('userId')!))!}
+          bookings={bookings.filter(b => b.userId === parseInt(searchParams.get('userId')!))}
+          onClose={() => {
+            const params = new URLSearchParams(searchParams?.toString?.() || '')
+            params.delete('modal')
+            params.delete('userId')
+            router.push(`/admin?${params.toString()}`, { scroll: false })
+          }}
+          onUpdateTreatmentNotes={(bookingId, notes) => {
+            // Handle treatment notes update
+            console.log('Update treatment notes:', bookingId, notes)
+          }}
+          onEditBooking={(booking) => {
+            setEditingBooking(booking)
+            setShowBookingModal(true)
+          }}
+          onDeleteBooking={(bookingId) => {
+            // Handle booking deletion
+            console.log('Delete booking:', bookingId)
+          }}
+          onRefreshBookings={() => loadBookings(true)}
+        />
+      )}
+
+      {/* Voice Interface */}
+      {showVoiceInterface && (
+        <VoiceInterface
+          onCommand={(command) => {
+            console.log('Voice command received:', command)
+            // Handle voice commands here
+          }}
+          onClose={() => setShowVoiceInterface(false)}
+        />
+      )}
+
+      {/* Voice Assistant */}
+      {isVoiceListening && (
+        <VoiceAssistant
+          onCommand={(command) => {
+            console.log('Voice result:', command)
+            setIsVoiceListening(false)
+          }}
+          isListening={isVoiceListening}
+          setIsListening={setIsVoiceListening}
+          onClose={() => setIsVoiceListening(false)}
+        />
+      )}
+
+      {/* Support Notes */}
+      {showSupportNotes && (
+        <SupportNotes
+          onClose={() => {
+            // Handle support notes close
+          }}
+        />
+      )}
+
+      {/* Quick Response Widget */}
+      <QuickResponseWidget
+        onCreateBooking={(date, time) => {
+          loadBookings()
+          // Flag to re-open Quick Response after the booking modal is closed
+          setReopenQuickResponse(true)
+        }}
+      />
+    </>
+  )
+}

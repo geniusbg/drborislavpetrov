@@ -2,7 +2,6 @@ import type { Metadata, Viewport } from 'next'
 import { getSiteDomain } from '@/lib/site'
 import { Inter } from 'next/font/google'
 import './globals.css'
-import UnderConstructionBanner from '@/components/UnderConstructionBanner'
 import Script from 'next/script'
 
 // Extend Window interface for service worker registration flag and socket
@@ -86,8 +85,6 @@ export default function RootLayout({
         <link rel="shortcut icon" href="/favicon.ico" />
       </head>
       <body className={inter.className}>
-        <UnderConstructionBanner />
-        <div className="pt-16"></div>
         {children}
           <Script
             id="service-worker"

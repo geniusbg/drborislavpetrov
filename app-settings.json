@@ -23,9 +23,9 @@
       "senderId": "drpetrov.bg",
       "senderType": "alphanumeric",
       "testRecipient": "+359988825195",
-      "t1Enabled": false,
-      "t1Hour": 18,
-      "t0Enabled": false,
+      "t1Enabled": true,
+      "t1Hour": 11,
+      "t0Enabled": true,
       "templateT1": "Напомняне: {date} в {time} – {service}. Д-р Петров. Ако не можете да дойдете, моля обадете се.",
       "templateT0": "Днес в {time}: {service}. Д-р Петров.",
       "channelPriority": [

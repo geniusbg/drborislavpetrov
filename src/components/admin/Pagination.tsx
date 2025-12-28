@@ -30,94 +30,144 @@ export default function Pagination({
 
   return (
     <div className="px-2 sm:px-2.5 md:px-4 lg:px-6 py-4 border-t border-gray-200">
-      <div className="flex flex-col sm:flex-row justify-between items-center gap-4">
-        {/* Items per page selector */}
-        <div className="flex items-center space-x-2">
-          <span className="text-sm text-gray-600">Покажи:</span>
-          <select
-            value={itemsPerPage}
-            onChange={(e) => {
-              onItemsPerPageChange(Number(e.target.value))
-              onPageChange(1)
-            }}
-            className="border border-gray-300 rounded-md px-3 py-1 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
-          >
-            {itemsPerPageOptions.map(option => (
-              <option key={option} value={option}>{option}</option>
-            ))}
-          </select>
-          <span className="text-sm text-gray-600">{label}</span>
-        </div>
-        
-        {/* Page info */}
-        <div className="text-sm text-gray-600">
-          Показване на {startIndex + 1}-{Math.min(endIndex, totalItems)} от {totalItems} {label}
-        </div>
-        
-        {/* Page navigation */}
-        <div className="flex items-center gap-2 flex-wrap">
-          <button
-            onClick={() => onPageChange(Math.max(1, currentPage - 1))}
-            disabled={currentPage === 1}
-            className="px-3 py-1 text-sm border border-gray-300 rounded-md hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed"
-          >
-            <span className="sm:hidden inline-flex"><ChevronLeft className="w-4 h-4" /></span>
-            <span className="hidden sm:inline">Предишна</span>
-          </button>
-          
-          {/* Page numbers */}
-          <div className="flex items-center space-x-1">
-            {Array.from({ length: Math.min(5, totalPages) }, (_, i) => {
-              let pageNum
-              if (totalPages <= 5) {
-                pageNum = i + 1
-              } else if (currentPage <= 3) {
-                pageNum = i + 1
-              } else if (currentPage >= totalPages - 2) {
-                pageNum = totalPages - 4 + i
-              } else {
-                pageNum = currentPage - 2 + i
-              }
-              
-              return (
-                <button
-                  key={pageNum}
-                  onClick={() => onPageChange(pageNum)}
-                  className={`px-3 py-1 text-sm border rounded-md ${
-                    currentPage === pageNum
-                      ? 'bg-blue-600 text-white border-blue-600'
-                      : 'border-gray-300 hover:bg-gray-50'
-                  }`}
-                >
-                  {pageNum}
-                </button>
-              )
-            })}
+      {/* Mobile Layout - Simplified */}
+      <div className="block sm:hidden">
+        <div className="flex flex-col space-y-3">
+          {/* Page info */}
+          <div className="text-center text-sm text-gray-600">
+            Страница {currentPage} от {totalPages}
           </div>
           
-          <button
-            onClick={() => onPageChange(Math.min(totalPages, currentPage + 1))}
-            disabled={currentPage === totalPages}
-            className="px-3 py-1 text-sm border border-gray-300 rounded-md hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed"
-          >
-            <span className="sm:hidden inline-flex"><ChevronRight className="w-4 h-4" /></span>
-            <span className="hidden sm:inline">Следваща</span>
-          </button>
-          
-          {/* Direct page dropdown */}
-          <div className="flex items-center space-x-1">
-            <span className="text-sm text-gray-600">Страница:</span>
-            <select
-              value={currentPage}
-              onChange={(e) => onPageChange(Number(e.target.value))}
-              className="border border-gray-300 rounded-md px-2 py-1 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 min-w-[60px]"
+          {/* Navigation buttons */}
+          <div className="flex justify-center space-x-2">
+            <button
+              onClick={() => onPageChange(Math.max(1, currentPage - 1))}
+              disabled={currentPage === 1}
+              className="px-4 py-2 text-sm border border-gray-300 rounded-md hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed flex items-center space-x-1"
             >
-              {Array.from({ length: totalPages }, (_, i) => i + 1).map(pageNum => (
-                <option key={pageNum} value={pageNum}>
-                  {pageNum}
-                </option>
+              <ChevronLeft className="w-4 h-4" />
+              <span>Предишна</span>
+            </button>
+            
+            <button
+              onClick={() => onPageChange(Math.min(totalPages, currentPage + 1))}
+              disabled={currentPage === totalPages}
+              className="px-4 py-2 text-sm border border-gray-300 rounded-md hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed flex items-center space-x-1"
+            >
+              <span>Следваща</span>
+              <ChevronRight className="w-4 h-4" />
+            </button>
+          </div>
+          
+          {/* Items per page selector */}
+          <div className="flex items-center justify-center space-x-2">
+            <span className="text-sm text-gray-600">Покажи:</span>
+            <select
+              value={itemsPerPage}
+              onChange={(e) => {
+                onItemsPerPageChange(Number(e.target.value))
+                onPageChange(1)
+              }}
+              className="border border-gray-300 rounded-md px-3 py-1 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+            >
+              {itemsPerPageOptions.map(option => (
+                <option key={option} value={option}>{option}</option>
               ))}
             </select>
+            <span className="text-sm text-gray-600">{label}</span>
+          </div>
+        </div>
+      </div>
+
+      {/* Desktop Layout - Full featured */}
+      <div className="hidden sm:block">
+        <div className="flex flex-col lg:flex-row justify-between items-center gap-4">
+          {/* Items per page selector */}
+          <div className="flex items-center space-x-2">
+            <span className="text-sm text-gray-600">Покажи:</span>
+            <select
+              value={itemsPerPage}
+              onChange={(e) => {
+                onItemsPerPageChange(Number(e.target.value))
+                onPageChange(1)
+              }}
+              className="border border-gray-300 rounded-md px-3 py-1 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+            >
+              {itemsPerPageOptions.map(option => (
+                <option key={option} value={option}>{option}</option>
+              ))}
+            </select>
+            <span className="text-sm text-gray-600">{label}</span>
+          </div>
+          
+          {/* Page info */}
+          <div className="text-sm text-gray-600">
+            Показване на {startIndex + 1}-{Math.min(endIndex, totalItems)} от {totalItems} {label}
+          </div>
+          
+          {/* Page navigation - Always on one line */}
+          <div className="flex items-center gap-1 flex-nowrap">
+            <button
+              onClick={() => onPageChange(Math.max(1, currentPage - 1))}
+              disabled={currentPage === 1}
+              className="px-2 py-1 text-sm border border-gray-300 rounded-md hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed whitespace-nowrap"
+            >
+              Предишна
+            </button>
+            
+            {/* Page numbers */}
+            <div className="flex items-center space-x-1">
+              {Array.from({ length: Math.min(5, totalPages) }, (_, i) => {
+                let pageNum
+                if (totalPages <= 5) {
+                  pageNum = i + 1
+                } else if (currentPage <= 3) {
+                  pageNum = i + 1
+                } else if (currentPage >= totalPages - 2) {
+                  pageNum = totalPages - 4 + i
+                } else {
+                  pageNum = currentPage - 2 + i
+                }
+                
+                return (
+                  <button
+                    key={pageNum}
+                    onClick={() => onPageChange(pageNum)}
+                    className={`px-2 py-1 text-sm border rounded-md ${
+                      currentPage === pageNum
+                        ? 'bg-blue-600 text-white border-blue-600'
+                        : 'border-gray-300 hover:bg-gray-50'
+                    }`}
+                  >
+                    {pageNum}
+                  </button>
+                )
+              })}
+            </div>
+            
+            <button
+              onClick={() => onPageChange(Math.min(totalPages, currentPage + 1))}
+              disabled={currentPage === totalPages}
+              className="px-2 py-1 text-sm border border-gray-300 rounded-md hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed whitespace-nowrap"
+            >
+              Следваща
+            </button>
+            
+            {/* Direct page dropdown */}
+            <div className="flex items-center space-x-1">
+              <span className="text-sm text-gray-600">Страница:</span>
+              <select
+                value={currentPage}
+                onChange={(e) => onPageChange(Number(e.target.value))}
+                className="border border-gray-300 rounded-md px-1 py-1 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 min-w-[50px]"
+              >
+                {Array.from({ length: totalPages }, (_, i) => i + 1).map(pageNum => (
+                  <option key={pageNum} value={pageNum}>
+                    {pageNum}
+                  </option>
+                ))}
+              </select>
+            </div>
           </div>
         </div>
       </div>
