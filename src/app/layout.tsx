@@ -105,15 +105,49 @@ export default function RootLayout({
                   }
                   
                   window.addEventListener('load', function() {
-                    navigator.serviceWorker.register('/sw.js')
+                    navigator.serviceWorker.register('/sw.js', { updateViaCache: 'none' })
                       .then(function(registration) {
                         // Service Worker registered successfully
+                        
+                        // Check for updates immediately
+                        registration.update();
+                        
+                        // Check for updates every hour
+                        setInterval(function() {
+                          registration.update();
+                        }, 60 * 60 * 1000);
+                        
+                        // Handle service worker update found
                         registration.addEventListener('updatefound', function() {
-                          // Service Worker update found
+                          const newWorker = registration.installing;
+                          if (newWorker) {
+                            newWorker.addEventListener('statechange', function() {
+                              if (newWorker.state === 'installed' && navigator.serviceWorker.controller) {
+                                // New service worker is installed and waiting
+                                // Notify user about update
+                                if (typeof window !== 'undefined' && window.confirm) {
+                                  const shouldUpdate = confirm('Налично е ново обновяване на приложението. Искате ли да обновите сега?');
+                                  if (shouldUpdate) {
+                                    // Send message to new worker to skip waiting
+                                    newWorker.postMessage({ type: 'SKIP_WAITING' });
+                                    // Reload page after update
+                                    window.location.reload();
+                                  }
+                                }
+                              }
+                            });
+                          }
+                        });
+                        
+                        // Handle controller change (new service worker activated)
+                        navigator.serviceWorker.addEventListener('controllerchange', function() {
+                          // Service worker has been updated, reload page
+                          window.location.reload();
                         });
                       })
                       .catch(function(error) {
                         // Service Worker registration failed
+                        console.error('Service Worker registration failed:', error);
                       });
                   });
                   

@@ -95,7 +95,7 @@ const AdminLogin = () => {
       <div className="sm:mx-auto sm:w-full sm:max-w-md">
         <div className="flex justify-center mb-8">
           <div className="w-full max-w-md bg-gradient-to-br from-blue-600 via-blue-700 to-blue-800 rounded-2xl p-8 shadow-2xl zoom-in-out hover:scale-105 transition-all duration-300">
-            <h1 className="text-center text-lg sm:text-xl md:text-2xl lg:text-3xl font-bold text-white leading-relaxed font-serif min-h-[50px] sm:min-h-[60px] flex items-center justify-center">
+            <h1 className="text-center text-xl sm:text-xl md:text-2xl lg:text-3xl font-bold text-white leading-relaxed font-serif min-h-[50px] sm:min-h-[60px] flex items-center justify-center">
               <span className="text-center">
                 {displayedText}
                 {currentIndex < fullText.length && (
