@@ -100,9 +100,10 @@ export default function UsersTab({
                 </div>
                 <div className="flex space-x-2">
                   <button
-                    onClick={() => onViewUserHistory(user.id)}
+                    onClick={() => user.id !== undefined && onViewUserHistory(user.id)}
                     className="p-2 text-blue-600 hover:bg-blue-50 rounded-lg transition-colors"
                     title="История на резервациите"
+                    disabled={user.id === undefined}
                   >
                     <Calendar className="w-4 h-4" />
                   </button>
@@ -114,9 +115,10 @@ export default function UsersTab({
                     <Edit className="w-4 h-4" />
                   </button>
                   <button
-                    onClick={() => onDeleteUser(user.id)}
+                    onClick={() => user.id !== undefined && onDeleteUser(user.id)}
                     className="p-2 text-red-600 hover:bg-red-50 rounded-lg transition-colors"
                     title="Изтрий"
+                    disabled={user.id === undefined}
                   >
                     <Trash2 className="w-4 h-4" />
                   </button>
@@ -161,9 +163,10 @@ export default function UsersTab({
                 <td className="px-2 sm:px-2.5 md:px-4 lg:px-6 py-4 text-sm text-gray-900">
                   <div className="flex space-x-2">
                     <button
-                      onClick={() => onViewUserHistory(user.id)}
+                      onClick={() => user.id !== undefined && onViewUserHistory(user.id)}
                       className="text-blue-600 hover:text-blue-900 transition-colors"
                       title="История на резервациите"
+                      disabled={user.id === undefined}
                     >
                       <Calendar className="w-4 h-4" />
                     </button>
@@ -175,9 +178,10 @@ export default function UsersTab({
                       <Edit className="w-4 h-4" />
                     </button>
                     <button
-                      onClick={() => onDeleteUser(user.id)}
+                      onClick={() => user.id !== undefined && onDeleteUser(user.id)}
                       className="text-red-600 hover:text-red-900 transition-colors"
                       title="Изтрий"
+                      disabled={user.id === undefined}
                     >
                       <Trash2 className="w-4 h-4" />
                     </button>
