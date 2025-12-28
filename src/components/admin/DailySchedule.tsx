@@ -315,21 +315,6 @@ const DailySchedule = ({ date, onClose, onEditWorkingHours, onEditBooking, onDel
     return Math.max(0, Math.min(slotStartPercentage, 100)) // Ensure 0-100%
   }
 
-  const getSlotEndPercentage = (time: string) => {
-    if (!schedule?.workingHours) return 0
-    const [hour, minute] = time.split(':').map(Number)
-    const totalMinutes = hour * 60 + minute
-    const startTime = schedule.workingHours.startTime || '09:00'
-    const endTime = schedule.workingHours.endTime || '18:00'
-    const startTimeMinutes = parseInt(startTime.split(':')[0]) * 60 + parseInt(startTime.split(':')[1])
-    const totalDurationMinutes = parseInt(endTime.split(':')[0]) * 60 + parseInt(endTime.split(':')[1]) - startTimeMinutes
-    
-    // For times before working hours, calculate the percentage as if they were at the start
-    // This allows us to show the overlapping part correctly
-    const slotEndPercentage = ((totalMinutes - startTimeMinutes) / totalDurationMinutes) * 100
-    return Math.max(0, Math.min(slotEndPercentage, 100)) // Ensure 0-100%
-  }
-
   const getBreakStartPercentage = (breakStartTime?: string) => {
     if (!schedule?.workingHours) return 0
     const breakStart = breakStartTime || (schedule.workingHours.breaks && schedule.workingHours.breaks.length > 0 ? schedule.workingHours.breaks[0].startTime : '12:00')

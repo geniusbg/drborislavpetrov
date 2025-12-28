@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useCallback } from 'react'
 import { Bug, User, Tag, Filter, Plus, Edit, Trash2 } from 'lucide-react'
 import type { BugReport } from '@/types/global'
 
@@ -22,7 +22,7 @@ const BugTracker = ({ onClose }: BugTrackerProps) => {
   const [dragOffset, setDragOffset] = useState({ x: 0, y: 0 })
   const [modalPosition, setModalPosition] = useState({ x: 0, y: 0 })
 
-  const loadBugs = async () => {
+  const loadBugs = useCallback(async () => {
     try {
       setLoading(true)
       const adminToken = localStorage.getItem('adminToken')
@@ -47,11 +47,11 @@ const BugTracker = ({ onClose }: BugTrackerProps) => {
     } finally {
       setLoading(false)
     }
-  }
+  }, [filterStatus, filterCategory, filterSeverity])
 
   useEffect(() => {
     loadBugs()
-  }, [filterStatus, filterCategory, filterSeverity])
+  }, [loadBugs])
 
   const getSeverityColor = (severity: string) => {
     switch (severity) {
@@ -132,18 +132,18 @@ const BugTracker = ({ onClose }: BugTrackerProps) => {
     }
   }
 
-  const handleMouseMove = (e: MouseEvent) => {
+  const handleMouseMove = useCallback((e: MouseEvent) => {
     if (isDragging) {
       setModalPosition({
         x: e.clientX - dragOffset.x,
         y: e.clientY - dragOffset.y
       })
     }
-  }
+  }, [isDragging, dragOffset])
 
-  const handleMouseUp = () => {
+  const handleMouseUp = useCallback(() => {
     setIsDragging(false)
-  }
+  }, [])
 
   useEffect(() => {
     if (isDragging) {
@@ -154,7 +154,7 @@ const BugTracker = ({ onClose }: BugTrackerProps) => {
         document.removeEventListener('mouseup', handleMouseUp)
       }
     }
-  }, [isDragging, dragOffset])
+  }, [isDragging, dragOffset, handleMouseMove, handleMouseUp])
 
   return (
           <div className="fixed inset-0 bg-black bg-opacity-50 z-50">
@@ -424,7 +424,7 @@ const BugForm = ({ bug, onSubmit, onCancel }: { bug: BugReport | null; onSubmit:
   }
 
   // Drag functions for bug form modal
-  const handleMouseDown = (e: React.MouseEvent) => {
+  const handleBugFormMouseDown = (e: React.MouseEvent) => {
     if (e.target === e.currentTarget) {
       setIsDragging(true)
       setDragOffset({
@@ -434,29 +434,29 @@ const BugForm = ({ bug, onSubmit, onCancel }: { bug: BugReport | null; onSubmit:
     }
   }
 
-  const handleMouseMove = (e: MouseEvent) => {
+  const handleBugFormMouseMove = useCallback((e: MouseEvent) => {
     if (isDragging) {
       setModalPosition({
         x: e.clientX - dragOffset.x,
         y: e.clientY - dragOffset.y
       })
     }
-  }
+  }, [isDragging, dragOffset])
 
-  const handleMouseUp = () => {
+  const handleBugFormMouseUp = useCallback(() => {
     setIsDragging(false)
-  }
+  }, [])
 
   useEffect(() => {
     if (isDragging) {
-      document.addEventListener('mousemove', handleMouseMove)
-      document.addEventListener('mouseup', handleMouseUp)
+      document.addEventListener('mousemove', handleBugFormMouseMove)
+      document.addEventListener('mouseup', handleBugFormMouseUp)
       return () => {
-        document.removeEventListener('mousemove', handleMouseMove)
-        document.removeEventListener('mouseup', handleMouseUp)
+        document.removeEventListener('mousemove', handleBugFormMouseMove)
+        document.removeEventListener('mouseup', handleBugFormMouseUp)
       }
     }
-  }, [isDragging, dragOffset])
+  }, [isDragging, dragOffset, handleBugFormMouseMove, handleBugFormMouseUp])
 
   return (
             <div className="fixed inset-0 bg-black bg-opacity-50 z-[60]">
@@ -469,7 +469,7 @@ const BugForm = ({ bug, onSubmit, onCancel }: { bug: BugReport | null; onSubmit:
           transform: `translate(-50%, -50%) translate(${modalPosition.x}px, ${modalPosition.y}px)`,
           cursor: isDragging ? 'grabbing' : 'grab'
         }}
-        onMouseDown={handleMouseDown}
+        onMouseDown={handleBugFormMouseDown}
       >
         <h3 className="text-lg font-medium text-gray-900 mb-4" onMouseDown={(e) => e.stopPropagation()}>
           {bug ? 'Редактирай Bug Report' : 'Нов Bug Report'}

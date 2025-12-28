@@ -67,18 +67,14 @@ export async function GET(req: NextRequest) {
     
     let workingStart = '09:00'
     let workingEnd = '18:00'
-    let isWorkingDay = false
     let breaks: Array<{startTime: string, endTime: string}> = []
 
     if (workingHoursResult.rows.length > 0) {
       const workingHours = workingHoursResult.rows[0]
       if (workingHours.is_working_day) {
-        isWorkingDay = true
         workingStart = workingHours.start_time || '09:00'
         workingEnd = workingHours.end_time || '18:00'
         breaks = workingHours.breaks || []
-      } else {
-        isWorkingDay = false
       }
     } else {
       // Fallback to global settings and default working days
@@ -86,7 +82,6 @@ export async function GET(req: NextRequest) {
       const dayOfWeek = new Date(date).getDay()
       const workingDays: number[] = defaults?.workingDays || [1,2,3,4,5]
       if (workingDays.includes(dayOfWeek)) {
-        isWorkingDay = true
         workingStart = defaults?.startTime || '09:00'
         workingEnd = defaults?.endTime || '18:00'
         // Add default break if specified
@@ -96,8 +91,6 @@ export async function GET(req: NextRequest) {
             endTime: defaults.breakEnd
           }]
         }
-      } else {
-        // isWorkingDay = false
       }
     }
 

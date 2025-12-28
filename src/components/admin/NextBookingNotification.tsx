@@ -251,7 +251,7 @@ const NextBookingNotification = ({ currentTime }: NextBookingNotificationProps) 
         document.removeEventListener('visibilitychange', onVisibility)
       }
     }
-  }, [checkNextBooking])
+  }, [checkNextBooking, checkUrgentBooking])
 
   // Separate useEffect for urgent booking checks
   useEffect(() => {
@@ -308,7 +308,7 @@ const NextBookingNotification = ({ currentTime }: NextBookingNotificationProps) 
       // Fallback to polling if WebSocket is not supported
       console.log('🔄 Using polling fallback')
     }
-  }, [socket, isConnected, isSupported, joinAdmin]) // Remove checkNextBooking from dependencies
+  }, [socket, isConnected, isSupported, joinAdmin, checkUrgentBooking])
 
   useEffect(() => {
     if (isVisible && !isDismissed) {

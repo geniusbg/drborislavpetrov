@@ -39,7 +39,6 @@ class OfflineFetchManager {
     input: RequestInfo | URL,
     options: OfflineFetchOptions = {}
   ): Promise<OfflineFetchResponse> {
-    const url = typeof input === 'string' ? input : input instanceof URL ? input.toString() : input.url
     const {
       timeout = this.defaultTimeout,
       cache = true,
@@ -233,15 +232,7 @@ class OfflineFetchManager {
       timestamp: new Date().toISOString()
     }
 
-    const response = new Response(JSON.stringify(errorData), {
-      status: 503,
-      statusText: 'Service Unavailable',
-      headers: {
-        'Content-Type': 'application/json'
-      }
-    })
-
-    // Create a new response object instead of modifying the existing one
+    // Create a new response object
     return new Response(JSON.stringify(errorData), {
       status: 503,
       statusText: 'Service Unavailable',

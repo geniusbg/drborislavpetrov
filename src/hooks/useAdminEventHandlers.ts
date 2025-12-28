@@ -1,8 +1,8 @@
 'use client'
 
 import { useRouter, useSearchParams } from 'next/navigation'
-import type { Booking, User as UserType, Service as ServiceType, SortField } from '@/types/global'
-import { useAdminState } from '@/contexts/AdminStateContext'
+import type { Booking, User as UserType, Service as ServiceType } from '@/types/global'
+import { useAdminState, type SortField, type SortState } from '@/contexts/AdminStateContext'
 import { useAdminData } from '@/hooks/useAdminData'
 
 export function useAdminEventHandlers() {
@@ -11,6 +11,7 @@ export function useAdminEventHandlers() {
   const { loadBookings, loadUsers, loadServices } = useAdminData()
   
   const {
+    bookings,
     setBookings,
     setShowUserModal,
     setShowBookingModal,
@@ -37,7 +38,7 @@ export function useAdminEventHandlers() {
 
   // Handle sort change
   const handleSort = (field: SortField) => {
-    setSortState(prev => ({
+    setSortState((prev: SortState) => ({
       field,
       direction: prev.field === field && prev.direction === 'asc' ? 'desc' : 'asc'
     }))
@@ -106,7 +107,7 @@ export function useAdminEventHandlers() {
       
       if (response.ok) {
         console.log('✅ Booking status updated successfully')
-        setBookings(prev => prev.map(booking => 
+        setBookings(bookings.map(booking => 
           booking.id?.toString() === id.toString() ? { ...booking, status } : booking
         ))
       } else {

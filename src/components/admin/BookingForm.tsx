@@ -164,7 +164,8 @@ const BookingForm = ({ booking, onSubmit, onCancel, onDelete }: BookingFormProps
         status: 'pending'
       })
     }
-  }, [booking?.id]) // eslint-disable-next-line react-hooks/exhaustive-deps
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [booking?.id])
 
   // Handle Escape key for closing modal
   useEffect(() => {

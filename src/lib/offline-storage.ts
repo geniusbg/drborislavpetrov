@@ -76,7 +76,6 @@ class OfflineStorage {
 
       request.onupgradeneeded = (event) => {
         const db = (event.target as IDBOpenDBRequest).result
-        const transaction = (event.target as IDBOpenDBRequest).transaction!
 
         // Create object stores
         const stores = this.config.stores

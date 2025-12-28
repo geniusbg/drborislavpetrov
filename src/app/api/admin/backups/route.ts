@@ -181,13 +181,10 @@ async function performAutomaticBackup() {
             env: { ...process.env, PGPASSWORD: pass },
           })
           
-          let stderrBuf = ''
           child.stdout?.on('data', (d) => {
             process.stdout.write(d)
           })
           child.stderr?.on('data', (d) => {
-            const s = d.toString()
-            stderrBuf += s
             process.stderr.write(d)
           })
           child.on('close', (code) => {
@@ -359,13 +356,10 @@ export async function POST(request: NextRequest) {
           env: { ...process.env, PGPASSWORD: pass },
         })
         
-        let stderrBuf = ''
         child.stdout?.on('data', (d) => {
           process.stdout.write(d)
         })
         child.stderr?.on('data', (d) => {
-          const s = d.toString()
-          stderrBuf += s
           process.stderr.write(d)
         })
         child.on('close', (code) => {

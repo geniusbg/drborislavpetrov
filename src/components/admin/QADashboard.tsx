@@ -1,6 +1,6 @@
 'use client'
 
-import React, { useState, useEffect } from 'react'
+import React, { useState, useEffect, useCallback } from 'react'
 import { Play, FileText, CheckCircle, AlertCircle, Clock, RefreshCw, Trash2, Download, Eye } from 'lucide-react'
 
 interface QATest {
@@ -109,19 +109,7 @@ export default function QADashboard() {
     }
   ]
 
-  useEffect(() => {
-    setTests(qaTests)
-    loadReports()
-    
-    // Auto-refresh reports every 30 seconds
-    const interval = setInterval(() => {
-      loadReports()
-    }, 30000)
-    
-    return () => clearInterval(interval)
-  }, [])
-
-  const loadReports = async () => {
+  const loadReports = useCallback(async () => {
     try {
       console.log('Loading QA reports...')
       const adminToken = localStorage.getItem('adminToken')
@@ -141,7 +129,19 @@ export default function QADashboard() {
     } catch (error) {
       console.error('Error loading QA reports:', error)
     }
-  }
+  }, [])
+
+  useEffect(() => {
+    setTests(qaTests)
+    loadReports()
+    
+    // Auto-refresh reports every 30 seconds
+    const interval = setInterval(() => {
+      loadReports()
+    }, 30000)
+    
+    return () => clearInterval(interval)
+  }, [loadReports])
 
   const runTest = async (testName: string) => {
     setIsLoading(true)

@@ -172,7 +172,7 @@ export async function DELETE(request: NextRequest) {
     `, [id, serviceName])
     
     // Now delete the service
-    const result = await db.query('DELETE FROM services WHERE id = $1', [id])
+    await db.query('DELETE FROM services WHERE id = $1', [id])
 
     db.release()
     

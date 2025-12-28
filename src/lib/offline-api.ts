@@ -46,8 +46,6 @@ class OfflineAPI {
       cache = true,
       cacheTTL = 5 * 60 * 1000, // 5 minutes
       fallbackData,
-      retryAttempts = 3,
-      retryDelay = 1000,
       forceRefresh = false,
       ...fetchOptions
     } = options
@@ -177,11 +175,11 @@ class OfflineAPI {
   }
 
   // Specific API methods
-  async getBookings(forceRefresh = false): Promise<ApiResponse<{ bookings: unknown[] }>> {
+  async getBookings(_forceRefresh = false): Promise<ApiResponse<{ bookings: unknown[] }>> {
     console.log('🔍 OfflineAPI.getBookings - Starting request...')
     const response = await this.get<{ bookings: unknown[] }>('/api/admin/bookings', {
       cache: false, // Always bypass cache for now
-      forceRefresh: true, // Always force refresh
+      forceRefresh: true, // Always force refresh (parameter ignored for now)
       cacheTTL: 2 * 60 * 1000, // 2 minutes
       fallbackData: { bookings: [] }
     })

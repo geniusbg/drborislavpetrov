@@ -61,7 +61,6 @@ function AdminPageContent() {
     usersPerPage,
     currentServicesPage,
     servicesPerPage,
-    loadingActions,
     currentDateTime
   } = useAdminState()
 
@@ -76,21 +75,16 @@ function AdminPageContent() {
     setCurrentUsersPage,
     setUsersPerPage,
     setCurrentServicesPage,
-    setServicesPerPage,
-    setShowVoiceInterface
+    setServicesPerPage
   } = useAdminState()
 
   const { loadBookings } = useAdminData()
   const {
     changeTab,
     handleSort,
-    handleSettingsClick,
-    handleLogout,
     handleAddBooking,
     handleEditBooking,
     handleDeleteBooking,
-    handleUpdateBookingStatus,
-    handleUpdateBookingNotes,
     handleAddUser,
     handleEditUser,
     handleDeleteUser,
@@ -102,7 +96,8 @@ function AdminPageContent() {
 
   // WebSocket connection
   const { socket, isConnected, joinAdmin } = useSocket()
-  const { } = useOffline()
+  // useOffline hook registers listeners for offline state changes
+  useOffline()
 
   // Handle scroll to hide/show header
   useEffect(() => {
@@ -231,9 +226,9 @@ function AdminPageContent() {
   useEffect(() => {
     if (!socket || !isConnected) return
 
-      joinAdmin()
-      
-      // Listen for booking updates
+    joinAdmin()
+    
+    // Listen for booking updates
     socket.on('booking-added', () => {
       // Handle booking added - reload bookings
       loadBookings()
@@ -242,17 +237,17 @@ function AdminPageContent() {
     socket.on('booking-updated', () => {
       // Handle booking updated - reload bookings
       loadBookings()
-      })
+    })
 
-      socket.on('booking-deleted', () => {
+    socket.on('booking-deleted', () => {
       // Handle booking deleted - reload bookings
       loadBookings()
-      })
+    })
 
-      return () => {
-        socket.off('booking-added')
-        socket.off('booking-updated')
-        socket.off('booking-deleted')
+    return () => {
+      socket.off('booking-added')
+      socket.off('booking-updated')
+      socket.off('booking-deleted')
     }
   }, [socket, isConnected, joinAdmin, loadBookings])
 

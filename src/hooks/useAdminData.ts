@@ -10,7 +10,6 @@ import type { Booking, User, Service } from '@/types/global'
 export function useAdminData() {
   const {
     isLoadingBookings,
-    isLoadingServices,
     initLoadStartedRef,
     setOverlayProgress,
     setIsClosing,

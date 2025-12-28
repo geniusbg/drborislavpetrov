@@ -90,7 +90,7 @@ interface AdminStateContextType extends AdminState {
   setBookingSearchTerm: (term: string) => void
   setUserSearchTerm: (term: string) => void
   setServiceSearchTerm: (term: string) => void
-  setSortState: (state: SortState) => void
+  setSortState: React.Dispatch<React.SetStateAction<SortState>>
   setCurrentBookingsPage: (page: number) => void
   setBookingsPerPage: (perPage: number) => void
   setCurrentUsersPage: (page: number) => void

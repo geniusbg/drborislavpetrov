@@ -1,13 +1,13 @@
 'use client'
 
-import { useState, useEffect, useCallback, useMemo, useRef } from 'react'
+import { useState, useEffect, useCallback, useMemo } from 'react'
 import { ChevronLeft, ChevronRight, Plus, Settings, Calendar as CalendarIcon, Clock } from 'lucide-react'
 import WorkingHoursForm from './WorkingHoursForm'
 import DailySchedule from './DailySchedule'
 import { useSocket } from '@/hooks/useSocket'
 import type { Booking, WorkingHours } from '@/types/global'
 import { emitWorkingHoursUpdated } from '@/lib/socket'
-import { getBulgariaTime, getBulgariaDateStringDB, dateToLocalDateString, createCalendarDate, calendarDateToString, toBulgariaTime } from '@/lib/bulgaria-time'
+import { getBulgariaTime, getBulgariaDateStringDB, dateToLocalDateString, createCalendarDate, calendarDateToString } from '@/lib/bulgaria-time'
 
 interface CalendarProps {
   bookings: Booking[]
@@ -23,12 +23,6 @@ interface AvailableSlots {
   date: string
   availableSlots: string[]
 }
-
-// Helper function to ensure valid AvailableSlots
-const ensureValidAvailableSlots = (slot: { date?: string; availableSlots?: unknown }): AvailableSlots => ({
-  date: slot.date || '',
-  availableSlots: Array.isArray(slot.availableSlots) ? slot.availableSlots : []
-})
 
 const Calendar = ({ bookings, onBookingClick, onAddBooking, onNavigateToDailySchedule, selectedDateFromURL, onCloseDailySchedule }: CalendarProps) => {
   const [currentDate, setCurrentDate] = useState(getBulgariaTime())
@@ -315,9 +309,6 @@ const Calendar = ({ bookings, onBookingClick, onAddBooking, onNavigateToDailySch
     // Показвай индикатор за зареждане само при смяна на месеца
     setIsMonthDataLoading(true)
     
-    // Зареди данните за новия месец
-    const currentMonthString = `${currentDate.getFullYear()}-${String(currentDate.getMonth() + 1).padStart(2, '0')}`
-    
     // Зареди работните часове за новия месец и след това изчисли свободните часове
     const loadData = async () => {
       await loadWorkingHours()
@@ -459,12 +450,9 @@ const Calendar = ({ bookings, onBookingClick, onAddBooking, onNavigateToDailySch
   // Debug: Log available data for current month (only once when loading starts)
   useEffect(() => {
     if (isMonthDataLoading) {
-      const currentMonthString = `${currentDate.getFullYear()}-${String(currentDate.getMonth() + 1).padStart(2, '0')}`
-      const monthBookings = Object.keys(bookingsByDate).filter(date => date.startsWith(currentMonthString))
-      const monthWorkingHours = workingHours.filter(wh => wh.date && wh.date.startsWith(currentMonthString))
-      
+      // Month data loading logic can be added here if needed
     }
-  }, [isMonthDataLoading, currentDate]) // Премахнах bookingsByDate и workingHours от dependencies
+  }, [isMonthDataLoading, currentDate])
 
   const monthNames = [
     'Януари', 'Февруари', 'Март', 'Април', 'Май', 'Юни',
@@ -480,11 +468,6 @@ const Calendar = ({ bookings, onBookingClick, onAddBooking, onNavigateToDailySch
 
   const isCurrentMonth = (date: Date) => {
     return date.getUTCMonth() === currentDate.getMonth()
-  }
-
-  const isSunday = (date: Date) => {
-    const bulgariaDate = toBulgariaTime(date)
-    return bulgariaDate.getDay() === 0 // 0 = Sunday (в българско време)
   }
 
   const isNonWorkingDay = (date: Date) => {
@@ -967,13 +950,6 @@ const Calendar = ({ bookings, onBookingClick, onAddBooking, onNavigateToDailySch
     }
   }
 
-  const handleEditBooking = (booking: Booking) => {
-    // Open booking form directly in DailySchedule
-    if (onBookingClick) {
-      onBookingClick(booking)
-    }
-  }
-
   const handleDeleteBooking = async (bookingId: string) => {
     try {
       const adminToken = localStorage.getItem('adminToken')
@@ -1145,7 +1121,6 @@ const Calendar = ({ bookings, onBookingClick, onAddBooking, onNavigateToDailySch
             const bookings = getBookingsForDate(date)
             const bookingIndicators = getBookingIndicators(date)
             const isSelected = selectedDate && selectedDate.getTime() === date.getTime()
-            const workingHoursData = getWorkingHoursForDate(date)
             
             return (
               <div

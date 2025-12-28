@@ -1,6 +1,6 @@
 'use client'
 
-import React, { useState, useEffect } from 'react'
+import React, { useState, useEffect, useCallback } from 'react'
 import { MessageSquare, Plus, Edit, Trash2, Send, AlertCircle, CheckCircle, Clock } from 'lucide-react'
 
 interface SupportNote {
@@ -68,18 +68,18 @@ export default function SupportNotes({ onClose }: SupportNotesProps) {
     }
   }
 
-  const handleMouseMove = (e: MouseEvent) => {
+  const handleMouseMove = useCallback((e: MouseEvent) => {
     if (isDragging) {
       setModalPosition({
         x: e.clientX - dragOffset.x,
         y: e.clientY - dragOffset.y
       })
     }
-  }
+  }, [isDragging, dragOffset])
 
-  const handleMouseUp = () => {
+  const handleMouseUp = useCallback(() => {
     setIsDragging(false)
-  }
+  }, [])
 
   // Drag functions for add/edit modal
   const handleAddModalMouseDown = (e: React.MouseEvent) => {
@@ -92,18 +92,18 @@ export default function SupportNotes({ onClose }: SupportNotesProps) {
     }
   }
 
-  const handleAddModalMouseMove = (e: MouseEvent) => {
+  const handleAddModalMouseMove = useCallback((e: MouseEvent) => {
     if (isAddModalDragging) {
       setAddModalPosition({
         x: e.clientX - addModalDragOffset.x,
         y: e.clientY - addModalDragOffset.y
       })
     }
-  }
+  }, [isAddModalDragging, addModalDragOffset])
 
-  const handleAddModalMouseUp = () => {
+  const handleAddModalMouseUp = useCallback(() => {
     setIsAddModalDragging(false)
-  }
+  }, [])
 
   useEffect(() => {
     if (isDragging) {
@@ -114,7 +114,7 @@ export default function SupportNotes({ onClose }: SupportNotesProps) {
         document.removeEventListener('mouseup', handleMouseUp)
       }
     }
-  }, [isDragging, dragOffset])
+  }, [isDragging, dragOffset, handleMouseMove, handleMouseUp])
 
   useEffect(() => {
     if (isAddModalDragging) {
@@ -125,7 +125,7 @@ export default function SupportNotes({ onClose }: SupportNotesProps) {
         document.removeEventListener('mouseup', handleAddModalMouseUp)
       }
     }
-  }, [isAddModalDragging, addModalDragOffset])
+  }, [isAddModalDragging, addModalDragOffset, handleAddModalMouseMove, handleAddModalMouseUp])
 
   const loadSupportNotes = async () => {
     try {
