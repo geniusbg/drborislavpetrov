@@ -48,10 +48,22 @@ src/
 - **Frontend**: Next.js 14, React 18, TypeScript
 - **Styling**: Tailwind CSS
 - **Database**: PostgreSQL
-- **State Management**: React Context API
+- **State Management**: React Context API (AdminStateContext)
+- **Architecture**: Модулна архитектура с hooks и компоненти
 - **Offline**: IndexedDB, Service Worker
 - **Real-time**: WebSocket (Socket.io)
 - **Authentication**: JWT tokens
+
+### 🏗️ Архитектура на Admin панела (v4.0.1+)
+- **Context API**: Централизирано управление на state (`AdminStateContext`)
+- **Custom Hooks**: 
+  - `useAdminData` - Зареждане на данни
+  - `useAdminEventHandlers` - Обработка на събития
+- **Модулни компоненти**:
+  - `AdminHeader` - Заглавна част
+  - `AdminNavigation` - Tab навигация с URL синхронизация
+  - `AdminModals` - Централизирано управление на модали
+  - `BookingsTab`, `UsersTab`, `ServicesTab`, `AnalyticsTab` - Таб компоненти
 
 ## 🚀 Инсталация и стартиране
 
@@ -269,9 +281,10 @@ npm run start:prod
 ## 📞 Поддръжка
 
 ### Документация
-- [Техническа документация](./REFACTORING_DOCUMENTATION.md)
-- [Ръководство за разработчици](./DEVELOPER_GUIDE.md)
-- [Резюме за мениджъри](./MANAGEMENT_SUMMARY.md)
+- **[📚 Документация](./docs/README.md)** - Пълен индекс на всичка документация
+- [Техническа документация](./docs/REFACTORING_DOCUMENTATION.md) - Детайли за рефакторирането
+- [Ръководство за разработчици](./docs/DEVELOPER_GUIDE.md) - Как да работиш с кода
+- [Резюме за мениджъри](./docs/MANAGEMENT_SUMMARY.md) - Бизнес предимства
 
 ### Контакти
 - Email: support@drborislavpetrov.com
@@ -284,4 +297,4 @@ MIT License - виж [LICENSE](./LICENSE) файла за детайли.
 ---
 
 *Последно обновяване: ${new Date().toLocaleDateString('bg-BG')}*
-*Версия: 2.0.0*
+*Версия: 4.0.1*

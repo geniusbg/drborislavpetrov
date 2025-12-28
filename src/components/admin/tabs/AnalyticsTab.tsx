@@ -2,15 +2,8 @@
 
 import React from 'react'
 import AnalyticsDashboard from '@/components/admin/AnalyticsDashboard'
-import type { Booking, User, Service } from '@/types/global'
 
-interface AnalyticsTabProps {
-  bookings: Booking[]
-  users: User[]
-  services: Service[]
-}
-
-export default function AnalyticsTab({ bookings, users, services }: AnalyticsTabProps) {
+export default function AnalyticsTab() {
   return (
     <div className="bg-white rounded-xl shadow-sm border border-gray-100">
       <div className="px-2 sm:px-2.5 md:px-4 lg:px-6 py-4 border-b border-gray-200">
@@ -21,11 +14,7 @@ export default function AnalyticsTab({ bookings, users, services }: AnalyticsTab
       </div>
       
       <div className="p-2 sm:p-2.5 md:p-4 lg:p-6">
-        <AnalyticsDashboard 
-          bookings={bookings}
-          users={users}
-          services={services}
-        />
+        <AnalyticsDashboard />
       </div>
     </div>
   )

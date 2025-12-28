@@ -245,9 +245,10 @@ class OfflineAPI {
     return response
   }
 
-  async getUsers(): Promise<ApiResponse<{ users: unknown[] }>> {
+  async getUsers(forceRefresh = false): Promise<ApiResponse<{ users: unknown[] }>> {
     const response = await this.get<{ users: unknown[] }>('/api/admin/users', {
-      cache: true,
+      cache: !forceRefresh,
+      forceRefresh,
       cacheTTL: 10 * 60 * 1000, // 10 minutes
       fallbackData: { users: [] }
     })

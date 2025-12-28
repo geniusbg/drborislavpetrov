@@ -398,11 +398,7 @@ function AdminPageContent() {
 
           {/* Analytics Tab */}
           {activeTab === 'analytics' && (
-            <AnalyticsTab
-              bookings={bookings}
-              users={users}
-              services={services}
-            />
+            <AnalyticsTab />
           )}
 
           {/* Bug Tracker Tab */}
