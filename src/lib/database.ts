@@ -194,6 +194,56 @@ async function createTablesIfNotExist(client: PoolClient) {
       )
     `)
     
+    // Create admins table for admin user management
+    await client.query(`
+      CREATE TABLE IF NOT EXISTS admins (
+        id SERIAL PRIMARY KEY,
+        username TEXT NOT NULL UNIQUE,
+        password_hash TEXT NOT NULL,
+        email TEXT,
+        full_name TEXT,
+        is_active BOOLEAN DEFAULT true,
+        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+        last_login TIMESTAMP,
+        created_by INTEGER REFERENCES admins(id)
+      )
+    `)
+    
+    // Create admin_tokens table for token management
+    await client.query(`
+      CREATE TABLE IF NOT EXISTS admin_tokens (
+        id SERIAL PRIMARY KEY,
+        token TEXT NOT NULL UNIQUE,
+        admin_id INTEGER NOT NULL REFERENCES admins(id) ON DELETE CASCADE,
+        expires_at TIMESTAMP NOT NULL,
+        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+        last_used TIMESTAMP,
+        ip_address TEXT,
+        user_agent TEXT
+      )
+    `)
+    
+    // Create index for faster token lookups
+    await client.query(`
+      CREATE INDEX IF NOT EXISTS idx_admin_tokens_token ON admin_tokens(token)
+    `)
+    
+    // Create index for cleanup of expired tokens
+    await client.query(`
+      CREATE INDEX IF NOT EXISTS idx_admin_tokens_expires ON admin_tokens(expires_at)
+    `)
+    
+    // Insert default admin user if table is empty (password: admin123)
+    const adminsCount = await client.query('SELECT COUNT(*) as count FROM admins')
+    if (parseInt(adminsCount.rows[0].count) === 0) {
+      // Default password hash for 'admin123' (will be replaced with bcrypt later)
+      // For now, we'll use a simple approach - the API will handle hashing
+      await client.query(`
+        INSERT INTO admins (username, password_hash, email, full_name, is_active)
+        VALUES ('admin', '$2b$10$placeholder', 'admin@example.com', 'Администратор', true)
+      `)
+    }
+    
     // Insert default services if table is empty
     const servicesCount = await client.query('SELECT COUNT(*) as count FROM services')
     if (parseInt(servicesCount.rows[0].count) === 0) {

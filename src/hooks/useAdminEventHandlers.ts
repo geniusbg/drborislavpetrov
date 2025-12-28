@@ -49,10 +49,23 @@ export function useAdminEventHandlers() {
     changeTab('settings')
   }
 
-  const handleLogout = () => {
+  const handleLogout = async () => {
     if (typeof window !== 'undefined') {
-      localStorage.removeItem('adminToken')
-      window.location.href = '/admin/login'
+      try {
+        // Call logout API to revoke token and clear cookie
+        await fetch('/api/admin/auth/logout', {
+          method: 'POST',
+          credentials: 'include' // Important: include cookies
+        })
+      } catch (error) {
+        console.error('Logout error:', error)
+      } finally {
+        // Clear localStorage
+        localStorage.removeItem('adminToken')
+        localStorage.removeItem('adminInfo')
+        // Redirect to login
+        window.location.href = '/admin/login'
+      }
     }
   }
 

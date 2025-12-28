@@ -1,8 +1,21 @@
 'use client'
 
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { useRouter } from 'next/navigation'
 import { Eye, EyeOff, Lock, User } from 'lucide-react'
+
+// Custom zoom animation
+const zoomAnimation = `
+  @keyframes zoom-in-out {
+    0% { transform: scale(1); }
+    50% { transform: scale(1.1); }
+    100% { transform: scale(1); }
+  }
+  
+  .zoom-in-out {
+    animation: zoom-in-out 2s ease-in-out;
+  }
+`
 
 const AdminLogin = () => {
   const [credentials, setCredentials] = useState({
@@ -13,23 +26,56 @@ const AdminLogin = () => {
   const [isLoading, setIsLoading] = useState(false)
   const [error, setError] = useState('')
   const router = useRouter()
+  
+  // Typewriter effect for title
+  const fullText = 'Д-р Борислав Петров'
+  const [displayedText, setDisplayedText] = useState('')
+  const [currentIndex, setCurrentIndex] = useState(0)
+
+  useEffect(() => {
+    if (currentIndex < fullText.length) {
+      const timeout = setTimeout(() => {
+        setDisplayedText(prev => prev + fullText[currentIndex])
+        setCurrentIndex(prev => prev + 1)
+      }, 100) // Speed of typing (100ms per character)
+      
+      return () => clearTimeout(timeout)
+    }
+  }, [currentIndex, fullText])
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
     setIsLoading(true)
     setError('')
 
-    // TODO: Implement real authentication
-    // For now, use simple check
-    if (credentials.username === 'admin' && credentials.password === 'admin123') {
-      // Set session/token
-      localStorage.setItem('adminToken', 'mock-token')
-      // Add a small delay to ensure localStorage is set
-      setTimeout(() => {
-        router.push('/admin')
-      }, 100)
-    } else {
-      setError('Грешно потребителско име или парола')
+    try {
+      const response = await fetch('/api/admin/auth/login', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify(credentials)
+      })
+
+      const data = await response.json()
+
+      if (!response.ok) {
+        setError(data.error || 'Грешно потребителско име или парола')
+        setIsLoading(false)
+        return
+      }
+
+      // Token is now stored in httpOnly cookie automatically
+      // Store admin info in localStorage for client-side use (non-sensitive data)
+      if (data.admin) {
+        localStorage.setItem('adminInfo', JSON.stringify(data.admin))
+      }
+
+      // Redirect to admin panel
+      router.push('/admin')
+    } catch (error) {
+      console.error('Login error:', error)
+      setError('Възникна грешка при влизане. Моля опитайте отново.')
     }
     
     setIsLoading(false)
@@ -43,14 +89,23 @@ const AdminLogin = () => {
   }
 
   return (
-    <div className="min-h-screen bg-gray-50 flex flex-col justify-center py-12 sm:px-6 lg:px-8">
+    <>
+      <style jsx>{zoomAnimation}</style>
+      <div className="min-h-screen bg-gray-50 flex flex-col justify-center py-12 sm:px-6 lg:px-8">
       <div className="sm:mx-auto sm:w-full sm:max-w-md">
-        <div className="flex justify-center">
-          <div className="w-12 h-12 bg-primary-600 rounded-lg flex items-center justify-center">
-            <span className="text-white font-bold text-lg">ДП</span>
+        <div className="flex justify-center mb-8">
+          <div className="w-full max-w-md bg-gradient-to-br from-blue-600 via-blue-700 to-blue-800 rounded-2xl p-8 shadow-2xl zoom-in-out hover:scale-105 transition-all duration-300">
+            <h1 className="text-center text-lg sm:text-xl md:text-2xl lg:text-3xl font-bold text-white leading-relaxed font-serif min-h-[50px] sm:min-h-[60px] flex items-center justify-center">
+              <span className="text-center">
+                {displayedText}
+                {currentIndex < fullText.length && (
+                  <span className="animate-pulse">|</span>
+                )}
+              </span>
+            </h1>
           </div>
         </div>
-        <h2 className="mt-6 text-center text-3xl font-extrabold text-gray-900">
+        <h2 className="mt-4 text-center text-2xl font-semibold text-gray-700">
           Администрация
         </h2>
         <p className="mt-2 text-center text-sm text-gray-600">
@@ -132,24 +187,10 @@ const AdminLogin = () => {
               </button>
             </div>
           </form>
-
-          <div className="mt-6">
-            <div className="relative">
-              <div className="absolute inset-0 flex items-center">
-                <div className="w-full border-t border-gray-300" />
-              </div>
-              <div className="relative flex justify-center text-sm">
-                <span className="px-2 bg-white text-gray-500">Тестови данни</span>
-              </div>
-            </div>
-            <div className="mt-4 text-center text-xs text-gray-500">
-              <p>Потребителско име: <strong>admin</strong></p>
-              <p>Парола: <strong>admin123</strong></p>
-            </div>
-          </div>
         </div>
       </div>
     </div>
+    </>
   )
 }
 

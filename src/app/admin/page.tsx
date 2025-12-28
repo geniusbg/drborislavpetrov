@@ -19,6 +19,7 @@ import BookingsTab from '@/components/admin/tabs/BookingsTab'
 import UsersTab from '@/components/admin/tabs/UsersTab'
 import ServicesTab from '@/components/admin/tabs/ServicesTab'
 import AnalyticsTab from '@/components/admin/tabs/AnalyticsTab'
+import AdminsTab from '@/components/admin/tabs/AdminsTab'
 import CalendarComponent from '@/components/admin/Calendar'
 import BugTracker from '@/components/admin/BugTracker'
 import SettingsWorkingHours from '@/components/admin/SettingsWorkingHours'
@@ -442,6 +443,11 @@ function AdminPageContent() {
           {/* Analytics Tab */}
           {activeTab === 'analytics' && (
             <AnalyticsTab />
+          )}
+
+          {/* Admins Tab */}
+          {activeTab === 'admins' && (
+            <AdminsTab />
           )}
 
           {/* Bug Tracker Tab */}

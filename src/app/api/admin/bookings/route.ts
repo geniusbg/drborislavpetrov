@@ -103,10 +103,13 @@ export async function GET(request: NextRequest) {
   console.log(`🌐 API /admin/bookings GET call #${apiRequestCounter}`)
   
   try {
-    const adminToken = request.headers.get('x-admin-token')
     const { searchParams } = new URL(request.url)
     const date = searchParams.get('date')
     const id = searchParams.get('id')
+    
+    // Verify token (checks both cookie and header)
+    const { verifyRequestToken } = await import('@/lib/auth-helpers')
+    const auth = await verifyRequestToken(request)
     
     console.log('🌐 API /admin/bookings GET called:', { 
       callNumber: apiRequestCounter,
@@ -114,12 +117,12 @@ export async function GET(request: NextRequest) {
       hasId: !!id, 
       date: date,
       id: id,
-      adminToken: adminToken ? 'present' : 'missing',
+      authenticated: auth.valid,
       userAgent: request.headers.get('user-agent')?.substring(0, 50),
       timestamp: new Date().toISOString()
     })
     
-    if (!adminToken || (adminToken !== 'test' && adminToken !== 'mock-token')) {
+    if (!auth.valid) {
       console.log('❌ Unauthorized: invalid admin token')
       return NextResponse.json(
         { error: 'Unauthorized' },
