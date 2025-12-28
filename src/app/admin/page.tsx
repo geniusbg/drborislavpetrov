@@ -36,12 +36,36 @@ function AdminPageContent() {
   
   // Check authentication
   useEffect(() => {
-    const adminToken = localStorage.getItem('adminToken')
-    if (!adminToken) {
-      // Redirect to login if no token
-      window.location.href = '/admin/login'
-      return
+    const checkAuth = async () => {
+      try {
+        const response = await fetch('/api/admin/auth/check', {
+          method: 'GET',
+          credentials: 'include' // Important: include cookies
+        })
+        
+        if (!response.ok) {
+          // Not authenticated, redirect to login
+          window.location.href = '/admin/login'
+          return
+        }
+        
+        const data = await response.json()
+        if (!data.authenticated) {
+          window.location.href = '/admin/login'
+          return
+        }
+        
+        // Store admin info in localStorage for client-side use (non-sensitive)
+        if (data.admin) {
+          localStorage.setItem('adminInfo', JSON.stringify(data.admin))
+        }
+      } catch (error) {
+        console.error('Auth check error:', error)
+        window.location.href = '/admin/login'
+      }
     }
+    
+    checkAuth()
   }, [])
   
   const {
