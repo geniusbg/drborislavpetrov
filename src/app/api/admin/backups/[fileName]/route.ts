@@ -5,9 +5,10 @@ import path from 'path'
 const BACKUP_DIR = path.join(process.cwd(), 'backups')
 
 // Проверка на admin token
-function checkAdminToken(request: NextRequest) {
-  const adminToken = request.headers.get('x-admin-token')
-  return adminToken === 'mock-token'
+async function checkAdminToken(request: NextRequest) {
+  const { verifyRequestToken } = await import('@/lib/auth-helpers')
+  const auth = await verifyRequestToken(request)
+  return auth.valid
 }
 
 // DELETE - Изтриване на backup файл
@@ -16,7 +17,7 @@ export async function DELETE(
   { params }: { params: Promise<{ fileName: string }> }
 ) {
   try {
-    if (!checkAdminToken(request)) {
+    if (!(await checkAdminToken(request))) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
     }
 

@@ -67,11 +67,8 @@ const Calendar = ({ bookings, onBookingClick, onAddBooking, onNavigateToDailySch
   useEffect(() => {
     const loadSettings = async () => {
       try {
-        const adminToken = localStorage.getItem('adminToken')
         const response = await fetch('/api/admin/settings', {
-          headers: {
-            'x-admin-token': adminToken || ''
-          }
+          credentials: 'include'
         })
         
         if (response.ok) {
@@ -157,11 +154,8 @@ const Calendar = ({ bookings, onBookingClick, onAddBooking, onNavigateToDailySch
   // Load services for dropdown
   const loadServices = useCallback(async () => {
     try {
-      const adminToken = localStorage.getItem('adminToken')
       const response = await fetch('/api/admin/services', {
-        headers: {
-          'x-admin-token': adminToken || 'test'
-        }
+        credentials: 'include'
       })
       
       if (response.ok) {
@@ -209,16 +203,12 @@ const Calendar = ({ bookings, onBookingClick, onAddBooking, onNavigateToDailySch
   // Load working hours for current month only
   const loadWorkingHours = useCallback(async () => {
     try {
-      const adminToken = localStorage.getItem('adminToken')
-      
       // Зареждаме данни само за текущия месец
       const startDate = dateToLocalDateString(new Date(currentDate.getFullYear(), currentDate.getMonth(), 1))
       const endDate = dateToLocalDateString(new Date(currentDate.getFullYear(), currentDate.getMonth() + 1, 0))
       
       const response = await fetch(`/api/admin/working-hours?startDate=${startDate}&endDate=${endDate}`, {
-        headers: {
-          'x-admin-token': adminToken || ''
-        }
+        credentials: 'include'
       })
 
       if (response.ok) {
@@ -237,11 +227,8 @@ const Calendar = ({ bookings, onBookingClick, onAddBooking, onNavigateToDailySch
   // Зареждане на настройки за работно време
   const loadDefaultSettings = useCallback(async () => {
     try {
-      const adminToken = localStorage.getItem('adminToken')
       const response = await fetch('/api/admin/settings', {
-        headers: {
-          'x-admin-token': adminToken || ''
-        }
+        credentials: 'include'
       })
 
       if (response.ok) {
@@ -891,13 +878,12 @@ const Calendar = ({ bookings, onBookingClick, onAddBooking, onNavigateToDailySch
     
     try {
       
-      const adminToken = localStorage.getItem('adminToken')
       const response = await fetch('/api/admin/working-hours', {
         method: 'POST',
         headers: {
-          'Content-Type': 'application/json',
-          'x-admin-token': adminToken || ''
+          'Content-Type': 'application/json'
         },
+        credentials: 'include',
         body: JSON.stringify(workingHoursData)
       })
 
@@ -928,12 +914,9 @@ const Calendar = ({ bookings, onBookingClick, onAddBooking, onNavigateToDailySch
 
   const handleDeleteWorkingHours = async () => {
     try {
-      const adminToken = localStorage.getItem('adminToken')
       const response = await fetch(`/api/admin/working-hours?date=${selectedWorkingHoursDate}`, {
         method: 'DELETE',
-        headers: {
-          'x-admin-token': adminToken || ''
-        }
+        credentials: 'include'
       })
 
       if (response.ok) {
@@ -952,12 +935,9 @@ const Calendar = ({ bookings, onBookingClick, onAddBooking, onNavigateToDailySch
 
   const handleDeleteBooking = async (bookingId: string) => {
     try {
-      const adminToken = localStorage.getItem('adminToken')
       const response = await fetch(`/api/admin/bookings?id=${bookingId}`, {
         method: 'DELETE',
-        headers: {
-          'x-admin-token': adminToken || ''
-        }
+        credentials: 'include'
       })
 
       if (response.ok) {

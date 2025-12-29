@@ -75,9 +75,7 @@ export default function AnalyticsDashboard() {
     try {
       setLoading(true)
       const response = await fetch(`/api/admin/analytics?period=${selectedPeriod}`, {
-        headers: {
-          'x-admin-token': localStorage.getItem('adminToken') || ''
-        }
+        credentials: 'include'
       })
       
       if (!response.ok) {

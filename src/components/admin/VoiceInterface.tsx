@@ -558,12 +558,11 @@ const VoiceInterface: React.FC<VoiceInterfaceProps> = ({ onCommand, onClose }) =
 
       console.log('📤 Sending command to API:', parsedCommand)
 
-      const adminToken = localStorage.getItem('adminToken');
       const response = await fetch('/api/admin/voice-commands', {
         method: 'POST',
+        credentials: 'include',
         headers: {
-          'Content-Type': 'application/json',
-          'x-admin-token': adminToken || ''
+          'Content-Type': 'application/json'
         },
         body: JSON.stringify(parsedCommand)
       })
@@ -608,12 +607,11 @@ const VoiceInterface: React.FC<VoiceInterfaceProps> = ({ onCommand, onClose }) =
 
       console.log('📤 Sending smart command to API:', parsedCommand)
 
-      const adminToken = localStorage.getItem('adminToken');
       const response = await fetch('/api/admin/voice-commands', {
         method: 'POST',
+        credentials: 'include',
         headers: {
-          'Content-Type': 'application/json',
-          'x-admin-token': adminToken || ''
+          'Content-Type': 'application/json'
         },
         body: JSON.stringify(parsedCommand)
       })

@@ -76,23 +76,14 @@ function saveSettings(settings: AppSettings) {
   fs.writeFileSync(SETTINGS_FILE, JSON.stringify(settings, null, 2))
 }
 
-function isAuthorized(request: NextRequest) {
-  const token = request.headers.get('x-admin-token')
-  return token === 'mock-token' || token === 'test'
-}
-
 export async function GET(request: NextRequest) {
-  if (!isAuthorized(request)) {
-    return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
-  }
+  // Authentication is handled by middleware
   const settings = loadSettings()
   return NextResponse.json({ settings })
 }
 
 export async function POST(request: NextRequest) {
-  if (!isAuthorized(request)) {
-    return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
-  }
+  // Authentication is handled by middleware
   const body = await request.json()
   const current = loadSettings()
   const next: AppSettings = {

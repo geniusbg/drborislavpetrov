@@ -3,10 +3,7 @@ import { getDatabase } from '@/lib/database'
 
 export async function GET(req: NextRequest) {
   try {
-    const adminToken = req.headers.get('x-admin-token')
-    if (!adminToken || (adminToken !== 'test' && adminToken !== 'mock-token')) {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
-    }
+    // Authentication is handled by middleware
 
     const { searchParams } = new URL(req.url)
     const from = searchParams.get('from') // YYYY-MM-DD

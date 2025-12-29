@@ -62,11 +62,8 @@ export default function BackupManager() {
     setError(null)
     
     try {
-      const adminToken = localStorage.getItem('adminToken')
       const response = await fetch('/api/admin/backups', {
-        headers: {
-          'x-admin-token': adminToken || 'mock-token'
-        }
+        credentials: 'include'
       })
       if (!response.ok) throw new Error('Failed to load backups')
       
@@ -99,12 +96,9 @@ export default function BackupManager() {
     setError(null)
     
     try {
-      const adminToken = localStorage.getItem('adminToken')
       const response = await fetch('/api/admin/backups', {
         method: 'POST',
-        headers: {
-          'x-admin-token': adminToken || 'mock-token'
-        }
+        credentials: 'include'
       })
       
       if (!response.ok) throw new Error('Backup failed')
@@ -125,12 +119,9 @@ export default function BackupManager() {
     if (!confirm(`Сигурни ли сте, че искате да изтриете ${fileName}?`)) return
     
     try {
-      const adminToken = localStorage.getItem('adminToken')
       const response = await fetch(`/api/admin/backups/${encodeURIComponent(fileName)}`, {
         method: 'DELETE',
-        headers: {
-          'x-admin-token': adminToken || 'mock-token'
-        }
+        credentials: 'include'
       })
       
       if (!response.ok) throw new Error('Failed to delete backup')
@@ -145,12 +136,9 @@ export default function BackupManager() {
     if (!confirm(`ВНИМАНИЕ: Това ще презапише текущата база данни с ${fileName}. Продължавате ли?`)) return
     
     try {
-      const adminToken = localStorage.getItem('adminToken')
       const response = await fetch(`/api/admin/backups/${encodeURIComponent(fileName)}/restore`, {
         method: 'POST',
-        headers: {
-          'x-admin-token': adminToken || 'mock-token'
-        }
+        credentials: 'include'
       })
       
       if (!response.ok) throw new Error('Restore failed')
@@ -184,11 +172,8 @@ export default function BackupManager() {
 
   const loadConfig = async () => {
     try {
-      const adminToken = localStorage.getItem('adminToken')
       const response = await fetch('/api/admin/backups/config', {
-        headers: {
-          'x-admin-token': adminToken || ''
-        }
+        credentials: 'include'
       })
       
       if (response.ok) {

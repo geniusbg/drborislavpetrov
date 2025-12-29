@@ -112,11 +112,8 @@ export default function QADashboard() {
   const loadReports = useCallback(async () => {
     try {
       console.log('Loading QA reports...')
-      const adminToken = localStorage.getItem('adminToken')
       const response = await fetch('/api/admin/qa/reports', {
-        headers: {
-          'x-admin-token': adminToken || ''
-        }
+        credentials: 'include'
       })
       if (response.ok) {
         const data = await response.json()
@@ -150,9 +147,9 @@ export default function QADashboard() {
     try {
       const response = await fetch('/api/admin/qa/run-test', {
         method: 'POST',
+        credentials: 'include',
         headers: {
-          'Content-Type': 'application/json',
-          'x-admin-token': localStorage.getItem('adminToken') || ''
+          'Content-Type': 'application/json'
         },
         body: JSON.stringify({ testName })
       })
@@ -229,9 +226,9 @@ export default function QADashboard() {
     try {
       const response = await fetch('/api/admin/qa/run-automated', {
         method: 'POST',
+        credentials: 'include',
         headers: {
-          'Content-Type': 'application/json',
-          'x-admin-token': localStorage.getItem('adminToken') || ''
+          'Content-Type': 'application/json'
         }
       })
 
@@ -257,9 +254,9 @@ export default function QADashboard() {
     try {
       const response = await fetch('/api/admin/qa/cleanup', {
         method: 'POST',
+        credentials: 'include',
         headers: {
-          'Content-Type': 'application/json',
-          'x-admin-token': localStorage.getItem('adminToken') || ''
+          'Content-Type': 'application/json'
         }
       })
 
@@ -278,9 +275,9 @@ export default function QADashboard() {
     try {
       const response = await fetch('/api/admin/qa/generate-report', {
         method: 'POST',
+        credentials: 'include',
         headers: {
-          'Content-Type': 'application/json',
-          'x-admin-token': localStorage.getItem('adminToken') || ''
+          'Content-Type': 'application/json'
         }
       })
 

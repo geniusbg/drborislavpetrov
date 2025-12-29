@@ -19,6 +19,7 @@ app.prepare().then(() => {
         console.log('🔌 Socket.io request:', req.url)
         return
       }
+      
       const parsedUrl = parse(req.url, true)
       await handle(req, res, parsedUrl)
     } catch (err) {

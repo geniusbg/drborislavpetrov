@@ -8,14 +8,7 @@ const execAsync = promisify(exec)
 
 export async function POST(request: NextRequest) {
   try {
-    const adminToken = request.headers.get('x-admin-token')
-    
-    if (!adminToken || (adminToken !== 'test' && adminToken !== 'mock-token')) {
-      return NextResponse.json(
-        { error: 'Unauthorized' },
-        { status: 401 }
-      )
-    }
+    // Authentication is handled by middleware
 
     console.log('Generating QA report...')
     

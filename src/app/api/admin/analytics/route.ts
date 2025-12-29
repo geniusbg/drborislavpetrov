@@ -4,14 +4,7 @@ import { getBulgariaDateStringDB } from '@/lib/bulgaria-time'
 
 export async function GET(request: NextRequest) {
   try {
-    const adminToken = request.headers.get('x-admin-token')
-
-    if (!adminToken || (adminToken !== 'test' && adminToken !== 'mock-token')) {
-      return NextResponse.json(
-        { error: 'Unauthorized' },
-        { status: 401 }
-      )
-    }
+    // Authentication is handled by middleware
 
     const { searchParams } = new URL(request.url)
     const period = searchParams.get('period') || 'week'

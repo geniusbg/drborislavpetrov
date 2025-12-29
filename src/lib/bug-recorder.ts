@@ -10,12 +10,11 @@ export interface BugData {
 
 export const recordBug = async (bugData: BugData): Promise<boolean> => {
   try {
-    const adminToken = localStorage.getItem('adminToken')
     const response = await fetch('/api/admin/bugs', {
       method: 'POST',
+      credentials: 'include',
       headers: {
-        'Content-Type': 'application/json',
-        'x-admin-token': adminToken || ''
+        'Content-Type': 'application/json'
       },
       body: JSON.stringify({
         ...bugData,

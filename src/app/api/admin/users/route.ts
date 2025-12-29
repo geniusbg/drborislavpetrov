@@ -5,16 +5,7 @@ import { emitUserAdded, emitUserUpdate, emitUserDeleted } from '@/lib/socket'
 
 export async function GET(request: NextRequest) {
   try {
-    const adminToken = request.headers.get('x-admin-token')
-    console.log('🔍 Users API - adminToken:', adminToken ? 'present' : 'missing')
-    
-    if (!adminToken || (adminToken !== 'test' && adminToken !== 'mock-token')) {
-      console.log('❌ Users API - Unauthorized: invalid token')
-      return NextResponse.json(
-        { error: 'Unauthorized' },
-        { status: 401 }
-      )
-    }
+    // Authentication is handled by middleware
 
     console.log('🔍 Users API - Connecting to database...')
     const db = await getDatabase()
@@ -35,14 +26,7 @@ export async function GET(request: NextRequest) {
 
 export async function POST(request: NextRequest) {
   try {
-    const adminToken = request.headers.get('x-admin-token')
-    
-    if (!adminToken || (adminToken !== 'test' && adminToken !== 'mock-token')) {
-      return NextResponse.json(
-        { error: 'Unauthorized' },
-        { status: 401 }
-      )
-    }
+    // Authentication is handled by middleware
 
     const body = await request.json()
     const { name, email, phone, address, notes } = body
@@ -106,14 +90,7 @@ export async function POST(request: NextRequest) {
 
 export async function PUT(request: NextRequest) {
   try {
-    const adminToken = request.headers.get('x-admin-token')
-    
-    if (!adminToken || (adminToken !== 'test' && adminToken !== 'mock-token')) {
-      return NextResponse.json(
-        { error: 'Unauthorized' },
-        { status: 401 }
-      )
-    }
+    // Authentication is handled by middleware
 
     const body = await request.json()
     const { id, name, email, phone, address, notes } = body
@@ -177,14 +154,7 @@ export async function PUT(request: NextRequest) {
 
 export async function DELETE(request: NextRequest) {
   try {
-    const adminToken = request.headers.get('x-admin-token')
-    
-    if (!adminToken || (adminToken !== 'test' && adminToken !== 'mock-token')) {
-      return NextResponse.json(
-        { error: 'Unauthorized' },
-        { status: 401 }
-      )
-    }
+    // Authentication is handled by middleware
 
     const { searchParams } = new URL(request.url)
     const id = searchParams.get('id')

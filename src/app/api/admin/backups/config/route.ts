@@ -6,9 +6,10 @@ import path from 'path'
 const CONFIG_FILE = path.join(process.cwd(), 'backup-config.json')
 
 // Проверка на admin token
-function checkAdminToken(request: NextRequest) {
-  const adminToken = request.headers.get('x-admin-token')
-  return adminToken === 'mock-token'
+async function checkAdminToken(request: NextRequest) {
+  const { verifyRequestToken } = await import('@/lib/auth-helpers')
+  const auth = await verifyRequestToken(request)
+  return auth.valid
 }
 
 // Зареждане на конфигурацията
@@ -57,7 +58,7 @@ function saveConfig(config: BackupConfigSchema) {
 // GET - Вземане на конфигурацията
 export async function GET(request: NextRequest) {
   try {
-    if (!checkAdminToken(request)) {
+    if (!(await checkAdminToken(request))) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
     }
 
@@ -78,7 +79,7 @@ export async function GET(request: NextRequest) {
 // POST - Запазване на конфигурацията
 export async function POST(request: NextRequest) {
   try {
-    if (!checkAdminToken(request)) {
+    if (!(await checkAdminToken(request))) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
     }
 

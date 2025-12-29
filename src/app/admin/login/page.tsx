@@ -109,7 +109,7 @@ const AdminLogin = () => {
           Администрация
         </h2>
         <p className="mt-2 text-center text-sm text-gray-600">
-          Влезте в административната панел
+          Влезте в административният панел
         </p>
       </div>
 

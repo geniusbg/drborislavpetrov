@@ -45,8 +45,7 @@ export default function SettingsWorkingHours() {
     const load = async () => {
       try {
         setLoading(true)
-        const adminToken = localStorage.getItem('adminToken')
-        const res = await fetch('/api/admin/settings', { headers: { 'x-admin-token': adminToken || 'mock-token' } })
+        const res = await fetch('/api/admin/settings', { credentials: 'include' })
         if (res.ok) {
           const data = await res.json()
           setDefaults(data.settings?.defaultWorkingHours)
@@ -87,10 +86,10 @@ export default function SettingsWorkingHours() {
   const save = async () => {
     try {
       setSaving(true)
-      const adminToken = localStorage.getItem('adminToken')
       const res = await fetch('/api/admin/settings', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json', 'x-admin-token': adminToken || 'mock-token' },
+        credentials: 'include',
+        headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ site, defaultWorkingHours: defaults, sms: { bulkgate: sms } })
       })
       if (res.ok) setMsg('Запазено успешно')
@@ -109,10 +108,10 @@ export default function SettingsWorkingHours() {
     }
     try {
       setTestSending(true)
-      const adminToken = localStorage.getItem('adminToken')
       const res = await fetch('/api/admin/sms/test', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json', 'x-admin-token': adminToken || 'mock-token' },
+        credentials: 'include',
+        headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ phone: sms.testRecipient, text: 'Тест: {date} {time} – {service}.', channel: 'auto' })
       })
       if (res.ok) {

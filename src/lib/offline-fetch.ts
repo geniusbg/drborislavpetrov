@@ -178,12 +178,26 @@ class OfflineFetchManager {
     const timeoutId = setTimeout(() => controller.abort(), timeout)
 
     try {
+      // Ensure credentials are included for admin API requests
+      const url = typeof input === 'string' ? input : input instanceof URL ? input.toString() : input.url
+      const isAdminAPI = url.includes('/api/admin/')
+      
       const response = await fetch(input, {
         ...fetchOptions,
+        credentials: isAdminAPI ? 'include' : (fetchOptions.credentials || 'same-origin'),
         signal: controller.signal
       })
       
       clearTimeout(timeoutId)
+      
+      // Handle 401 Unauthorized - redirect to login for admin API
+      if (response.status === 401 && isAdminAPI && typeof window !== 'undefined') {
+        console.warn('🔒 Unauthorized admin API request, redirecting to login')
+        if (!window.location.pathname.includes('/admin/login')) {
+          window.location.href = '/admin/login'
+        }
+      }
+      
       return response
     } catch (error) {
       clearTimeout(timeoutId)

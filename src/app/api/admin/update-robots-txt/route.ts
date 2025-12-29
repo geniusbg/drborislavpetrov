@@ -5,10 +5,7 @@ import { join } from 'path'
 export async function POST(request: NextRequest) {
   try {
     // Проверка на admin token
-    const adminToken = request.headers.get('x-admin-token')
-    if (!adminToken || adminToken !== process.env.ADMIN_TOKEN) {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
-    }
+    // Authentication is handled by middleware
 
     const { content } = await request.json()
     

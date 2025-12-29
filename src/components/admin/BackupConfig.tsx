@@ -47,11 +47,8 @@ export default function BackupConfig({ onConfigChange, onClose }: BackupConfigPr
   const loadConfig = async () => {
     setIsLoading(true)
     try {
-      const adminToken = localStorage.getItem('adminToken')
       const response = await fetch('/api/admin/backups/config', {
-        headers: {
-          'x-admin-token': adminToken || ''
-        }
+        credentials: 'include'
       })
       
       if (response.ok) {
@@ -70,12 +67,11 @@ export default function BackupConfig({ onConfigChange, onClose }: BackupConfigPr
     setMessage(null)
     
     try {
-      const adminToken = localStorage.getItem('adminToken')
       const response = await fetch('/api/admin/backups/config', {
         method: 'POST',
+        credentials: 'include',
         headers: {
-          'Content-Type': 'application/json',
-          'x-admin-token': adminToken || ''
+          'Content-Type': 'application/json'
         },
         body: JSON.stringify(config)
       })

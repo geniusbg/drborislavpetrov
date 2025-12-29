@@ -83,14 +83,13 @@ export function useAdminEventHandlers() {
     if (!confirm('Сигурни ли сте, че искате да изтриете тази резервация?')) return
 
     try {
-      const adminToken = localStorage.getItem('adminToken')
       // Convert id to string for API (API expects string in query params)
       const idString = typeof id === 'number' ? id.toString() : id
       const response = await fetch(`/api/admin/bookings?id=${idString}`, {
         method: 'DELETE',
+        credentials: 'include',
         headers: {
-          'Content-Type': 'application/json',
-          'x-admin-token': adminToken || ''
+          'Content-Type': 'application/json'
         }
       })
 
@@ -108,12 +107,11 @@ export function useAdminEventHandlers() {
 
   const handleUpdateBookingStatus = async (id: number, status: string) => {
     try {
-      const adminToken = localStorage.getItem('adminToken')
       const response = await fetch('/api/admin/bookings/status', {
         method: 'PUT',
+        credentials: 'include',
         headers: {
-          'Content-Type': 'application/json',
-          'x-admin-token': adminToken || ''
+          'Content-Type': 'application/json'
         },
         body: JSON.stringify({ id, status })
       })
@@ -133,12 +131,11 @@ export function useAdminEventHandlers() {
 
   const handleUpdateBookingNotes = async (id: number, notes: string) => {
     try {
-      const adminToken = localStorage.getItem('adminToken')
       const response = await fetch(`/api/admin/bookings`, {
         method: 'PUT',
+        credentials: 'include',
         headers: {
-          'Content-Type': 'application/json',
-          'x-admin-token': adminToken || ''
+          'Content-Type': 'application/json'
         },
         body: JSON.stringify({
           id: id,
@@ -172,12 +169,11 @@ export function useAdminEventHandlers() {
     if (!confirm('Сигурни ли сте, че искате да изтриете този потребител?')) return
 
     try {
-      const adminToken = localStorage.getItem('adminToken')
       const response = await fetch(`/api/admin/users`, {
         method: 'DELETE',
+        credentials: 'include',
         headers: {
-          'Content-Type': 'application/json',
-          'x-admin-token': adminToken || ''
+          'Content-Type': 'application/json'
         },
         body: JSON.stringify({ id })
       })
@@ -215,12 +211,11 @@ export function useAdminEventHandlers() {
     if (!confirm('Сигурни ли сте, че искате да изтриете тази услуга?')) return
 
     try {
-      const adminToken = localStorage.getItem('adminToken')
       const response = await fetch(`/api/admin/services`, {
         method: 'DELETE',
+        credentials: 'include',
         headers: {
-          'Content-Type': 'application/json',
-          'x-admin-token': adminToken || ''
+          'Content-Type': 'application/json'
         },
         body: JSON.stringify({ id })
       })

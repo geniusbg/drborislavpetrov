@@ -46,11 +46,8 @@ export default function AdminsTab({}: AdminsTabProps) {
   const loadAdmins = async () => {
     try {
       setLoading(true)
-      const adminToken = localStorage.getItem('adminToken')
       const response = await fetch('/api/admin/admins', {
-        headers: {
-          'x-admin-token': adminToken || 'mock-token'
-        }
+        credentials: 'include'
       })
 
       if (response.ok) {
@@ -100,12 +97,9 @@ export default function AdminsTab({}: AdminsTabProps) {
 
     try {
       setIsDeleting(id)
-      const adminToken = localStorage.getItem('adminToken')
       const response = await fetch(`/api/admin/admins?id=${id}`, {
         method: 'DELETE',
-        headers: {
-          'x-admin-token': adminToken || 'mock-token'
-        }
+        credentials: 'include'
       })
 
       if (response.ok) {
@@ -138,7 +132,6 @@ export default function AdminsTab({}: AdminsTabProps) {
 
     try {
       setIsSubmitting(true)
-      const adminToken = localStorage.getItem('adminToken')
       const url = '/api/admin/admins'
       const method = editingAdmin ? 'PUT' : 'POST'
       const body = editingAdmin
@@ -159,9 +152,9 @@ export default function AdminsTab({}: AdminsTabProps) {
 
       const response = await fetch(url, {
         method,
+        credentials: 'include',
         headers: {
-          'Content-Type': 'application/json',
-          'x-admin-token': adminToken || 'mock-token'
+          'Content-Type': 'application/json'
         },
         body: JSON.stringify(body)
       })

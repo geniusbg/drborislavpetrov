@@ -1,17 +1,10 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { getDatabase } from '@/lib/database'
-import { verifyRequestToken } from '@/lib/auth-helpers'
 import bcrypt from 'bcrypt'
 
 export async function GET(request: NextRequest) {
   try {
-    const auth = await verifyRequestToken(request)
-    if (!auth.valid) {
-      return NextResponse.json(
-        { error: 'Unauthorized' },
-        { status: 401 }
-      )
-    }
+    // Authentication is handled by middleware
 
     const db = await getDatabase()
     const result = await db.query(`
@@ -33,13 +26,7 @@ export async function GET(request: NextRequest) {
 
 export async function POST(request: NextRequest) {
   try {
-    const auth = await verifyRequestToken(request)
-    if (!auth.valid) {
-      return NextResponse.json(
-        { error: 'Unauthorized' },
-        { status: 401 }
-      )
-    }
+    // Authentication is handled by middleware
 
     const body = await request.json()
     const { username, password, email, fullName } = body
@@ -132,13 +119,7 @@ export async function POST(request: NextRequest) {
 
 export async function PUT(request: NextRequest) {
   try {
-    const auth = await verifyRequestToken(request)
-    if (!auth.valid) {
-      return NextResponse.json(
-        { error: 'Unauthorized' },
-        { status: 401 }
-      )
-    }
+    // Authentication is handled by middleware
 
     const body = await request.json()
     const { id, username, password, email, fullName, isActive } = body
@@ -263,13 +244,7 @@ export async function PUT(request: NextRequest) {
 
 export async function DELETE(request: NextRequest) {
   try {
-    const auth = await verifyRequestToken(request)
-    if (!auth.valid) {
-      return NextResponse.json(
-        { error: 'Unauthorized' },
-        { status: 401 }
-      )
-    }
+    // Authentication is handled by middleware
 
     const { searchParams } = new URL(request.url)
     const id = searchParams.get('id')

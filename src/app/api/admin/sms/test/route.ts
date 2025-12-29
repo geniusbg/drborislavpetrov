@@ -2,15 +2,8 @@ import { NextRequest, NextResponse } from 'next/server'
 import { getBulkGateConfig, renderSmsTemplate, sendSmsViaBulkGate, sendViberViaBulkGate, sendWithChannelPriority } from '@/lib/sms'
 import { normalizePhoneE164 } from '@/lib/phone'
 
-function isAuthorized(request: NextRequest) {
-  const token = request.headers.get('x-admin-token')
-  return token === 'mock-token' || token === 'test'
-}
-
 export async function POST(request: NextRequest) {
-  if (!isAuthorized(request)) {
-    return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
-  }
+  // Authentication is handled by middleware
   try {
     const body = await request.json().catch(() => ({}))
     const phoneRaw = body?.phone as string | undefined

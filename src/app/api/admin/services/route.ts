@@ -4,14 +4,7 @@ import { emitServiceAdded, emitServiceUpdate, emitServiceDeleted } from '@/lib/s
 
 export async function GET(request: NextRequest) {
   try {
-    const adminToken = request.headers.get('x-admin-token')
-    
-    if (!adminToken || (adminToken !== 'test' && adminToken !== 'mock-token')) {
-      return NextResponse.json(
-        { error: 'Unauthorized' },
-        { status: 401 }
-      )
-    }
+    // Authentication is handled by middleware
 
     const db = await getDatabase()
     try {
@@ -36,14 +29,7 @@ export async function GET(request: NextRequest) {
 
 export async function POST(request: NextRequest) {
   try {
-    const adminToken = request.headers.get('x-admin-token')
-    
-    if (!adminToken || (adminToken !== 'test' && adminToken !== 'mock-token')) {
-      return NextResponse.json(
-        { error: 'Unauthorized' },
-        { status: 401 }
-      )
-    }
+    // Authentication is handled by middleware
 
     const body = await request.json()
     const { name, description, duration, price, priceCurrency, priceBgn, priceEur, isActive } = body
@@ -79,14 +65,7 @@ export async function POST(request: NextRequest) {
 
 export async function PUT(request: NextRequest) {
   try {
-    const adminToken = request.headers.get('x-admin-token')
-    
-    if (!adminToken || (adminToken !== 'test' && adminToken !== 'mock-token')) {
-      return NextResponse.json(
-        { error: 'Unauthorized' },
-        { status: 401 }
-      )
-    }
+    // Authentication is handled by middleware
 
     const body = await request.json()
     const { id, name, description, duration, price, priceCurrency, priceBgn, priceEur, isActive } = body
@@ -130,14 +109,7 @@ export async function PUT(request: NextRequest) {
 
 export async function DELETE(request: NextRequest) {
   try {
-    const adminToken = request.headers.get('x-admin-token')
-    
-    if (!adminToken || (adminToken !== 'test' && adminToken !== 'mock-token')) {
-      return NextResponse.json(
-        { error: 'Unauthorized' },
-        { status: 401 }
-      )
-    }
+    // Authentication is handled by middleware
 
     const { searchParams } = new URL(request.url)
     const id = searchParams.get('id')

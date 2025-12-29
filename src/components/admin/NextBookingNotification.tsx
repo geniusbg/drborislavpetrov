@@ -41,9 +41,16 @@ const NextBookingNotification = ({ currentTime }: NextBookingNotificationProps) 
   const checkNextBooking = useCallback(async () => {
     try {
       console.log('🔍 NextBookingNotification: checkNextBooking called at:', getBulgariaTime().toISOString())
-      const adminToken = typeof window !== 'undefined' ? localStorage.getItem('adminToken') : null
-      if (!adminToken) {
-        console.log('🔔 NextBookingNotification: No admin token, skipping API call')
+      
+      // Check authentication via API instead of localStorage
+      try {
+        const authCheck = await fetch('/api/admin/auth/check', { credentials: 'include' })
+        if (!authCheck.ok) {
+          console.log('🔔 NextBookingNotification: Not authenticated, skipping API call')
+          return
+        }
+      } catch (error) {
+        console.log('🔔 NextBookingNotification: Auth check failed, skipping API call')
         return
       }
 
@@ -72,9 +79,7 @@ const NextBookingNotification = ({ currentTime }: NextBookingNotificationProps) 
         console.log('🔔 NextBookingNotification: Fetching all bookings and filtering client-side...')
         // Fetch all and filter for today (API without date returns full list)
         const response = await fetch(`/api/admin/bookings`, {
-          headers: {
-            'x-admin-token': adminToken || 'mock-token'
-          }
+          credentials: 'include'
         })
 
         if (response.ok) {
@@ -259,12 +264,7 @@ const NextBookingNotification = ({ currentTime }: NextBookingNotificationProps) 
   useEffect(() => {
     if (!cachedBookings.length) return
 
-    // Check if user is authenticated before starting interval
-    const adminToken = typeof window !== 'undefined' ? localStorage.getItem('adminToken') : null
-    if (!adminToken) {
-      console.log('🔔 NextBookingNotification: No admin token, skipping urgent booking interval')
-      return
-    }
+    // Authentication is checked via API in checkNextBooking
 
     // Check for urgent bookings more frequently for accurate minute triggers
     const urgentInterval = setInterval(checkUrgentBooking, 15000) // 15 seconds
@@ -341,9 +341,8 @@ const NextBookingNotification = ({ currentTime }: NextBookingNotificationProps) 
     setIsDismissed(true)
   }
 
-  // Check if user is authenticated before rendering anything
-  const adminToken = typeof window !== 'undefined' ? localStorage.getItem('adminToken') : null
-  if (!adminToken || !isVisible || isDismissed || !nextBooking) {
+  // Check if notification should be shown
+  if (!isVisible || isDismissed || !nextBooking) {
     return null
   }
 

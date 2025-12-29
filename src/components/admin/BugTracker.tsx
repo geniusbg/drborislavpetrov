@@ -25,7 +25,6 @@ const BugTracker = ({ onClose }: BugTrackerProps) => {
   const loadBugs = useCallback(async () => {
     try {
       setLoading(true)
-      const adminToken = localStorage.getItem('adminToken')
       const params = new URLSearchParams()
       
       if (filterStatus) params.append('status', filterStatus)
@@ -33,9 +32,7 @@ const BugTracker = ({ onClose }: BugTrackerProps) => {
       if (filterSeverity) params.append('severity', filterSeverity)
       
       const response = await fetch(`/api/admin/bugs?${params.toString()}`, {
-        headers: {
-          'x-admin-token': adminToken || ''
-        }
+        credentials: 'include'
       })
       
       if (response.ok) {
@@ -79,12 +76,9 @@ const BugTracker = ({ onClose }: BugTrackerProps) => {
     if (!confirm('Сигурни ли сте, че искате да изтриете този bug report?')) return
     
     try {
-      const adminToken = localStorage.getItem('adminToken')
       const response = await fetch(`/api/admin/bugs?id=${id}`, {
         method: 'DELETE',
-        headers: {
-          'x-admin-token': adminToken || ''
-        }
+        credentials: 'include'
       })
       
       if (response.ok) {
@@ -378,15 +372,14 @@ const BugForm = ({ bug, onSubmit, onCancel }: { bug: BugReport | null; onSubmit:
     e.preventDefault()
     
     try {
-      const adminToken = localStorage.getItem('adminToken')
       const method = bug ? 'PUT' : 'POST'
       const url = bug ? `/api/admin/bugs` : `/api/admin/bugs`
       
       const response = await fetch(url, {
         method,
+        credentials: 'include',
         headers: {
-          'Content-Type': 'application/json',
-          'x-admin-token': adminToken || ''
+          'Content-Type': 'application/json'
         },
         body: JSON.stringify(bug ? { ...formData, id: bug.id } : formData)
       })

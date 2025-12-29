@@ -369,14 +369,10 @@ const DailySchedule = ({ date, onClose, onEditWorkingHours, onEditBooking, onDel
       // Add a small delay to make loading visible
       await new Promise(resolve => setTimeout(resolve, 500))
       
-      const adminToken = localStorage.getItem('adminToken')
-      
       console.log('📅 DailySchedule: Fetching booking details for ID:', bookingId)
       const response = await fetch(`/api/admin/bookings?id=${bookingId}`, {
         method: 'DELETE',
-        headers: {
-          'x-admin-token': adminToken || ''
-        }
+        credentials: 'include'
       })
       
       if (response.ok) {
@@ -411,12 +407,11 @@ const DailySchedule = ({ date, onClose, onEditWorkingHours, onEditBooking, onDel
       // Don't update local state immediately - wait for API response
       
       // Use the full booking update endpoint to preserve serviceDuration
-      const adminToken = localStorage.getItem('adminToken')
       const response = await fetch('/api/admin/bookings', {
         method: 'PUT',
+        credentials: 'include',
         headers: {
-          'Content-Type': 'application/json',
-          'x-admin-token': adminToken || ''
+          'Content-Type': 'application/json'
         },
         body: JSON.stringify({ 
           id: booking.id,
@@ -462,7 +457,6 @@ const DailySchedule = ({ date, onClose, onEditWorkingHours, onEditBooking, onDel
 
   const handleBookingSubmit = async (bookingData: Partial<Booking>, isStatusOnly: boolean = false) => {
     try {
-      const adminToken = localStorage.getItem('adminToken')
       const isNewBooking = !editingBooking?.id
       
       // Check if booking time conflicts with breaks (only for new bookings or time changes)
@@ -492,9 +486,9 @@ const DailySchedule = ({ date, onClose, onEditWorkingHours, onEditBooking, onDel
         
         response = await fetch('/api/admin/bookings', {
           method: 'POST',
+          credentials: 'include',
           headers: {
-            'Content-Type': 'application/json',
-            'x-admin-token': adminToken || ''
+            'Content-Type': 'application/json'
           },
           body: JSON.stringify(apiData)
         })
@@ -502,9 +496,9 @@ const DailySchedule = ({ date, onClose, onEditWorkingHours, onEditBooking, onDel
         // Status-only update - use dedicated endpoint
         response = await fetch('/api/admin/bookings/status', {
           method: 'PUT',
+          credentials: 'include',
           headers: {
-            'Content-Type': 'application/json',
-            'x-admin-token': adminToken || ''
+            'Content-Type': 'application/json'
           },
           body: JSON.stringify({ 
             id: editingBooking?.id,
@@ -521,9 +515,9 @@ const DailySchedule = ({ date, onClose, onEditWorkingHours, onEditBooking, onDel
         
         response = await fetch('/api/admin/bookings', {
           method: 'PUT',
+          credentials: 'include',
           headers: {
-            'Content-Type': 'application/json',
-            'x-admin-token': adminToken || ''
+            'Content-Type': 'application/json'
           },
           body: JSON.stringify({ 
             ...apiData, 

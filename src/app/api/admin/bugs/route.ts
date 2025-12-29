@@ -63,14 +63,7 @@ function validateBugData(data: BugInput): { isValid: boolean; error?: string } {
 
 export async function GET(request: NextRequest) {
   try {
-    const adminToken = request.headers.get('x-admin-token')
-    
-    if (!adminToken || (adminToken !== 'test' && adminToken !== 'mock-token')) {
-      return NextResponse.json(
-        { error: 'Unauthorized' },
-        { status: 401 }
-      )
-    }
+    // Authentication is handled by middleware
 
     const { searchParams } = new URL(request.url)
     const status = searchParams.get('status')
@@ -126,14 +119,7 @@ export async function POST(request: NextRequest) {
     const poolStatus = getPoolStatus()
     console.log('🔍 Database pool status:', poolStatus)
     
-    const adminToken = request.headers.get('x-admin-token')
-    
-    if (!adminToken || (adminToken !== 'test' && adminToken !== 'mock-token')) {
-      return NextResponse.json(
-        { error: 'Unauthorized' },
-        { status: 401 }
-      )
-    }
+    // Authentication is handled by middleware
 
     const body = await request.json()
     console.log('🔍 Request body:', body)
@@ -220,14 +206,7 @@ export async function POST(request: NextRequest) {
 
 export async function PUT(request: NextRequest) {
   try {
-    const adminToken = request.headers.get('x-admin-token')
-    
-    if (!adminToken || (adminToken !== 'test' && adminToken !== 'mock-token')) {
-      return NextResponse.json(
-        { error: 'Unauthorized' },
-        { status: 401 }
-      )
-    }
+    // Authentication is handled by middleware
 
     const body = await request.json()
     const {
@@ -286,14 +265,7 @@ export async function PUT(request: NextRequest) {
 
 export async function DELETE(request: NextRequest) {
   try {
-    const adminToken = request.headers.get('x-admin-token')
-    
-    if (!adminToken || (adminToken !== 'test' && adminToken !== 'mock-token')) {
-      return NextResponse.json(
-        { error: 'Unauthorized' },
-        { status: 401 }
-      )
-    }
+    // Authentication is handled by middleware
 
     const { searchParams } = new URL(request.url)
     const id = searchParams.get('id')

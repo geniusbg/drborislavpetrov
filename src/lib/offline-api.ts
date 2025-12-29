@@ -92,14 +92,12 @@ class OfflineAPI {
       // Mark that we're attempting a request
       offlineDetector.markRequestAttempted()
 
-      // Get admin token if available
-      const adminToken = typeof window !== 'undefined' ? localStorage.getItem('adminToken') : null
-      
+      // Use credentials: 'include' for httpOnly cookies instead of x-admin-token header
       const response = await offlineFetch.fetch(url, {
         method,
+        credentials: 'include' as RequestCredentials,
         headers: {
           'Content-Type': 'application/json',
-          ...(adminToken && { 'x-admin-token': adminToken }),
           ...headers
         },
         body: data ? JSON.stringify(data) : undefined,

@@ -129,11 +129,8 @@ export default function SupportNotes({ onClose }: SupportNotesProps) {
 
   const loadSupportNotes = async () => {
     try {
-      const adminToken = localStorage.getItem('adminToken')
       const response = await fetch('/api/admin/support-notes', {
-        headers: {
-          'x-admin-token': adminToken || ''
-        }
+        credentials: 'include'
       })
       
       if (response.ok) {
@@ -150,7 +147,6 @@ export default function SupportNotes({ onClose }: SupportNotesProps) {
     setIsLoading(true)
     
     try {
-      const adminToken = localStorage.getItem('adminToken')
       const method = editingNote ? 'PUT' : 'POST'
       const url = '/api/admin/support-notes'
 
@@ -160,9 +156,9 @@ export default function SupportNotes({ onClose }: SupportNotesProps) {
 
       const response = await fetch(url, {
         method,
+        credentials: 'include',
         headers: {
-          'Content-Type': 'application/json',
-          'x-admin-token': adminToken || ''
+          'Content-Type': 'application/json'
         },
         body: JSON.stringify(payload)
       })
@@ -193,12 +189,9 @@ export default function SupportNotes({ onClose }: SupportNotesProps) {
     if (!confirm('Сигурни ли сте, че искате да изтриете тази бележка?')) return
     
     try {
-      const adminToken = localStorage.getItem('adminToken')
       const response = await fetch(`/api/admin/support-notes?id=${id}`, {
         method: 'DELETE',
-        headers: {
-          'x-admin-token': adminToken || ''
-        }
+        credentials: 'include'
       })
 
       if (response.ok) {
@@ -225,12 +218,11 @@ export default function SupportNotes({ onClose }: SupportNotesProps) {
 
   const handleStatusChange = async (id: string, status: SupportNote['status']) => {
     try {
-      const adminToken = localStorage.getItem('adminToken')
       const response = await fetch(`/api/admin/support-notes`, {
         method: 'PUT',
+        credentials: 'include',
         headers: {
-          'Content-Type': 'application/json',
-          'x-admin-token': adminToken || ''
+          'Content-Type': 'application/json'
         },
         body: JSON.stringify({ id, status })
       })

@@ -100,6 +100,19 @@ self.addEventListener('activate', (event) => {
 self.addEventListener('fetch', (event) => {
   const url = event.request.url;
   
+  // Log POST requests to /api/orders to identify the source
+  if (event.request.method === 'POST' && url.includes('/api/orders')) {
+    console.log('[SW] Intercepted POST request to /api/orders:', url, {
+      method: event.request.method,
+      url: event.request.url,
+      mode: event.request.mode,
+      credentials: event.request.credentials,
+      referrer: event.request.referrer
+    });
+    // Don't intercept - let it pass through to network
+    return;
+  }
+  
   // Skip non-GET requests for caching
   if (event.request.method !== 'GET') {
     return;

@@ -6,6 +6,9 @@ const rateLimitStore = new Map<string, { count: number; resetTime: number; limit
 
 export function middleware(request: NextRequest) {
   const response = NextResponse.next()
+  
+  // Note: Admin authentication is handled in route handlers, not in middleware,
+  // because middleware runs on Edge runtime which doesn't support database connections.
 
   // Security Headers
   response.headers.set('X-Content-Type-Options', 'nosniff')

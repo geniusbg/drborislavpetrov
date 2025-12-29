@@ -90,7 +90,6 @@ const BookingForm = ({ booking, onSubmit, onCancel, onDelete }: BookingFormProps
 
       setLoadingTimeSlots(true)
       try {
-        const adminToken = localStorage.getItem('adminToken')
         const params = new URLSearchParams({
           date: formData.date,
           service: formData.service,
@@ -107,11 +106,7 @@ const BookingForm = ({ booking, onSubmit, onCancel, onDelete }: BookingFormProps
         const apiUrl = `/api/admin/available-time-slots?${params}`
 
         
-        const response = await offlineAPI.get(apiUrl, {
-          headers: {
-            'x-admin-token': adminToken || 'mock-token'
-          }
-        })
+        const response = await offlineAPI.get(apiUrl, {})
         
         if (response.data) {
           setAvailableTimeSlots((response.data as { availableSlots?: string[] }).availableSlots || [])

@@ -83,9 +83,9 @@ Disallow: /
 
       const response = await fetch('/api/admin/update-robots-txt', {
         method: 'POST',
+        credentials: 'include',
         headers: {
-          'Content-Type': 'application/json',
-          'x-admin-token': localStorage.getItem('adminToken') || ''
+          'Content-Type': 'application/json'
         },
         body: JSON.stringify({ content: robotsContent })
       })

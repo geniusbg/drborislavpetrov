@@ -8,21 +8,10 @@ type BackupFormat = 'json' | 'sql'
 
 const CONFIG_FILE = path.join(process.cwd(), 'backup-config.json')
 
-function checkAdminToken(request: NextRequest) {
-  const adminToken = request.headers.get('x-admin-token')
-  const validTokens = process.env.ADMIN_TOKENS?.split(',') || []
-  
-  if (!adminToken) {
-    console.log('❌ No admin token provided')
-    return false
-  }
-  
-  const isValid = validTokens.includes(adminToken.trim())
-  if (!isValid) {
-    console.log('❌ Invalid admin token provided')
-  }
-  
-  return isValid
+async function checkAdminToken(request: NextRequest) {
+  const { verifyRequestToken } = await import('@/lib/auth-helpers')
+  const auth = await verifyRequestToken(request)
+  return auth.valid
 }
 
 function loadConfig() {
@@ -254,7 +243,7 @@ async function performAutomaticBackup() {
 
 export async function GET(request: NextRequest) {
   try {
-    if (!checkAdminToken(request)) {
+    if (!(await checkAdminToken(request))) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
     }
 
@@ -306,7 +295,7 @@ export async function POST(request: NextRequest) {
   try {
     console.log('🚀 Starting backup process...')
     
-    if (!checkAdminToken(request)) {
+    if (!(await checkAdminToken(request))) {
       console.log('❌ Unauthorized backup attempt')
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
     }
@@ -432,7 +421,7 @@ export async function PUT(request: NextRequest) {
   try {
     console.log('🤖 Automatic backup endpoint called...')
     
-    if (!checkAdminToken(request)) {
+    if (!(await checkAdminToken(request))) {
       console.log('❌ Unauthorized automatic backup attempt')
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
     }

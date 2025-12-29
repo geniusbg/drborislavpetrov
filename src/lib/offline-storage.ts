@@ -403,10 +403,9 @@ class OfflineStorage {
       console.log(`[OfflineStorage] Processing sync item: ${item.action}`, item.data)
       
       // Make real API calls based on action type
-      const adminToken = typeof window !== 'undefined' ? localStorage.getItem('adminToken') : null
-    const headers = {
-      'Content-Type': 'application/json',
-        ...(adminToken && { 'x-admin-token': adminToken })
+      // Use credentials: 'include' for httpOnly cookies instead of x-admin-token header
+      const headers = {
+        'Content-Type': 'application/json'
       }
       
       let response: Response
@@ -416,6 +415,7 @@ class OfflineStorage {
         case 'create': // Backward compatibility
           response = await fetch('/api/booking', {
           method: 'POST',
+          credentials: 'include',
           headers,
             body: JSON.stringify(item.data)
         })
@@ -429,12 +429,14 @@ class OfflineStorage {
             // If no ID, treat as create
             response = await fetch('/api/booking', {
               method: 'POST',
+              credentials: 'include',
               headers,
               body: JSON.stringify(item.data)
             })
           } else {
             response = await fetch(`/api/admin/bookings/${bookingId}`, {
           method: 'PUT',
+          credentials: 'include',
           headers,
               body: JSON.stringify(item.data)
         })
@@ -446,6 +448,7 @@ class OfflineStorage {
           const deleteData = item.data as { id: string }
           response = await fetch(`/api/admin/bookings/${deleteData.id}`, {
           method: 'DELETE',
+          credentials: 'include',
           headers
         })
         break
@@ -453,6 +456,7 @@ class OfflineStorage {
         case 'voice-command':
           response = await fetch('/api/admin/voice-commands', {
           method: 'POST',
+          credentials: 'include',
           headers,
             body: JSON.stringify(item.data)
         })

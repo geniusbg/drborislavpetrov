@@ -74,7 +74,6 @@ const QuickResponseWidget: React.FC<QuickResponseWidgetProps> = ({ onClose, onCr
   const loadNextAvailableSlots = async (count: number) => {
     setIsLoading(true)
     try {
-      const adminToken = localStorage.getItem('adminToken')
       const start = getCurrentDate()
       const params = new URLSearchParams({
         from: start,
@@ -82,7 +81,7 @@ const QuickResponseWidget: React.FC<QuickResponseWidgetProps> = ({ onClose, onCr
         serviceDuration: String(selectedServiceDuration),
       })
       const response = await fetch(`/api/admin/available-time-slots/next?${params.toString()}`, {
-        headers: { 'x-admin-token': adminToken || '' }
+        credentials: 'include'
       })
       if (response.ok) {
         const data = await response.json()
@@ -212,11 +211,8 @@ const QuickResponseWidget: React.FC<QuickResponseWidgetProps> = ({ onClose, onCr
     
     setIsLoading(true)
     try {
-      const adminToken = localStorage.getItem('adminToken')
       const response = await fetch(`/api/admin/available-time-slots/month?month=${selectedMonth}&limit=0&serviceDuration=${selectedServiceDuration}`, {
-        headers: {
-          'x-admin-token': adminToken || ''
-        }
+        credentials: 'include'
       })
       
       if (response.ok) {
@@ -356,9 +352,8 @@ const QuickResponseWidget: React.FC<QuickResponseWidgetProps> = ({ onClose, onCr
   useEffect(() => {
     const loadServices = async () => {
       try {
-        const adminToken = localStorage.getItem('adminToken')
         const response = await fetch('/api/admin/services', {
-          headers: { 'x-admin-token': adminToken || 'test' }
+          credentials: 'include'
         })
         if (response.ok) {
           const data = await response.json()

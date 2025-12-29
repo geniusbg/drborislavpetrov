@@ -52,13 +52,12 @@ export default function AdminModals() {
           user={editingUser}
           onSubmit={async (userData) => {
             try {
-              const adminToken = localStorage.getItem('adminToken')
               const method = editingUser ? 'PUT' : 'POST'
               const response = await fetch('/api/admin/users', {
                 method,
+                credentials: 'include',
                 headers: {
-                  'Content-Type': 'application/json',
-                  'x-admin-token': adminToken || ''
+                  'Content-Type': 'application/json'
                 },
                 body: JSON.stringify(editingUser ? { ...userData, id: editingUser.id } : userData)
               })
@@ -115,7 +114,6 @@ export default function AdminModals() {
               booking={editingBooking}
               onSubmit={async (bookingData) => {
             try {
-              const adminToken = localStorage.getItem('adminToken')
               const isNewBooking = !editingBooking?.id
               let response
 
@@ -123,9 +121,10 @@ export default function AdminModals() {
                 // Create new booking
                 response = await fetch('/api/admin/bookings', {
                   method: 'POST',
+                  credentials: 'include',
+                  credentials: 'include',
                   headers: {
-                    'Content-Type': 'application/json',
-                    'x-admin-token': adminToken || ''
+                    'Content-Type': 'application/json'
                   },
                   body: JSON.stringify(bookingData)
                 })
@@ -133,9 +132,9 @@ export default function AdminModals() {
                 // Update existing booking
                 response = await fetch('/api/admin/bookings', {
                   method: 'PUT',
+                  credentials: 'include',
                   headers: {
-                    'Content-Type': 'application/json',
-                    'x-admin-token': adminToken || ''
+                    'Content-Type': 'application/json'
                   },
                   body: JSON.stringify({ ...bookingData, id: editingBooking?.id })
                 })
@@ -177,14 +176,13 @@ export default function AdminModals() {
           service={editingService}
           onSubmit={async (serviceData) => {
             try {
-              const adminToken = localStorage.getItem('adminToken')
               const method = editingService ? 'PUT' : 'POST'
               
               const response = await fetch('/api/admin/services', {
                 method,
+                credentials: 'include',
                 headers: {
-                  'Content-Type': 'application/json',
-                  'x-admin-token': adminToken || ''
+                  'Content-Type': 'application/json'
                 },
                 body: JSON.stringify(editingService ? { ...serviceData, id: editingService.id } : serviceData)
               })

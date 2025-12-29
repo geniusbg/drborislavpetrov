@@ -7,9 +7,10 @@ import path from 'path'
 const execAsync = promisify(exec)
 
 // Проверка на admin token
-function checkAdminToken(request: NextRequest) {
-  const adminToken = request.headers.get('x-admin-token')
-  return adminToken === 'mock-token'
+async function checkAdminToken(request: NextRequest) {
+  const { verifyRequestToken } = await import('@/lib/auth-helpers')
+  const auth = await verifyRequestToken(request)
+  return auth.valid
 }
 
 // POST - Възстановяване от backup
@@ -18,7 +19,7 @@ export async function POST(
   { params }: { params: Promise<{ fileName: string }> }
 ) {
   try {
-    if (!checkAdminToken(request)) {
+    if (!(await checkAdminToken(request))) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
     }
 
