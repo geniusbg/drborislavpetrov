@@ -32,7 +32,8 @@ export function middleware(request: NextRequest) {
   const now = Date.now()
   
   // Different limits for different routes
-  let limit = { windowMs: 15 * 60 * 1000, maxRequests: 300 } // Default: Public
+  type RateLimit = { windowMs: number; maxRequests: number }
+  let limit: RateLimit = { windowMs: 15 * 60 * 1000, maxRequests: 300 } // Default: Public
   
   if (request.nextUrl.pathname.startsWith('/api/admin/')) {
     // Admin routes - more generous
