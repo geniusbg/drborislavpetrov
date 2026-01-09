@@ -1,10 +1,18 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { getDatabase } from '@/lib/database'
 import bcrypt from 'bcrypt'
+import { requireAdminAuth } from '@/lib/auth-middleware'
 
 export async function GET(request: NextRequest) {
   try {
-    // Authentication is handled by middleware
+    // Authentication check
+    const auth = await requireAdminAuth(request)
+    if (!auth.valid) {
+      return NextResponse.json(
+        { error: 'Unauthorized' },
+        { status: 401 }
+      )
+    }
 
     const db = await getDatabase()
     const result = await db.query(`
@@ -26,7 +34,14 @@ export async function GET(request: NextRequest) {
 
 export async function POST(request: NextRequest) {
   try {
-    // Authentication is handled by middleware
+    // Authentication check
+    const auth = await requireAdminAuth(request)
+    if (!auth.valid) {
+      return NextResponse.json(
+        { error: 'Unauthorized' },
+        { status: 401 }
+      )
+    }
 
     const body = await request.json()
     const { username, password, email, fullName } = body
@@ -95,11 +110,12 @@ export async function POST(request: NextRequest) {
     const passwordHash = await bcrypt.hash(password, 10)
 
     // Create admin
+    const adminId = auth.valid && auth.adminId ? auth.adminId : null
     const result = await db.query(`
       INSERT INTO admins (username, password_hash, email, full_name, created_by)
       VALUES ($1, $2, $3, $4, $5)
       RETURNING id, username, email, full_name, is_active, created_at
-    `, [username, passwordHash, email || null, fullName || null, auth.adminId || null])
+    `, [username, passwordHash, email || null, fullName || null, adminId])
 
     const newAdmin = result.rows[0]
     db.release()
@@ -119,7 +135,14 @@ export async function POST(request: NextRequest) {
 
 export async function PUT(request: NextRequest) {
   try {
-    // Authentication is handled by middleware
+    // Authentication check
+    const auth = await requireAdminAuth(request)
+    if (!auth.valid) {
+      return NextResponse.json(
+        { error: 'Unauthorized' },
+        { status: 401 }
+      )
+    }
 
     const body = await request.json()
     const { id, username, password, email, fullName, isActive } = body
@@ -244,7 +267,14 @@ export async function PUT(request: NextRequest) {
 
 export async function DELETE(request: NextRequest) {
   try {
-    // Authentication is handled by middleware
+    // Authentication check
+    const auth = await requireAdminAuth(request)
+    if (!auth.valid) {
+      return NextResponse.json(
+        { error: 'Unauthorized' },
+        { status: 401 }
+      )
+    }
 
     const { searchParams } = new URL(request.url)
     const id = searchParams.get('id')
@@ -259,7 +289,8 @@ export async function DELETE(request: NextRequest) {
     const adminId = parseInt(id)
     
     // Prevent deleting yourself
-    if (auth.adminId === adminId) {
+    const currentAdminId = auth.valid && auth.adminId ? auth.adminId : null
+    if (currentAdminId === adminId) {
       return NextResponse.json(
         { error: 'Cannot delete your own account' },
         { status: 400 }
