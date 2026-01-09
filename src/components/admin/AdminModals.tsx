@@ -122,7 +122,6 @@ export default function AdminModals() {
                 response = await fetch('/api/admin/bookings', {
                   method: 'POST',
                   credentials: 'include',
-                  credentials: 'include',
                   headers: {
                     'Content-Type': 'application/json'
                   },
