@@ -25,7 +25,7 @@ export const sendEmail = async (data: EmailData): Promise<boolean> => {
     const transporter = createTransporter()
     
     await transporter.sendMail({
-      from: process.env.SMTP_FROM || 'dr.petrov@example.com',
+      from: process.env.SMTP_FROM || 'bpg23@abv.bg',
       to: data.to,
       subject: data.subject,
       html: data.html

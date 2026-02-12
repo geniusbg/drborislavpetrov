@@ -4,27 +4,27 @@ const Services = () => {
   const services = [
     {
       icon: Shield,
-      title: 'Профилактика и почистване',
+      title: 'Профилактика',
       description: 'Регулярни прегледи и професионално почистване на зъбния камък',
-      features: ['Преглед на зъбите', 'Почистване на камък', 'Флуоридиране', 'Консултации']
+      features: ['Обстоен дентален преглед', 'Почистване на зъбен камък и плака', 'Флуориране', 'Консултации']
     },
     {
       icon: Heart,
-      title: 'Лечение на кариес',
-      description: 'Модерни методи за лечение на кариес с най-новите материали',
-      features: ['Диагностика', 'Лечение', 'Пломбиране', 'Последващ контрол']
+      title: 'Консервативно лечение',
+      description: 'Консервативно лечение на зъбите с обтуриране и най-новите материали',
+      features: ['Диагностика', 'Лечение', 'Обтуриране', 'Последващ контрол']
     },
     {
       icon: Star,
-      title: 'Естетична стоматология',
-      description: 'Подобряване на усмивката с естетични процедури',
-      features: ['Отбелязване', 'Винири', 'Коронки', 'Мостове']
+      title: 'Хирургия и имплантология',
+      description: 'Хирургично отстраняване и имплантологично възстановяване на зъби',
+      features: ['Обстоен преглед', 'Анализ', 'Лечение', 'Последващ контрол']
     },
     {
       icon: Shield,
-      title: 'Ортодонтия',
-      description: 'Изправяне на зъбите с модерни ортодонтски методи',
-      features: ['Консултации', 'Фиксирани апарати', 'Невидими апарати', 'Ретеншъни']
+      title: 'Ортопедия',
+      description: 'Възстановяване на липсващи зъби по протетичен начин',
+      features: ['Обстоен преглед', 'Ситуационен анализ', 'Лечение', 'Последващ контрол']
     }
   ]
 
@@ -79,14 +79,14 @@ const Services = () => {
                   <span className="text-2xl">🎯</span>
                 </div>
                 <h4 className="font-semibold text-secondary-900 mb-2">Опит</h4>
-                <p className="text-secondary-600 text-sm">Години опит в стоматологията</p>
+                <p className="text-secondary-600 text-sm">Повече от 21 години професионален опит в стоматологията</p>
               </div>
               <div className="text-center animate-fade-in" style={{ animationDelay: '0.7s' }}>
                 <div className="w-16 h-16 bg-primary-100 rounded-full flex items-center justify-center mx-auto mb-4">
                   <span className="text-2xl">⚡</span>
                 </div>
                 <h4 className="font-semibold text-secondary-900 mb-2">Технологии</h4>
-                <p className="text-secondary-600 text-sm">Най-новите стоматологични технологии</p>
+                <p className="text-secondary-600 text-sm">Най-новите стоматологични технологии на водещи брандове в денталната медицина</p>
               </div>
               <div className="text-center animate-fade-in" style={{ animationDelay: '0.8s' }}>
                 <div className="w-16 h-16 bg-primary-100 rounded-full flex items-center justify-center mx-auto mb-4">
@@ -103,4 +103,4 @@ const Services = () => {
   )
 }
 
-export default Services 
+export default Services

@@ -507,16 +507,11 @@ const Calendar = ({ bookings, onBookingClick, onAddBooking, onNavigateToDailySch
   const calculateAvailableSlots = () => {
     // Не проверяваме isMonthDataLoading тук - искаме да изчислим свободните часове когато имаме данните
     
-    // Проверяваме дали имаме нужните данни
+    // Нужни са поне услуги за продължителност на слот; работните часове могат да са от defaultWorkingHours ако няма записи за месеца
     if (services.length === 0) {
       return
     }
-    
-    // Skip calculation if working hours is empty (race condition)
-    if (workingHours.length === 0) {
-      return
-    }
-    
+
     const slots: AvailableSlots[] = []
     
     // Изчисли за всички дни от месеца

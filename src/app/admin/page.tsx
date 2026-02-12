@@ -4,7 +4,7 @@ import React, { useEffect, useMemo, Suspense } from 'react'
 import { useSearchParams } from 'next/navigation'
 import { useSocket } from '@/hooks/useSocket'
 import { useOffline } from '@/hooks/useOffline'
-import { getBulgariaDateStringDB, getBulgariaTime } from '@/lib/bulgaria-time'
+import { getBulgariaDateStringDB } from '@/lib/bulgaria-time'
 
 // Context and Hooks
 import { AdminStateProvider, useAdminState, type SortState } from '@/contexts/AdminStateContext'

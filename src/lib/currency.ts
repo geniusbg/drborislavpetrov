@@ -53,10 +53,10 @@ export function formatPrice(amount: number, currency: 'BGN' | 'EUR'): string {
 }
 
 /**
- * Format dual price display
+ * Format dual price display (EUR first, then BGN)
  */
 export function formatDualPrice(dualPrice: DualPrice): string {
-  return `${formatPrice(dualPrice.bgn, 'BGN')} / ${formatPrice(dualPrice.eur, 'EUR')}`;
+  return `${formatPrice(dualPrice.eur, 'EUR')} / ${formatPrice(dualPrice.bgn, 'BGN')}`;
 }
 
 /**

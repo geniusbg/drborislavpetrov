@@ -3,7 +3,7 @@ import { getDatabase } from '@/lib/database'
 import { normalizePhoneE164, sanitizePhoneDigits } from '@/lib/phone'
 import { emitUserAdded, emitUserUpdate, emitUserDeleted } from '@/lib/socket'
 
-export async function GET(request: NextRequest) {
+export async function GET(_request: NextRequest) {
   try {
     // Authentication is handled by middleware
 

@@ -1,10 +1,10 @@
-import { NextRequest, NextResponse } from 'next/server'
+import { NextResponse } from 'next/server'
 
 /**
  * Auto-reject orders endpoint
  * This endpoint is being called by an external source (likely a browser extension or cached request)
  */
-export async function POST(request: NextRequest) {
+export async function POST() {
   // Return 404 silently - this endpoint is not implemented
   return NextResponse.json(
     { 

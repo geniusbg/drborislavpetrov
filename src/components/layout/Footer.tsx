@@ -25,13 +25,13 @@ const Footer = () => {
               Вашето здраве е наш приоритет.
             </p>
             <div className="flex space-x-4">
-              <a href="tel:+359888123456" className="text-secondary-300 hover:text-white transition-colors">
+              <a href="tel:+359887229669" className="text-secondary-300 hover:text-white transition-colors" title="Мобилен: 0887 229 669">
                 <Phone className="w-5 h-5" />
               </a>
-              <a href="mailto:dr.petrov@example.com" className="text-secondary-300 hover:text-white transition-colors">
+              <a href="mailto:bpg23@abv.bg" className="text-secondary-300 hover:text-white transition-colors">
                 <Mail className="w-5 h-5" />
               </a>
-              <a href="https://maps.google.com" className="text-secondary-300 hover:text-white transition-colors">
+              <a href="https://www.google.com/maps/search/?api=1&query=ал.+Бели+Брези+8+Русе" target="_blank" rel="noopener noreferrer" className="text-secondary-300 hover:text-white transition-colors" title="Кабинет Здравец – ал. Бели Брези 8, Русе">
                 <MapPin className="w-5 h-5" />
               </a>
             </div>
@@ -75,17 +75,17 @@ const Footer = () => {
               </li>
               <li>
                 <Link href="#services" className="text-secondary-300 hover:text-white transition-colors animate-fade-in" style={{ animationDelay: '0.2s' }}>
-                  Лечение на кариес
+                  Консервативно лечение
                 </Link>
               </li>
               <li>
                 <Link href="#services" className="text-secondary-300 hover:text-white transition-colors animate-fade-in" style={{ animationDelay: '0.3s' }}>
-                  Естетична стоматология
+                  Хирургия и имплантология
                 </Link>
               </li>
               <li>
                 <Link href="#services" className="text-secondary-300 hover:text-white transition-colors animate-fade-in" style={{ animationDelay: '0.4s' }}>
-                  Ортодонтия
+                  Ортопедия
                 </Link>
               </li>
             </ul>

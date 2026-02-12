@@ -3,6 +3,19 @@ import { getDatabase } from '@/lib/database'
 import { normalizePhoneE164, sanitizePhoneDigits } from '@/lib/phone'
 import { sendBookingConfirmation, sendAdminNotification } from '@/lib/email'
 
+/** Normalize time to "HH:MM" so "9:00" and "09:00" match. */
+function normalizeTimeHHMM(t: string): string {
+  const parts = String(t).trim().split(':').map(Number)
+  const h = Math.max(0, Math.min(23, parts[0] ?? 0))
+  const m = Math.max(0, Math.min(59, parts[1] ?? 0))
+  return `${h.toString().padStart(2, '0')}:${m.toString().padStart(2, '0')}`
+}
+
+function timeToMinutes(t: string): number {
+  const [h, m] = String(t).split(':').map(Number)
+  return (h ?? 0) * 60 + (m ?? 0)
+}
+
 export async function POST(request: NextRequest) {
   try {
     const body = await request.json()
@@ -44,18 +57,35 @@ export async function POST(request: NextRequest) {
       }
     }
 
-    // Check if the time slot is available
-    const existingBooking = await db.query(`
-      SELECT * FROM bookings 
-      WHERE date = $1 AND time = $2 AND status != 'cancelled'
-    `, [date, time])
-
-    if (existingBooking.rows.length > 0) {
+    // Get service duration first for overlap check
+    const serviceDetails = await db.query('SELECT * FROM services WHERE id = $1', [service])
+    if (serviceDetails.rows.length === 0) {
       db.release()
       return NextResponse.json(
-        { error: 'Този час вече е зает. Моля, изберете друг час.' },
-        { status: 409 }
+        { error: 'Избраната услуга не съществува' },
+        { status: 400 }
       )
+    }
+    const duration = serviceDetails.rows[0].duration ?? 30
+    const timeNormalized = normalizeTimeHHMM(time)
+    const newStart = timeToMinutes(timeNormalized)
+    const newEnd = newStart + duration
+
+    // Check if the time slot overlaps any existing booking (same logic as available-slots)
+    const existingBookings = await db.query(
+      `SELECT time, COALESCE(serviceduration, 30) as duration FROM bookings WHERE date = $1 AND status != 'cancelled'`,
+      [date]
+    )
+    for (const row of existingBookings.rows as Array<{ time: string; duration: number }>) {
+      const bStart = timeToMinutes(normalizeTimeHHMM(row.time))
+      const bEnd = bStart + (row.duration || 30)
+      if (newStart < bEnd && newEnd > bStart) {
+        db.release()
+        return NextResponse.json(
+          { error: 'Този час вече е зает. Моля, изберете друг час.' },
+          { status: 409 }
+        )
+      }
     }
 
     // Check if time conflicts with break
@@ -73,8 +103,7 @@ export async function POST(request: NextRequest) {
       const breakStartMinutes = breakStartHour * 60 + breakStartMinute
       const breakEndMinutes = breakEndHour * 60 + breakEndMinute
       
-      const [timeHour, timeMinute] = time.split(':').map(Number)
-      const timeMinutes = timeHour * 60 + timeMinute
+      const timeMinutes = timeToMinutes(timeNormalized)
       
       // Check if time is during break
       if (timeMinutes >= breakStartMinutes && timeMinutes < breakEndMinutes) {
@@ -86,22 +115,12 @@ export async function POST(request: NextRequest) {
       }
     }
 
-    // Get service details for duration calculation
-    const serviceDetails = await db.query('SELECT * FROM services WHERE id = $1', [service])
-    if (serviceDetails.rows.length === 0) {
-      db.release()
-      return NextResponse.json(
-        { error: 'Избраната услуга не съществува' },
-        { status: 400 }
-      )
-    }
-
-    // Create the booking with service duration
+    // Create the booking with service duration (store normalized time)
     const result = await db.query(`
       INSERT INTO bookings (name, email, phone, service, serviceduration, date, time, message, status)
       VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9)
       RETURNING id
-    `, [name, email || null, phoneE164, serviceDetails.rows[0].name, serviceDetails.rows[0].duration, date, time, message || null, 'pending'])
+    `, [name, email || null, phoneE164, serviceDetails.rows[0].name, serviceDetails.rows[0].duration, date, timeNormalized, message || null, 'pending'])
 
     const bookingId = result.rows[0].id
 

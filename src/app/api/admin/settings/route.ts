@@ -76,7 +76,7 @@ function saveSettings(settings: AppSettings) {
   fs.writeFileSync(SETTINGS_FILE, JSON.stringify(settings, null, 2))
 }
 
-export async function GET(request: NextRequest) {
+export async function GET(_request: NextRequest) {
   // Authentication is handled by middleware
   const settings = loadSettings()
   return NextResponse.json({ settings })

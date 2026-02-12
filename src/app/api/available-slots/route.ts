@@ -31,10 +31,15 @@ export async function GET(req: NextRequest) {
   try {
     const { searchParams } = new URL(req.url)
     const date = searchParams.get('date')
-    const serviceId = searchParams.get('serviceId')
+    const serviceIdParam = searchParams.get('serviceId')
 
-    if (!date || !serviceId) {
+    if (!date || serviceIdParam == null || serviceIdParam === '') {
       return NextResponse.json({ error: 'Missing date or serviceId' }, { status: 400 })
+    }
+
+    const serviceId = parseInt(serviceIdParam, 10)
+    if (Number.isNaN(serviceId) || serviceId < 1) {
+      return NextResponse.json({ error: 'Invalid serviceId: must be a positive number' }, { status: 400 })
     }
 
     const db = await getDatabase()
@@ -83,9 +88,9 @@ export async function GET(req: NextRequest) {
       return NextResponse.json({ availableSlots: [] })
     }
 
-    // existing bookings on date (with correct service duration)
+    // existing bookings on date (use serviceduration from booking only – service column is name, not id)
     const bkRes = await db.query(
-      `SELECT b.id, b.time, COALESCE(b.serviceduration, s.duration, 30) as duration FROM bookings b LEFT JOIN services s ON b.service::integer = s.id WHERE b.date = $1 AND b.status != 'cancelled'`,
+      `SELECT id, time, COALESCE(serviceduration, 30) as duration FROM bookings WHERE date = $1 AND status != 'cancelled'`,
       [date]
     )
     const existing = bkRes.rows as Array<{ id: number; time: string; duration: number }>

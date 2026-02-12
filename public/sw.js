@@ -300,15 +300,17 @@ self.addEventListener('fetch', (event) => {
         });
       }
       
-      console.log('[SW] Fetching and caching static asset:', event.request.url);
+      const requestUrl = event.request.url;
+      // Only cache http/https; chrome-extension: and other schemes are unsupported by Cache API
+      const isCacheableScheme = requestUrl.startsWith('http://') || requestUrl.startsWith('https://');
+      console.log('[SW] Fetching and caching static asset:', requestUrl);
       return fetch(event.request).then((response) => {
-        if (response && response.status === 200) {
-          // Cache all successful GET requests for static assets
+        if (response && response.status === 200 && isCacheableScheme) {
           const copy = response.clone();
           caches.open(CACHE_NAME).then((cache) => {
             try {
               cache.put(event.request, copy);
-              console.log('[SW] Cached static asset:', event.request.url);
+              console.log('[SW] Cached static asset:', requestUrl);
             } catch (error) {
               console.warn('Failed to cache request:', error);
             }

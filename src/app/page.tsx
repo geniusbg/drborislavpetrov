@@ -12,29 +12,21 @@ import { SectionTransition } from '@/components/layout/SectionTransition'
 import PWAInstallButton from '@/components/PWAInstallButton'
 
 export default function HomePage() {
-  // Loading overlay state
-  const [hideOverlay, setHideOverlay] = useState(() => {
-    // Check immediately if app has been loaded before
-    if (typeof window !== 'undefined') {
-      return !!sessionStorage.getItem('app-loaded')
-    }
-    return false
-  })
+  // Loading overlay state - always start false so server and client match (avoids hydration error)
+  const [hideOverlay, setHideOverlay] = useState(false)
   const [isClosing, setIsClosing] = useState(false)
   const [overlayProgress, setOverlayProgress] = useState(0)
   const initLoadStartedRef = useRef(false)
   const overlayFinalizedRef = useRef(false)
 
-  // Simulate loading progress
+  // Simulate loading progress (runs only on client after mount)
   useEffect(() => {
     if (initLoadStartedRef.current) return
     initLoadStartedRef.current = true
 
-    // Check if app has been loaded before in this session
+    // Check if app has been loaded before in this session (client-only, after mount)
     const hasLoadedBefore = typeof window !== 'undefined' && sessionStorage.getItem('app-loaded')
-    
     if (hasLoadedBefore) {
-      // Skip loading animation for subsequent navigations
       setHideOverlay(true)
       return
     }

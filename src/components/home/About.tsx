@@ -4,7 +4,7 @@ const About = () => {
   const achievements = [
     {
       icon: Award,
-      number: '15+',
+      number: '21+',
       label: 'Години опит'
     },
     {
@@ -14,7 +14,7 @@ const About = () => {
     },
     {
       icon: GraduationCap,
-      number: '3',
+      number: '1',
       label: 'Специализации'
     },
     {
@@ -35,7 +35,7 @@ const About = () => {
                 За д-р Борислав Петров
               </h2>
               <p className="text-lg text-secondary-600 leading-relaxed">
-                Д-р Борислав Петров е опитен зъболекар с повече от 15 години практика в стоматологията. 
+                Д-р Борислав Петров е опитен зъболекар с повече от 21 години практика в стоматологията. 
                 Специализира в профилактика, лечение на кариес и естетична стоматология.
               </p>
               <p className="text-lg text-secondary-600 leading-relaxed">
@@ -59,8 +59,8 @@ const About = () => {
                   <li className="flex items-start space-x-3 animate-fade-in" style={{ animationDelay: '0.2s' }}>
                     <div className="w-2 h-2 bg-primary-500 rounded-full mt-2 flex-shrink-0"></div>
                     <div>
-                      <p className="font-medium text-secondary-900">Специализации</p>
-                      <p className="text-secondary-600">Естетична стоматология, Ортодонтия, Имплантология</p>
+                      <p className="font-medium text-secondary-900">Специализация</p>
+                      <p className="text-secondary-600">Имплантология</p>
                     </div>
                   </li>
                 </ul>

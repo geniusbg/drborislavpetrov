@@ -223,8 +223,9 @@ export function useAdminEventHandlers() {
       if (response.ok) {
         await loadServices(true)
       } else {
-        const error = await response.json()
-        alert(`Грешка при изтриване: ${error.message}`)
+        const data = await response.json().catch(() => ({}))
+        const msg = data?.error || data?.message || 'Неизвестна грешка'
+        alert(`Грешка при изтриване: ${msg}`)
       }
     } catch (error) {
       console.error('Error deleting service:', error)

@@ -55,13 +55,6 @@ const Header = () => {
                 showBanner={false}
               />
             </div>
-            <Link
-              href="/admin/login"
-              className="text-secondary-700 hover:text-primary-600 transition-colors duration-200 font-medium animate-fade-in"
-              style={{ animationDelay: '0.6s' }}
-            >
-              Админ
-            </Link>
           </nav>
 
           {/* Mobile menu button */}

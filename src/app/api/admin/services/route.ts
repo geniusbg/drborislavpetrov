@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import { getDatabase } from '@/lib/database'
 import { emitServiceAdded, emitServiceUpdate, emitServiceDeleted } from '@/lib/socket'
 
-export async function GET(request: NextRequest) {
+export async function GET(_request: NextRequest) {
   try {
     // Authentication is handled by middleware
 
@@ -111,12 +111,20 @@ export async function DELETE(request: NextRequest) {
   try {
     // Authentication is handled by middleware
 
-    const { searchParams } = new URL(request.url)
-    const id = searchParams.get('id')
+    const body = await request.json().catch(() => ({}))
+    const id = body?.id ?? new URL(request.url).searchParams.get('id')
 
-    if (!id) {
+    if (id == null || id === '') {
       return NextResponse.json(
         { error: 'Service ID required' },
+        { status: 400 }
+      )
+    }
+
+    const idNum = typeof id === 'number' ? id : parseInt(String(id), 10)
+    if (Number.isNaN(idNum)) {
+      return NextResponse.json(
+        { error: 'Invalid service ID' },
         { status: 400 }
       )
     }
@@ -124,7 +132,7 @@ export async function DELETE(request: NextRequest) {
     const db = await getDatabase()
     
     // First, get the service name before deleting
-    const serviceResult = await db.query('SELECT name FROM services WHERE id = $1', [id])
+    const serviceResult = await db.query('SELECT name FROM services WHERE id = $1', [idNum])
     
     if (serviceResult.rowCount === 0) {
       db.release()
@@ -141,15 +149,15 @@ export async function DELETE(request: NextRequest) {
       UPDATE bookings 
       SET service = $2 
       WHERE service = $1
-    `, [id, serviceName])
+    `, [String(idNum), serviceName])
     
     // Now delete the service
-    await db.query('DELETE FROM services WHERE id = $1', [id])
+    await db.query('DELETE FROM services WHERE id = $1', [idNum])
 
     db.release()
     
     // Emit WebSocket event
-    emitServiceDeleted(id)
+    emitServiceDeleted(idNum)
     
     return NextResponse.json({ success: true })
   } catch (error) {

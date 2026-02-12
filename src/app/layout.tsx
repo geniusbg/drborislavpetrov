@@ -3,6 +3,7 @@ import { getSiteDomain } from '@/lib/site'
 import { Inter } from 'next/font/google'
 import './globals.css'
 import Script from 'next/script'
+import ClientProviders from '@/components/ClientProviders'
 
 // Extend Window interface for service worker registration flag and socket
 declare global {
@@ -85,7 +86,9 @@ export default function RootLayout({
         <link rel="shortcut icon" href="/favicon.ico" />
       </head>
       <body className={inter.className}>
-        {children}
+        <ClientProviders>
+          {children}
+        </ClientProviders>
           <Script
             id="service-worker"
             strategy="afterInteractive"

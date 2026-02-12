@@ -1,10 +1,12 @@
 'use client'
 
 import { useState } from 'react'
-import { MapPin, Phone, Mail, Clock, Send } from 'lucide-react'
+import { MapPin, Phone, Mail, Clock, Send, Smartphone } from 'lucide-react'
 import { validateContact, type ContactFormData } from '@/lib/validation'
+import { useAppMessage } from '@/contexts/AppMessageContext'
 
 const Contact = () => {
+  const { showMessage } = useAppMessage()
   const [formData, setFormData] = useState<ContactFormData>({
     name: '',
     email: '',
@@ -54,7 +56,11 @@ const Contact = () => {
       const result = await response.json()
 
       if (response.ok) {
-        alert(result.message)
+        showMessage({
+          variant: 'success',
+          title: 'Съобщението е изпратено',
+          message: result.message ?? 'Ще ви отговорим възможно най-скоро.'
+        })
         setFormData({
           name: '',
           email: '',
@@ -62,9 +68,11 @@ const Contact = () => {
           message: ''
         })
       } else {
+        showMessage({ variant: 'error', message: result.error ?? 'Неуспешно изпращане.' })
         setErrors({ submit: result.error })
       }
     } catch (error) {
+      showMessage({ variant: 'error', message: 'Възникна грешка. Моля опитайте отново.' })
       setErrors({ submit: 'Възникна грешка. Моля опитайте отново.' })
     } finally {
       setIsSubmitting(false)
@@ -78,29 +86,42 @@ const Contact = () => {
     })
   }
 
-  const contactInfo = [
+  const offices = [
     {
-      icon: MapPin,
-      title: 'Адрес',
-      content: 'ул. "Примерна" 123, София 1000',
-      link: 'https://maps.google.com'
+      title: 'Кабинет Здравец',
+      address: 'ал. "Бели Брези" № 8, вх. 2, ет. 1',
+      city: 'гр. Русе',
+      mapsUrl: 'https://www.google.com/maps/search/?api=1&query=ал.+Бели+Брези+8+Русе',
+      wazeUrl: 'https://waze.com/ul?q=ал.+Бели+Брези+8,+Русе',
+      embedUrl: 'https://www.google.com/maps?q=ал.+Бели+Брези+8,+Русе&output=embed'
     },
+    {
+      title: 'Кабинет КООП Пазар',
+      address: 'ул. "Цар Асен II" № 32, вх. 1, ет. 2',
+      city: 'гр. Русе',
+      mapsUrl: 'https://www.google.com/maps/search/?api=1&query=Цар+Асен+32+Русе',
+      wazeUrl: 'https://waze.com/ul?q=ул.+Цар+Асен+32,+Русе',
+      embedUrl: 'https://www.google.com/maps?q=ул.+Цар+Асен+32,+Русе&output=embed'
+    }
+  ]
+
+  const contactInfo = [
     {
       icon: Phone,
       title: 'Телефон',
-      content: '+359 888 123 456',
-      link: 'tel:+359888123456'
+      content: 'Мобилен: 0887 229 669\nСтационарен: 082 857 725',
+      link: 'tel:+359887229669'
     },
     {
       icon: Mail,
       title: 'Имейл',
-      content: 'dr.petrov@example.com',
-      link: 'mailto:dr.petrov@example.com'
+      content: 'bpg23@abv.bg',
+      link: 'mailto:bpg23@abv.bg'
     },
     {
       icon: Clock,
       title: 'Работно време',
-      content: 'Понеделник - Петък: 9:00 - 18:00\nСъбота: 9:00 - 14:00',
+      content: 'Понеделник - Петък: 9:00 - 19:00\nСъбота: Затворено\nНеделя: Затворено',
       link: null
     }
   ]
@@ -121,8 +142,49 @@ const Contact = () => {
           {/* Contact Information */}
           <div className="space-y-8 animate-fade-in">
             <div className="grid sm:grid-cols-2 gap-6 animate-fade-in">
+              {offices.map((office, index) => (
+                <div key={office.title} className="card animate-fade-in" style={{ animationDelay: `${index * 0.1}s` }}>
+                  <div className="flex items-start space-x-4">
+                    <div className="w-12 h-12 bg-primary-100 rounded-lg flex items-center justify-center flex-shrink-0">
+                      <MapPin className="w-6 h-6 text-primary-600" />
+                    </div>
+                    <div className="flex-1">
+                      <h3 className="text-lg font-semibold text-secondary-900 mb-2">
+                        {office.title}
+                      </h3>
+                      <p className="text-secondary-600 text-sm mb-2">
+                        {office.address}
+                        <br />
+                        {office.city}
+                      </p>
+                      <div className="flex flex-wrap items-center gap-x-3 gap-y-1">
+                        <a
+                          href={office.mapsUrl}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="text-primary-600 hover:text-primary-700 text-sm font-medium"
+                        >
+                          Google Maps →
+                        </a>
+                        <a
+                          href={office.wazeUrl}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="text-primary-600 hover:text-primary-700 text-sm font-medium"
+                        >
+                          Waze →
+                        </a>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              ))}
               {contactInfo.map((info, index) => (
-                <div key={index} className="card animate-fade-in" style={{ animationDelay: `${index * 0.1}s` }}>
+                <div
+                  key={info.title}
+                  className={`card animate-fade-in ${info.title === 'Работно време' ? 'sm:col-span-2' : ''}`}
+                  style={{ animationDelay: `${(index + 2) * 0.1}s` }}
+                >
                   <div className="flex items-start space-x-4">
                     <div className="w-12 h-12 bg-primary-100 rounded-lg flex items-center justify-center flex-shrink-0">
                       <info.icon className="w-6 h-6 text-primary-600" />
@@ -131,7 +193,33 @@ const Contact = () => {
                       <h3 className="text-lg font-semibold text-secondary-900 mb-2">
                         {info.title}
                       </h3>
-                      {info.link ? (
+                      {info.title === 'Телефон' ? (
+                        <div className="space-y-2">
+                          <a href="tel:+359887229669" className="flex items-center gap-2 text-secondary-600 hover:text-primary-600 transition-colors">
+                            <Smartphone className="w-5 h-5 flex-shrink-0" />
+                            <span>0887 229 669</span>
+                          </a>
+                          <a href="tel:+35982857725" className="flex items-center gap-2 text-secondary-600 hover:text-primary-600 transition-colors">
+                            <Phone className="w-5 h-5 flex-shrink-0" />
+                            <span>082 857 725</span>
+                          </a>
+                        </div>
+                      ) : info.title === 'Работно време' ? (
+                        <div className="rounded-lg bg-secondary-50/80 border border-secondary-100 overflow-hidden">
+                          <div className="flex justify-between items-center py-3 px-4 gap-4 border-b border-secondary-100">
+                            <span className="font-medium text-secondary-900 text-sm sm:text-base">Понеделник – Петък</span>
+                            <span className="text-secondary-600 text-sm sm:text-base tabular-nums">9:00 – 19:00</span>
+                          </div>
+                          <div className="flex justify-between items-center py-3 px-4 gap-4 border-b border-secondary-100">
+                            <span className="font-medium text-secondary-900 text-sm sm:text-base">Събота</span>
+                            <span className="text-secondary-500 text-sm sm:text-base">Затворено</span>
+                          </div>
+                          <div className="flex justify-between items-center py-3 px-4 gap-4">
+                            <span className="font-medium text-secondary-900 text-sm sm:text-base">Неделя</span>
+                            <span className="text-secondary-500 text-sm sm:text-base">Затворено</span>
+                          </div>
+                        </div>
+                      ) : info.link ? (
                         <a
                           href={info.link}
                           className="text-secondary-600 hover:text-primary-600 transition-colors"
@@ -149,22 +237,6 @@ const Contact = () => {
                   </div>
                 </div>
               ))}
-            </div>
-
-            {/* Map Placeholder */}
-            <div className="bg-secondary-100 rounded-xl p-8 text-center animate-fade-in" style={{ animationDelay: '0.5s' }}>
-              <div className="w-16 h-16 bg-secondary-200 rounded-full flex items-center justify-center mx-auto mb-4">
-                <MapPin className="w-8 h-8 text-secondary-600" />
-              </div>
-              <h3 className="text-lg font-semibold text-secondary-900 mb-2">
-                Нашата локация
-              </h3>
-              <p className="text-secondary-600 mb-4">
-                Централно разположение с лесен достъп
-              </p>
-              <button className="btn-secondary">
-                Отвори в Google Maps
-              </button>
             </div>
           </div>
 
@@ -224,7 +296,7 @@ const Contact = () => {
                   value={formData.phone}
                   onChange={handleChange}
                   className="input-field"
-                  placeholder="+359 888 123 456"
+                  placeholder="0887 229 669"
                 />
               </div>
 
@@ -264,6 +336,68 @@ const Contact = () => {
               </button>
             </form>
           </div>
+        </div>
+
+        {/* Нашите кабинети в Русе – пълна ширина, заглавие отгоре и текст отдолу */}
+        <div className="mt-16 animate-fade-in">
+          <h3 className="text-2xl font-semibold text-secondary-900 text-center flex items-center justify-center gap-2">
+            <MapPin className="w-7 h-7 text-primary-600" />
+            Нашите кабинети в Русе
+          </h3>
+          <p className="text-secondary-600 text-center mt-2 max-w-2xl mx-auto">
+            Два удобно разположени кабинета за по-лесен достъп до вас.
+          </p>
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 lg:gap-8 mt-8 w-full">
+            {offices.map((office) => (
+              <div key={office.title} className="bg-white rounded-xl border border-secondary-200 overflow-hidden shadow-sm hover:shadow-md transition-shadow w-full">
+                <div className="p-4 sm:p-5 border-b border-secondary-100">
+                  <h4 className="text-lg font-semibold text-secondary-900 flex items-center gap-2">
+                    <MapPin className="w-5 h-5 text-primary-600 flex-shrink-0" />
+                    {office.title}
+                  </h4>
+                  <p className="text-secondary-600 text-sm mt-1">
+                    {office.address}
+                    <br />
+                    {office.city}
+                  </p>
+                </div>
+                <div className="relative w-full bg-secondary-100" style={{ minHeight: '280px' }}>
+                  <div className="relative w-full h-0 pb-[75%] sm:pb-[60%] lg:pb-[55%]">
+                    <iframe
+                      title={`Карта – ${office.title}`}
+                      src={office.embedUrl}
+                      className="absolute inset-0 w-full h-full"
+                      style={{ border: 0 }}
+                      allowFullScreen
+                      loading="lazy"
+                      referrerPolicy="no-referrer-when-downgrade"
+                    />
+                  </div>
+                </div>
+                <div className="p-4 sm:p-5 flex flex-wrap gap-2">
+                  <a
+                    href={office.mapsUrl}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="btn-secondary text-sm"
+                  >
+                    Google Maps
+                  </a>
+                  <a
+                    href={office.wazeUrl}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="btn-secondary text-sm"
+                  >
+                    Waze
+                  </a>
+                </div>
+              </div>
+            ))}
+          </div>
+          <p className="text-secondary-600 text-center text-sm mt-6">
+            Отворете в Google Maps или Waze за насоки до кабинета.
+          </p>
         </div>
       </div>
     </section>

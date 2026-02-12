@@ -2,11 +2,13 @@
 'use client'
 
 import { useState, useEffect } from 'react'
-import { Calendar, Clock, User, Phone, Mail, MessageSquare } from 'lucide-react'
+import { Calendar, Clock, User, Phone, Mail, MessageSquare, Smartphone } from 'lucide-react'
 import { validateBooking, type BookingFormData } from '@/lib/validation'
 import { getBulgariaTime } from '@/lib/bulgaria-time'
+import { useAppMessage } from '@/contexts/AppMessageContext'
 
 const Booking = () => {
+  const { showMessage } = useAppMessage()
   const [bookingData, setBookingData] = useState<BookingFormData>({
     name: '',
     email: '',
@@ -123,7 +125,11 @@ const Booking = () => {
       const result = await response.json()
 
       if (response.ok) {
-        alert(result.message)
+        showMessage({
+          variant: 'success',
+          title: 'Резервацията е създадена успешно!',
+          message: result.message ?? 'Ще получите потвърждение на имейла.'
+        })
         setBookingData({
           name: '',
           email: '',
@@ -134,9 +140,11 @@ const Booking = () => {
           message: ''
         })
       } else {
+        showMessage({ variant: 'error', message: result.error ?? 'Неуспешна резервация.' })
         setErrors({ submit: result.error })
       }
     } catch (error) {
+      showMessage({ variant: 'error', message: 'Възникна грешка. Моля опитайте отново.' })
       setErrors({ submit: 'Възникна грешка. Моля опитайте отново.' })
     } finally {
       setIsSubmitting(false)
@@ -211,7 +219,7 @@ const Booking = () => {
                       onChange={handleChange}
                       required
                       className={`input-field pl-10 ${errors.phone ? 'border-red-500' : ''}`}
-                      placeholder="+359 888 123 456"
+                      placeholder="0887 229 669"
                     />
                     {errors.phone && (
                       <p className="text-red-600 text-xs mt-1">{errors.phone}</p>
@@ -397,11 +405,11 @@ const Booking = () => {
               <div className="space-y-3">
                 <div className="flex justify-between animate-fade-in" style={{ animationDelay: '0.5s' }}>
                   <span className="text-secondary-700">Понеделник - Петък</span>
-                  <span className="font-semibold text-secondary-900">9:00 - 18:00</span>
+                  <span className="font-semibold text-secondary-900">9:00 - 19:00</span>
                 </div>
                 <div className="flex justify-between animate-fade-in" style={{ animationDelay: '0.6s' }}>
                   <span className="text-secondary-700">Събота</span>
-                  <span className="font-semibold text-secondary-900">9:00 - 14:00</span>
+                  <span className="font-semibold text-red-600">Затворено</span>
                 </div>
                 <div className="flex justify-between animate-fade-in" style={{ animationDelay: '0.7s' }}>
                   <span className="text-secondary-700">Неделя</span>
@@ -418,13 +426,17 @@ const Booking = () => {
                 Ако имате въпроси или се нуждаете от помощ, не се колебайте да се свържете с нас.
               </p>
               <div className="space-y-3">
-                <a href="tel:+359888123456" className="flex items-center space-x-3 text-secondary-700 hover:text-primary-600 transition-colors animate-fade-in" style={{ animationDelay: '0.8s' }}>
-                  <Phone className="w-4 h-4" />
-                  <span>+359 888 123 456</span>
+                <a href="tel:+359887229669" className="flex items-center space-x-3 text-secondary-700 hover:text-primary-600 transition-colors animate-fade-in" style={{ animationDelay: '0.8s' }}>
+                  <Smartphone className="w-4 h-4 flex-shrink-0" />
+                  <span>0887 229 669</span>
                 </a>
-                <a href="mailto:dr.petrov@example.com" className="flex items-center space-x-3 text-secondary-700 hover:text-primary-600 transition-colors animate-fade-in" style={{ animationDelay: '0.9s' }}>
+                <a href="tel:+35982857725" className="flex items-center space-x-3 text-secondary-700 hover:text-primary-600 transition-colors animate-fade-in" style={{ animationDelay: '0.8s' }}>
+                  <Phone className="w-4 h-4 flex-shrink-0" />
+                  <span>082 857 725</span>
+                </a>
+                <a href="mailto:bpg23@abv.bg" className="flex items-center space-x-3 text-secondary-700 hover:text-primary-600 transition-colors animate-fade-in" style={{ animationDelay: '0.9s' }}>
                   <Mail className="w-4 h-4" />
-                  <span>dr.petrov@example.com</span>
+                  <span>bpg23@abv.bg</span>
                 </a>
               </div>
             </div>
