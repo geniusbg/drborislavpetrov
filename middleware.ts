@@ -16,6 +16,11 @@ export function middleware(request: NextRequest) {
   response.headers.set('X-XSS-Protection', '1; mode=block')
   response.headers.set('Referrer-Policy', 'strict-origin-when-cross-origin')
   response.headers.set('Permissions-Policy', 'camera=(), microphone=(), geolocation=()')
+  // CSP: frame-src allows Google iframes (e.g. maps, forms); останалото както по подразбиране
+  response.headers.set(
+    'Content-Security-Policy',
+    "default-src 'self'; script-src 'self' 'unsafe-inline' 'unsafe-eval'; style-src 'self' 'unsafe-inline'; img-src 'self' data: https:; font-src 'self' data:; connect-src 'self' wss: ws:; manifest-src 'self'; frame-src 'self' https://www.google.com https://maps.google.com https://docs.google.com;"
+  )
 
   // CORS Headers for API routes
   if (request.nextUrl.pathname.startsWith('/api/')) {
