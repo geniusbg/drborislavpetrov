@@ -55,6 +55,11 @@ export default function RootLayout({
   return (
     <html lang="bg">
       <head>
+        {/* CSP: frame-src разрешава Google iframe (карти, форми); идва от app, не от прокси */}
+        <meta
+          httpEquiv="Content-Security-Policy"
+          content="frame-src 'self' https://www.google.com https://maps.google.com https://docs.google.com;"
+        />
         {/* Защита от ботове - забранява индексиране */}
         <meta name="robots" content="noindex, nofollow, noarchive, nosnippet" />
         <meta name="googlebot" content="noindex, nofollow" />
