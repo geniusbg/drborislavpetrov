@@ -157,7 +157,7 @@ export async function DELETE(request: NextRequest) {
     db.release()
     
     // Emit WebSocket event
-    emitServiceDeleted(idNum)
+    emitServiceDeleted(String(idNum))
     
     return NextResponse.json({ success: true })
   } catch (error) {
