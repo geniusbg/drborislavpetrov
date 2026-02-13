@@ -5,7 +5,7 @@ import { offlineAPI } from '@/lib/offline-api'
 import { offlineStorage } from '@/lib/offline-storage'
 import { useAdminState } from '@/contexts/AdminStateContext'
 import { getBulgariaTime } from '@/lib/bulgaria-time'
-import type { Booking, User, Service } from '@/types/global'
+import type { Booking, User, Service, Case } from '@/types/global'
 
 export function useAdminData() {
   const {
@@ -19,6 +19,7 @@ export function useAdminData() {
     setBookings,
     setUsers,
     setServices,
+    setCases,
     setIsLoadingBookings,
     setIsLoadingServices,
     setIsMobileOrIOS,
@@ -124,6 +125,18 @@ export function useAdminData() {
     }
   }
 
+  const loadCases = async (forceRefresh = false) => {
+    try {
+      const response = await fetch('/api/admin/cases', { credentials: 'include' })
+      if (response.ok) {
+        const data = await response.json()
+        setCases((data.cases as Case[]) || [])
+      }
+    } catch (error) {
+      console.error('loadCases error:', error)
+    }
+  }
+
   // Initial data loading
   useEffect(() => {
     const loadInitialData = async () => {
@@ -131,7 +144,7 @@ export function useAdminData() {
       initLoadStartedRef.current = true
 
       // Load all data in parallel for better performance
-      const tasks = [loadBookings(), loadServices(), loadUsers()]
+      const tasks = [loadBookings(), loadServices(), loadUsers(), loadCases()]
       
       try {
         await Promise.all(tasks)
@@ -180,6 +193,7 @@ export function useAdminData() {
   return {
     loadBookings,
     loadUsers,
-    loadServices
+    loadServices,
+    loadCases
   }
 }

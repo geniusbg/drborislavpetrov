@@ -1,14 +1,14 @@
 'use client'
 
 import { useRouter, useSearchParams } from 'next/navigation'
-import type { Booking, User as UserType, Service as ServiceType } from '@/types/global'
+import type { Booking, User as UserType, Service as ServiceType, Case as CaseType } from '@/types/global'
 import { useAdminState, type SortField, type SortState } from '@/contexts/AdminStateContext'
 import { useAdminData } from '@/hooks/useAdminData'
 
 export function useAdminEventHandlers() {
   const router = useRouter()
   const searchParams = useSearchParams()
-  const { loadBookings, loadUsers, loadServices } = useAdminData()
+  const { loadBookings, loadUsers, loadServices, loadCases } = useAdminData()
   
   const {
     bookings,
@@ -16,9 +16,11 @@ export function useAdminEventHandlers() {
     setShowUserModal,
     setShowBookingModal,
     setShowServiceModal,
+    setShowCaseModal,
     setEditingUser,
     setEditingBooking,
     setEditingService,
+    setEditingCase,
     setSortState
   } = useAdminState()
 
@@ -33,6 +35,7 @@ export function useAdminEventHandlers() {
     params.delete('bookingId')
     params.delete('serviceId')
     params.delete('date')
+    params.delete('caseId')
     router.push(`/admin?${params.toString()}`, { scroll: false })
   }
 
@@ -233,6 +236,37 @@ export function useAdminEventHandlers() {
     }
   }
 
+  const handleAddCase = () => {
+    setEditingCase(null)
+    setShowCaseModal(true)
+  }
+
+  const handleEditCase = (caseItem: CaseType) => {
+    setEditingCase(caseItem)
+    setShowCaseModal(true)
+  }
+
+  const handleDeleteCase = async (id: number) => {
+    if (!confirm('Сигурни ли сте, че искате да изтриете този случай?')) return
+    try {
+      const response = await fetch('/api/admin/cases', {
+        method: 'DELETE',
+        credentials: 'include',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ id })
+      })
+      if (response.ok) {
+        await loadCases()
+      } else {
+        const data = await response.json().catch(() => ({}))
+        alert(`Грешка при изтриване: ${data?.error || data?.message || 'Неизвестна грешка'}`)
+      }
+    } catch (error) {
+      console.error('Error deleting case:', error)
+      alert('Грешка при изтриване на случая')
+    }
+  }
+
   return {
     changeTab,
     handleSort,
@@ -249,6 +283,9 @@ export function useAdminEventHandlers() {
     handleViewUserHistory,
     handleAddService,
     handleEditService,
-    handleDeleteService
+    handleDeleteService,
+    handleAddCase,
+    handleEditCase,
+    handleDeleteCase
   }
 }

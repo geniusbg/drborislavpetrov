@@ -8,6 +8,7 @@ type AppSettings = {
   site: {
     domain: string
   }
+  casesSectionTitle?: string
   defaultWorkingHours: {
     workingDays: number[] // 0=Sun..6=Sat
     startTime: string // HH:MM
@@ -46,6 +47,7 @@ function loadSettings(): AppSettings {
     site: {
       domain: process.env.SITE_DOMAIN || 'http://localhost:3000'
     },
+    casesSectionTitle: 'Клинични случаи',
     defaultWorkingHours: {
       workingDays: [1, 2, 3, 4, 5],
       startTime: '09:00',
@@ -92,6 +94,9 @@ export async function POST(request: NextRequest) {
         ? String(body.site.domain).trim()
         : current.site.domain
     },
+    casesSectionTitle: typeof body?.casesSectionTitle === 'string'
+      ? body.casesSectionTitle.trim() || current.casesSectionTitle || 'Клинични случаи'
+      : (current.casesSectionTitle ?? 'Клинични случаи'),
     defaultWorkingHours: {
       workingDays: Array.isArray(body?.defaultWorkingHours?.workingDays)
         ? body.defaultWorkingHours.workingDays.map((n: unknown) => Number(n)).filter((n: number) => n >= 0 && n <= 6)

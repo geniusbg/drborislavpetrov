@@ -18,6 +18,7 @@ import AdminNavigation from '@/components/admin/AdminNavigation'
 import BookingsTab from '@/components/admin/tabs/BookingsTab'
 import UsersTab from '@/components/admin/tabs/UsersTab'
 import ServicesTab from '@/components/admin/tabs/ServicesTab'
+import CasesTab from '@/components/admin/tabs/CasesTab'
 import AnalyticsTab from '@/components/admin/tabs/AnalyticsTab'
 import AdminsTab from '@/components/admin/tabs/AdminsTab'
 import CalendarComponent from '@/components/admin/Calendar'
@@ -88,6 +89,7 @@ function AdminPageContent() {
     usersPerPage,
     currentServicesPage,
     servicesPerPage,
+    cases,
     currentDateTime
   } = useAdminState()
 
@@ -119,7 +121,10 @@ function AdminPageContent() {
     handleViewUserHistory,
     handleAddService,
     handleEditService,
-    handleDeleteService
+    handleDeleteService,
+    handleAddCase,
+    handleEditCase,
+    handleDeleteCase
   } = useAdminEventHandlers()
 
   // WebSocket connection
@@ -460,6 +465,16 @@ function AdminPageContent() {
               onAddService={handleAddService}
               onEditService={handleEditService}
               onDeleteService={handleDeleteService}
+            />
+          )}
+
+          {/* Cases Tab */}
+          {activeTab === 'cases' && (
+            <CasesTab
+              cases={cases}
+              onAddCase={handleAddCase}
+              onEditCase={handleEditCase}
+              onDeleteCase={handleDeleteCase}
             />
           )}
 

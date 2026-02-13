@@ -233,6 +233,28 @@ async function createTablesIfNotExist(client: PoolClient) {
       CREATE INDEX IF NOT EXISTS idx_admin_tokens_expires ON admin_tokens(expires_at)
     `)
     
+    // Cases (gallery) table – клинични случаи / маникюри и т.н.
+    await client.query(`
+      CREATE TABLE IF NOT EXISTS cases (
+        id SERIAL PRIMARY KEY,
+        title TEXT NOT NULL,
+        short_description TEXT NOT NULL,
+        main_image_path TEXT,
+        body TEXT,
+        gallery TEXT,
+        order_index INTEGER NOT NULL DEFAULT 0,
+        show_on_homepage BOOLEAN NOT NULL DEFAULT false,
+        homepage_order INTEGER NOT NULL DEFAULT 0,
+        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+        updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+      )
+    `)
+    try {
+      await client.query(`ALTER TABLE cases ADD COLUMN gallery TEXT`)
+    } catch (_) {
+      // Column may already exist
+    }
+    
     // Insert default admin user if table is empty (password: admin123)
     const adminsCount = await client.query('SELECT COUNT(*) as count FROM admins')
     if (parseInt(adminsCount.rows[0].count) === 0) {

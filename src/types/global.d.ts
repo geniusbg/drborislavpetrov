@@ -72,6 +72,25 @@ export interface Service {
   isActive: boolean
 }
 
+export interface CaseGalleryItem {
+  path: string
+  caption: string
+}
+
+export interface Case {
+  id: number
+  title: string
+  short_description: string
+  main_image_path: string | null
+  body: string | null
+  gallery?: CaseGalleryItem[]
+  order_index: number
+  show_on_homepage: boolean
+  homepage_order: number
+  created_at?: string
+  updated_at?: string
+}
+
 // Bug Tracking Types
 export interface BugReport {
   id: string

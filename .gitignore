@@ -194,3 +194,5 @@ tools/
 
 # Public files should be tracked (sw.js, manifest.json, icons)
 # public
+# Uploaded content (cases images)
+/public/uploads/

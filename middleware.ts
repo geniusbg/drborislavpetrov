@@ -32,58 +32,54 @@ export function middleware(request: NextRequest) {
     response.headers.set('Access-Control-Allow-Credentials', 'true')
   }
 
-  // Rate Limiting with different tiers
-  const clientIP = request.headers.get('x-forwarded-for') || request.headers.get('x-real-ip') || 'unknown'
-  const now = Date.now()
-  
-  // Different limits for different routes
-  type RateLimit = { windowMs: number; maxRequests: number }
-  let limit: RateLimit = { windowMs: 15 * 60 * 1000, maxRequests: 300 } // Default: Public
-  
-  if (request.nextUrl.pathname.startsWith('/api/admin/')) {
-    // Admin routes - more generous
-    limit = { windowMs: 15 * 60 * 1000, maxRequests: 500 }
-  } else if (request.nextUrl.pathname.startsWith('/api/')) {
-    // API routes - moderate
-    limit = { windowMs: 15 * 60 * 1000, maxRequests: 200 }
-  } else if (request.nextUrl.pathname.startsWith('/admin')) {
-    // Admin panel pages - generous
-    limit = { windowMs: 15 * 60 * 1000, maxRequests: 400 }
-  }
+  // Rate limiting: skip in development to avoid 429 during hot reload / Strict Mode
+  const isDev = process.env.NODE_ENV === 'development'
+  if (!isDev) {
+    const clientIP = request.headers.get('x-forwarded-for') || request.headers.get('x-real-ip') || 'unknown'
+    const now = Date.now()
 
-  const clientData = rateLimitStore.get(clientIP)
-  
-  if (!clientData || now > clientData.resetTime) {
-    // First request or window expired
-    rateLimitStore.set(clientIP, { 
-      count: 1, 
-      resetTime: now + limit.windowMs,
-      limit: limit.maxRequests
-    })
-  } else if (clientData.count >= limit.maxRequests) {
-    // Rate limit exceeded
-    const retryAfter = Math.ceil((clientData.resetTime - now) / 1000)
-    return new NextResponse(
-      JSON.stringify({ 
-        error: 'Too many requests',
-        retryAfter: retryAfter,
-        limit: limit.maxRequests,
-        windowMs: Math.ceil(limit.windowMs / 1000)
-      }),
-      { 
-        status: 429,
-        headers: {
-          'Content-Type': 'application/json',
-          'Retry-After': retryAfter.toString(),
-          'X-RateLimit-Limit': limit.maxRequests.toString(),
-          'X-RateLimit-Remaining': '0',
-          'X-RateLimit-Reset': new Date(clientData.resetTime).toISOString()
+    type RateLimit = { windowMs: number; maxRequests: number }
+    let limit: RateLimit = { windowMs: 15 * 60 * 1000, maxRequests: 300 }
+
+    if (request.nextUrl.pathname.startsWith('/api/admin/')) {
+      limit = { windowMs: 15 * 60 * 1000, maxRequests: 500 }
+    } else if (request.nextUrl.pathname.startsWith('/api/')) {
+      limit = { windowMs: 15 * 60 * 1000, maxRequests: 200 }
+    } else if (request.nextUrl.pathname.startsWith('/admin')) {
+      limit = { windowMs: 15 * 60 * 1000, maxRequests: 400 }
+    }
+
+    const clientData = rateLimitStore.get(clientIP)
+
+    if (!clientData || now > clientData.resetTime) {
+      rateLimitStore.set(clientIP, {
+        count: 1,
+        resetTime: now + limit.windowMs,
+        limit: limit.maxRequests
+      })
+    } else if (clientData.count >= limit.maxRequests) {
+      const retryAfter = Math.ceil((clientData.resetTime - now) / 1000)
+      return new NextResponse(
+        JSON.stringify({
+          error: 'Too many requests',
+          retryAfter: retryAfter,
+          limit: limit.maxRequests,
+          windowMs: Math.ceil(limit.windowMs / 1000)
+        }),
+        {
+          status: 429,
+          headers: {
+            'Content-Type': 'application/json',
+            'Retry-After': retryAfter.toString(),
+            'X-RateLimit-Limit': limit.maxRequests.toString(),
+            'X-RateLimit-Remaining': '0',
+            'X-RateLimit-Reset': new Date(clientData.resetTime).toISOString()
+          }
         }
-      }
-    )
-  } else {
-    // Increment request count
-    clientData.count++
+      )
+    } else {
+      clientData.count++
+    }
   }
 
   return response

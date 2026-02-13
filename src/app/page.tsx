@@ -7,6 +7,7 @@ import Services from '@/components/home/Services'
 import About from '@/components/home/About'
 import Booking from '@/components/home/Booking'
 import Contact from '@/components/home/Contact'
+import CasesSection from '@/components/home/CasesSection'
 import Footer from '@/components/layout/Footer'
 import { SectionTransition } from '@/components/layout/SectionTransition'
 import PWAInstallButton from '@/components/PWAInstallButton'
@@ -107,6 +108,9 @@ export default function HomePage() {
       </SectionTransition>
       <SectionTransition>
         <About />
+      </SectionTransition>
+      <SectionTransition>
+        <CasesSection />
       </SectionTransition>
       <SectionTransition>
         <Booking />

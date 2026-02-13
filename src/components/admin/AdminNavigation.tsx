@@ -1,7 +1,7 @@
 'use client'
 
 import React from 'react'
-import { Calendar, Users, Settings, BarChart3, Bug, CheckCircle, Shield } from 'lucide-react'
+import { Calendar, Users, Settings, BarChart3, Bug, CheckCircle, Shield, LayoutGrid } from 'lucide-react'
 import { useSearchParams } from 'next/navigation'
 import { useAdminState } from '@/contexts/AdminStateContext'
 import { useAdminEventHandlers } from '@/hooks/useAdminEventHandlers'
@@ -77,6 +77,19 @@ export default function AdminNavigation() {
                   <div className="flex items-center justify-center space-x-2">
                     <Settings className="w-4 h-4" />
                     <span>Услуги</span>
+                  </div>
+                </button>
+                <button
+                  onClick={() => handleTabChange('cases')}
+                  className={`flex-shrink-0 px-3 py-3 text-sm font-medium rounded-lg transition-all duration-200 min-w-[100px] ${
+                    activeTab === 'cases'
+                      ? 'bg-blue-600 text-white shadow-sm'
+                      : 'text-gray-600 hover:text-gray-900 hover:bg-gray-50'
+                  }`}
+                >
+                  <div className="flex items-center justify-center space-x-2">
+                    <LayoutGrid className="w-4 h-4" />
+                    <span>Случаи</span>
                   </div>
                 </button>
                 <button
@@ -187,6 +200,19 @@ export default function AdminNavigation() {
                   <div className="flex items-center justify-center space-x-2">
                     <Settings className="w-4 h-4" />
                     <span>Услуги</span>
+                  </div>
+                </button>
+                <button
+                  onClick={() => handleTabChange('cases')}
+                  className={`flex-1 px-4 py-3 text-sm font-medium rounded-lg transition-all duration-200 ${
+                    activeTab === 'cases'
+                      ? 'bg-blue-600 text-white shadow-sm'
+                      : 'text-gray-600 hover:text-gray-900 hover:bg-gray-50'
+                  }`}
+                >
+                  <div className="flex items-center justify-center space-x-2">
+                    <LayoutGrid className="w-4 h-4" />
+                    <span>Случаи</span>
                   </div>
                 </button>
                 <button
