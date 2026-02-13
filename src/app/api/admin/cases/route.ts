@@ -3,7 +3,9 @@ import { getDatabase } from '@/lib/database'
 import fs from 'fs'
 import path from 'path'
 
-const UPLOAD_DIR = path.join(process.cwd(), 'public', 'uploads', 'cases')
+// Базова директория за uploads: от .env UPLOADS_BASE_PATH (иначе public/uploads в проекта)
+const UPLOAD_BASE = process.env.UPLOADS_BASE_PATH || path.join(process.cwd(), 'public', 'uploads')
+const UPLOAD_DIR = path.join(UPLOAD_BASE, 'cases')
 const MAX_FILE_SIZE = 5 * 1024 * 1024 // 5MB
 const ALLOWED_TYPES = ['image/jpeg', 'image/png', 'image/webp']
 
