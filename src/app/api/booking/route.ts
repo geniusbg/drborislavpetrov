@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import { getDatabase } from '@/lib/database'
 import { normalizePhoneE164, sanitizePhoneDigits } from '@/lib/phone'
 import { sendBookingConfirmation, sendAdminNotification } from '@/lib/email'
+import { getBulgariaTime } from '@/lib/bulgaria-time'
 
 /** Normalize time to "HH:MM" so "9:00" and "09:00" match. */
 function normalizeTimeHHMM(t: string): string {
@@ -28,6 +29,27 @@ export async function POST(request: NextRequest) {
         { error: 'Всички задължителни полета трябва да бъдат попълнени' },
         { status: 400 }
       )
+    }
+
+    // Не позволявай резервации за минали дата или час (България)
+    const now = getBulgariaTime()
+    const todayStr = `${now.getFullYear()}-${(now.getMonth() + 1).toString().padStart(2, '0')}-${now.getDate().toString().padStart(2, '0')}`
+    if (date < todayStr) {
+      return NextResponse.json(
+        { error: 'Не можете да резервирате за минала дата.' },
+        { status: 400 }
+      )
+    }
+    if (date === todayStr) {
+      const [h, m] = String(time).trim().split(':').map(Number)
+      const slotMin = (h ?? 0) * 60 + (m ?? 0)
+      const nowMin = now.getHours() * 60 + now.getMinutes()
+      if (slotMin <= nowMin) {
+        return NextResponse.json(
+          { error: 'Изберете бъдещ час за днес.' },
+          { status: 400 }
+        )
+      }
     }
 
     const db = await getDatabase()

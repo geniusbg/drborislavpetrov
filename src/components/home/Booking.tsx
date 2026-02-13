@@ -24,11 +24,21 @@ const Booking = () => {
   // const [csrfToken, setCsrfToken] = useState('') // временно изключено
 
   const [services, setServices] = useState<Array<{id: number, name: string, duration: number}>>([])
-  const [availableSlots, setAvailableSlots] = useState<string[]>([])
+  const [availableSlotsRaw, setAvailableSlotsRaw] = useState<string[]>([])
   const [isLoadingSlots, setIsLoadingSlots] = useState(false)
   const [minDate, setMinDate] = useState('')
   const isServiceSelected = !!bookingData.service
   const isDateSelected = !!bookingData.date
+  // За днес показваме само бъдещи часове (филтрираме минали)
+  const availableSlots = (() => {
+    if (bookingData.date !== minDate) return availableSlotsRaw
+    const now = getBulgariaTime()
+    const nowMinutes = now.getHours() * 60 + now.getMinutes()
+    return availableSlotsRaw.filter((slot) => {
+      const [h, m] = slot.split(':').map(Number)
+      return h * 60 + m > nowMinutes
+    })
+  })()
   const timePlaceholder = isLoadingSlots
     ? 'Зареждане...'
     : !isServiceSelected
@@ -69,13 +79,20 @@ const Booking = () => {
     setMinDate(`${year}-${month}-${day}`)
   }, [])
 
+  // Ако датата е днес и избраният час вече не е в списъка (минал), изчисти го
+  useEffect(() => {
+    if (bookingData.date === minDate && bookingData.time && availableSlots.length > 0 && !availableSlots.includes(bookingData.time)) {
+      setBookingData((prev) => ({ ...prev, time: '' }))
+    }
+  }, [bookingData.date, bookingData.time, minDate, availableSlots])
+
   const loadAvailableSlots = async () => {
     setIsLoadingSlots(true)
     try {
       const response = await fetch(`/api/available-slots?date=${bookingData.date}&serviceId=${bookingData.service}`)
       if (response.ok) {
         const data = await response.json()
-        setAvailableSlots(data.availableSlots)
+        setAvailableSlotsRaw(data.availableSlots || [])
       }
     } catch (error) {
       console.error('Error loading available slots:', error)
@@ -101,6 +118,24 @@ const Booking = () => {
       setErrors(newErrors)
       setIsSubmitting(false)
       return
+    }
+    // Не позволявай минали дата или час
+    const todayStr = minDate || (() => { const t = getBulgariaTime(); return `${t.getFullYear()}-${(t.getMonth() + 1).toString().padStart(2, '0')}-${t.getDate().toString().padStart(2, '0')}`; })()
+    if (bookingData.date < todayStr) {
+      setErrors({ date: 'Не можете да резервирате за минала дата.' })
+      setIsSubmitting(false)
+      return
+    }
+    if (bookingData.date === todayStr && bookingData.time) {
+      const now = getBulgariaTime()
+      const [h, m] = bookingData.time.split(':').map(Number)
+      const slotMinutes = h * 60 + m
+      const nowMinutes = now.getHours() * 60 + now.getMinutes()
+      if (slotMinutes <= nowMinutes) {
+        setErrors({ time: 'Изберете бъдещ час за днес.' })
+        setIsSubmitting(false)
+        return
+      }
     }
 
     try {
@@ -277,8 +312,8 @@ const Booking = () => {
                   <label htmlFor="date" className="block text-sm font-medium text-secondary-700 mb-2">
                     Дата *
                   </label>
-                  <div className="relative">
-                    <Calendar className="absolute left-3 top-1/2 transform -translate-y-1/2 w-4 h-4 text-secondary-400" />
+                  <div className="relative flex items-center">
+                    <Calendar className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-secondary-400 pointer-events-none flex-shrink-0" aria-hidden />
                     <input
                       type="date"
                       id="date"
@@ -286,8 +321,8 @@ const Booking = () => {
                       value={bookingData.date}
                       onChange={handleChange}
                       required
-                      className={`input-field pl-10 ${errors.date ? 'border-red-500' : ''}`}
                       min={minDate}
+                      className={`input-field w-full min-h-[2.75rem] pl-12 sm:pl-10 ${errors.date ? 'border-red-500' : ''}`}
                     />
                     {errors.date && (
                       <p className="text-red-600 text-xs mt-1">{errors.date}</p>
@@ -300,29 +335,29 @@ const Booking = () => {
                 <label htmlFor="time" className="block text-sm font-medium text-secondary-700 mb-2">
                   Час *
                 </label>
-                <div className="relative">
-                  <Clock className="absolute left-3 top-1/2 transform -translate-y-1/2 w-4 h-4 text-secondary-400" />
-                                                                    <select
-                                id="time"
-                                name="time"
-                                value={bookingData.time}
-                                onChange={handleChange}
-                                required
-                                className={`input-field pl-10 ${errors.time ? 'border-red-500' : ''}`}
-                                disabled={!isServiceSelected || !isDateSelected || isLoadingSlots}
-                              >
-                                <option value="">
-                                  {timePlaceholder}
-                                </option>
-                                {availableSlots.map((time) => (
-                                  <option key={time} value={time}>
-                                    {time}
-                                  </option>
-                                ))}
-                              </select>
-                    {errors.time && (
-                      <p className="text-red-600 text-xs mt-1">{errors.time}</p>
-                    )}
+                <div className="relative flex items-center">
+                  <Clock className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-secondary-400 pointer-events-none flex-shrink-0" aria-hidden />
+                  <select
+                    id="time"
+                    name="time"
+                    value={bookingData.time}
+                    onChange={handleChange}
+                    required
+                    className={`input-field w-full min-h-[2.75rem] pl-12 sm:pl-10 appearance-none ${errors.time ? 'border-red-500' : ''}`}
+                    disabled={!isServiceSelected || !isDateSelected || isLoadingSlots}
+                  >
+                    <option value="">
+                      {timePlaceholder}
+                    </option>
+                    {availableSlots.map((time) => (
+                      <option key={time} value={time}>
+                        {time}
+                      </option>
+                    ))}
+                  </select>
+                  {errors.time && (
+                    <p className="text-red-600 text-xs mt-1">{errors.time}</p>
+                  )}
                 </div>
               </div>
 
