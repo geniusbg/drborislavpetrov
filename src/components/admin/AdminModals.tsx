@@ -1,6 +1,6 @@
 'use client'
 
-import React from 'react'
+import React, { useCallback } from 'react'
 import { useRouter, useSearchParams } from 'next/navigation'
 import { X } from 'lucide-react'
 import { useAdminState } from '@/contexts/AdminStateContext'
@@ -51,6 +51,43 @@ export default function AdminModals() {
     setIsVoiceListening
   } = useAdminState()
 
+  const handleBookingSubmit = useCallback(async (bookingData: Parameters<React.ComponentProps<typeof BookingForm>['onSubmit']>[0]) => {
+    try {
+      const isNewBooking = !editingBooking?.id
+      let response: Response
+      if (isNewBooking) {
+        response = await fetch('/api/admin/bookings', {
+          method: 'POST',
+          credentials: 'include',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(bookingData)
+        })
+      } else {
+        response = await fetch('/api/admin/bookings', {
+          method: 'PUT',
+          credentials: 'include',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ ...bookingData, id: editingBooking?.id })
+        })
+      }
+      if (response.ok) {
+        await loadBookings()
+        setIsBookingModalClosing(true)
+        setTimeout(() => {
+          setShowBookingModal(false)
+          setIsBookingModalClosing(false)
+          setEditingBooking(null)
+        }, 300)
+      } else {
+        const error = await response.json()
+        alert(`Грешка при запазване: ${error.message}`)
+      }
+    } catch (error) {
+      console.error('Error saving booking:', error)
+      alert('Грешка при запазване на резервацията')
+    }
+  }, [editingBooking, loadBookings, setIsBookingModalClosing, setShowBookingModal, setEditingBooking])
+
   return (
     <>
       {/* User Modal */}
@@ -99,71 +136,9 @@ export default function AdminModals() {
 
       {/* Booking Modal */}
       {showBookingModal && (
-        <div className="fixed inset-0 bg-black bg-opacity-50 z-[60]" onClick={() => {
-          setIsBookingModalClosing(true)
-          setTimeout(() => {
-            setShowBookingModal(false)
-            setIsBookingModalClosing(false)
-            setEditingBooking(null)
-          }, 300)
-        }}>
-          <div className="bg-white rounded-lg shadow-2xl p-6 w-full max-w-2xl mx-4" 
-               onClick={(e) => e.stopPropagation()}
-               style={{ 
-                 position: 'fixed',
-                 top: '10vh', 
-                 left: '50%', 
-                 transform: 'translateX(-50%)',
-                 maxHeight: '80vh',
-                 overflowY: 'auto'
-               }}>
-            <BookingForm
-              booking={editingBooking}
-              onSubmit={async (bookingData) => {
-            try {
-              const isNewBooking = !editingBooking?.id
-              let response
-
-              if (isNewBooking) {
-                // Create new booking
-                response = await fetch('/api/admin/bookings', {
-                  method: 'POST',
-                  credentials: 'include',
-                  headers: {
-                    'Content-Type': 'application/json'
-                  },
-                  body: JSON.stringify(bookingData)
-                })
-              } else {
-                // Update existing booking
-                response = await fetch('/api/admin/bookings', {
-                  method: 'PUT',
-                  credentials: 'include',
-                  headers: {
-                    'Content-Type': 'application/json'
-                  },
-                  body: JSON.stringify({ ...bookingData, id: editingBooking?.id })
-                })
-              }
-              
-              if (response.ok) {
-                await loadBookings()
-                setIsBookingModalClosing(true)
-                setTimeout(() => {
-                  setShowBookingModal(false)
-                  setIsBookingModalClosing(false)
-                  setEditingBooking(null)
-                }, 300)
-              } else {
-                const error = await response.json()
-                alert(`Грешка при запазване: ${error.message}`)
-              }
-            } catch (error) {
-              console.error('Error saving booking:', error)
-              alert('Грешка при запазване на резервацията')
-            }
-          }}
-          onCancel={() => {
+        <div
+          className="fixed inset-0 z-[60] flex items-start sm:items-center justify-center p-3 sm:p-4 overflow-y-auto bg-black/50"
+          onClick={() => {
             setIsBookingModalClosing(true)
             setTimeout(() => {
               setShowBookingModal(false)
@@ -171,7 +146,25 @@ export default function AdminModals() {
               setEditingBooking(null)
             }, 300)
           }}
-            />
+        >
+          <div
+            className="bg-white rounded-xl shadow-2xl w-full max-w-2xl min-w-0 max-h-[90vh] flex flex-col my-auto"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <div className="p-4 sm:p-6 overflow-y-auto overflow-x-hidden flex-1 min-h-0">
+              <BookingForm
+                booking={editingBooking}
+                onSubmit={handleBookingSubmit}
+                onCancel={() => {
+                  setIsBookingModalClosing(true)
+                  setTimeout(() => {
+                    setShowBookingModal(false)
+                    setIsBookingModalClosing(false)
+                    setEditingBooking(null)
+                  }, 300)
+                }}
+              />
+            </div>
           </div>
         </div>
       )}
@@ -179,7 +172,7 @@ export default function AdminModals() {
       {/* Service Modal */}
       {showServiceModal && (
         <div
-          className="fixed inset-0 z-[60] flex items-center justify-center p-4"
+          className="fixed inset-0 z-[60] flex items-start sm:items-center justify-center p-3 sm:p-4 overflow-y-auto bg-black/50"
           role="dialog"
           aria-modal="true"
           aria-labelledby="service-modal-title"
@@ -197,7 +190,7 @@ export default function AdminModals() {
             }}
           />
           <div
-            className="relative bg-white rounded-xl shadow-2xl w-full max-w-lg max-h-[90vh] overflow-y-auto"
+            className="relative bg-white rounded-xl shadow-2xl w-full max-w-lg min-w-0 max-h-[90vh] overflow-y-auto overflow-x-hidden my-auto"
             onClick={(e) => e.stopPropagation()}
           >
             <div className="sticky top-0 bg-white border-b border-gray-200 px-6 py-4 flex items-center justify-between gap-4 rounded-t-xl z-10">
@@ -266,7 +259,7 @@ export default function AdminModals() {
       {/* Case Modal */}
       {showCaseModal && (
         <div
-          className="fixed inset-0 z-[60] flex items-center justify-center p-4"
+          className="fixed inset-0 z-[60] flex items-start sm:items-center justify-center p-3 sm:p-4 overflow-y-auto bg-black/50"
           role="dialog"
           aria-modal="true"
           aria-labelledby="case-modal-title"
@@ -284,7 +277,7 @@ export default function AdminModals() {
             }}
           />
           <div
-            className="relative bg-white rounded-xl shadow-2xl w-full max-w-lg max-h-[90vh] overflow-y-auto"
+            className="relative bg-white rounded-xl shadow-2xl w-full max-w-lg min-w-0 max-h-[90vh] overflow-y-auto overflow-x-hidden my-auto"
             onClick={(e) => e.stopPropagation()}
           >
             <div className="sticky top-0 bg-white border-b border-gray-200 px-6 py-4 flex items-center justify-between gap-4 rounded-t-xl z-10">

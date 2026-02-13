@@ -151,14 +151,12 @@ const BugTracker = ({ onClose }: BugTrackerProps) => {
   }, [isDragging, dragOffset, handleMouseMove, handleMouseUp])
 
   return (
-          <div className="fixed inset-0 bg-black bg-opacity-50 z-50">
+    <div className="fixed inset-0 z-50 flex items-start sm:items-center justify-center p-3 sm:p-4 overflow-y-auto bg-black/50">
       <div 
-        className="bg-white rounded-lg p-6 w-full max-w-6xl mx-4 max-h-[85vh] overflow-y-auto cursor-move" 
+        className="bg-white rounded-lg p-6 w-full max-w-6xl min-w-0 max-h-[90vh] overflow-y-auto overflow-x-hidden cursor-move my-auto"
         style={{ 
-          position: 'fixed',
-          left: '50%',
-          top: '50%',
-          transform: `translate(-50%, -50%) translate(${modalPosition.x}px, ${modalPosition.y}px)`,
+          maxWidth: 'min(72rem, calc(100vw - 1.5rem))',
+          transform: `translate(${modalPosition.x}px, ${modalPosition.y}px)`,
           cursor: isDragging ? 'grabbing' : 'grab'
         }}
         onMouseDown={handleMouseDown}
@@ -452,14 +450,12 @@ const BugForm = ({ bug, onSubmit, onCancel }: { bug: BugReport | null; onSubmit:
   }, [isDragging, dragOffset, handleBugFormMouseMove, handleBugFormMouseUp])
 
   return (
-            <div className="fixed inset-0 bg-black bg-opacity-50 z-[60]">
+    <div className="fixed inset-0 z-[60] flex items-start sm:items-center justify-center p-3 sm:p-4 overflow-y-auto bg-black/50">
       <div 
-        className="bg-white rounded-lg p-6 w-full max-w-4xl mx-4 max-h-[85vh] overflow-y-auto cursor-move" 
+        className="bg-white rounded-lg p-6 w-full max-w-4xl min-w-0 max-h-[90vh] overflow-y-auto overflow-x-hidden cursor-move my-auto"
         style={{ 
-          position: 'fixed',
-          left: '50%',
-          top: '50%',
-          transform: `translate(-50%, -50%) translate(${modalPosition.x}px, ${modalPosition.y}px)`,
+          maxWidth: 'min(56rem, calc(100vw - 1.5rem))',
+          transform: `translate(${modalPosition.x}px, ${modalPosition.y}px)`,
           cursor: isDragging ? 'grabbing' : 'grab'
         }}
         onMouseDown={handleBugFormMouseDown}

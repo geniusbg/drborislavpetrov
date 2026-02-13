@@ -573,13 +573,8 @@ export default function QADashboard() {
 
       {/* Report Modal */}
       {showReport && (
-        <div className="fixed inset-0 bg-gray-600 bg-opacity-50 overflow-y-auto h-full w-full z-50">
-          <div className="relative top-4 sm:top-20 mx-auto p-4 sm:p-5 border w-full max-w-4xl shadow-lg rounded-md bg-white m-4" style={{ 
-            position: 'fixed',
-            top: '15vh', 
-            left: '50%', 
-            transform: 'translateX(-50%)' 
-          }}>
+        <div className="fixed inset-0 z-50 flex items-start sm:items-center justify-center p-3 sm:p-4 overflow-y-auto bg-gray-600/50">
+          <div className="relative w-full max-w-4xl min-w-0 max-h-[90vh] overflow-y-auto overflow-x-hidden p-4 sm:p-5 border shadow-lg rounded-md bg-white my-auto" style={{ maxWidth: 'min(56rem, calc(100vw - 1.5rem))' }}>
             <div className="mt-3">
               <div className="flex items-center justify-between mb-4">
                 <h3 className="text-lg font-medium text-gray-900">QA Отчет</h3>
@@ -621,13 +616,8 @@ export default function QADashboard() {
 
       {/* Loading Overlay */}
       {isLoading && (
-        <div className="fixed inset-0 bg-gray-600 bg-opacity-50 z-50">
-          <div className="bg-white rounded-lg p-6 flex items-center space-x-3 mx-4" style={{ 
-            position: 'fixed',
-            top: '15vh', 
-            left: '50%', 
-            transform: 'translateX(-50%)' 
-          }}>
+        <div className="fixed inset-0 z-50 flex items-start sm:items-center justify-center p-3 sm:p-4 bg-gray-600/50">
+          <div className="bg-white rounded-lg p-6 flex items-center space-x-3 w-full max-w-md min-w-0 my-auto" style={{ maxWidth: 'min(28rem, calc(100vw - 1.5rem))' }}>
             <RefreshCw className="w-6 h-6 text-blue-600 animate-spin" />
             <span className="text-gray-900">
               {selectedTest ? `Стартиране на ${selectedTest}...` : 'Стартиране на тест...'}

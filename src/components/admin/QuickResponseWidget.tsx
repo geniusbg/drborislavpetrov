@@ -494,8 +494,8 @@ const QuickResponseWidget: React.FC<QuickResponseWidgetProps> = ({ onClose, onCr
 
       {/* Modal */}
       {isOpen && (
-        <div className="fixed inset-0 bg-gray-600 bg-opacity-50 overflow-y-auto h-full w-full z-50">
-          <div className="relative mx-auto p-4 sm:p-5 border w-full max-w-2xl shadow-lg rounded-md bg-white m-4 max-h-[calc(100vh-2rem)] overflow-y-auto top-4 sm:top-1/2 sm:transform sm:-translate-y-1/2">
+        <div className="fixed inset-0 z-50 flex items-start sm:items-center justify-center p-3 sm:p-4 overflow-y-auto bg-gray-600/50">
+          <div className="relative w-full max-w-2xl min-w-0 max-h-[90vh] overflow-y-auto overflow-x-hidden p-4 sm:p-5 border shadow-lg rounded-md bg-white my-auto" style={{ maxWidth: 'min(42rem, calc(100vw - 1.5rem))' }}>
             <div className="mt-3">
               {/* Header */}
               <div className="flex items-center justify-between mb-4">

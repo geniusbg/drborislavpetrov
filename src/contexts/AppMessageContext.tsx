@@ -71,7 +71,7 @@ function AppMessageModal({
 
   return (
     <div
-      className="fixed inset-0 z-[100] flex items-center justify-center p-4"
+      className="fixed inset-0 z-[100] flex items-start sm:items-center justify-center p-3 sm:p-4 overflow-y-auto"
       role="dialog"
       aria-modal="true"
       aria-labelledby="app-message-title"
@@ -83,7 +83,7 @@ function AppMessageModal({
         aria-hidden="true"
       />
       <div
-        className={`relative w-full max-w-md rounded-2xl border shadow-xl ${style.bg} bg-white p-6 sm:p-8`}
+        className={`relative w-full max-w-md min-w-0 rounded-2xl border shadow-xl ${style.bg} bg-white p-6 sm:p-8 my-auto`}
         onClick={(e) => e.stopPropagation()}
       >
         <div className="flex items-start gap-4">

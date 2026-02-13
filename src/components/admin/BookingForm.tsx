@@ -311,9 +311,9 @@ const BookingForm = ({ booking, onSubmit, onCancel, onDelete }: BookingFormProps
   }
 
   return (
-    <form onSubmit={handleSubmit} className="space-y-4">
-      <div className="grid grid-cols-2 gap-4">
-        <div>
+    <form onSubmit={handleSubmit} className="space-y-4 min-w-0">
+      <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+        <div className="min-w-0">
           <label className="block text-sm font-medium text-gray-700">Име *</label>
           <input
             type="text"
@@ -324,7 +324,7 @@ const BookingForm = ({ booking, onSubmit, onCancel, onDelete }: BookingFormProps
             required
           />
         </div>
-        <div>
+        <div className="min-w-0">
           <label className="block text-sm font-medium text-gray-700">Телефон</label>
           <input
             type="tel"
@@ -348,8 +348,8 @@ const BookingForm = ({ booking, onSubmit, onCancel, onDelete }: BookingFormProps
         />
       </div>
       
-      <div className="grid grid-cols-2 gap-4">
-        <div>
+      <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+        <div className="min-w-0">
           <label className="block text-sm font-medium text-gray-700">Услуга *</label>
           <select
             name="service"
@@ -374,7 +374,7 @@ const BookingForm = ({ booking, onSubmit, onCancel, onDelete }: BookingFormProps
             ))}
           </select>
         </div>
-        <div>
+        <div className="min-w-0">
           <label className="block text-sm font-medium text-gray-700">Статус</label>
           <select
             name="status"
@@ -389,8 +389,8 @@ const BookingForm = ({ booking, onSubmit, onCancel, onDelete }: BookingFormProps
         </div>
       </div>
       
-      <div className="grid grid-cols-2 gap-4">
-        <div>
+      <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+        <div className="min-w-0">
           <label className="block text-sm font-medium text-gray-700">Дата *</label>
           <input
             type="date"
@@ -401,7 +401,7 @@ const BookingForm = ({ booking, onSubmit, onCancel, onDelete }: BookingFormProps
             required
           />
         </div>
-        <div>
+        <div className="min-w-0">
           <label className="block text-sm font-medium text-gray-700">Час *</label>
           <div className="relative">
             <select

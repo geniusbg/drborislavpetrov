@@ -1,12 +1,13 @@
 'use client'
 
-import { useState, useEffect, useCallback, useMemo } from 'react'
+import { useState, useEffect, useCallback, useMemo, useRef } from 'react'
 import { ChevronLeft, ChevronRight, Plus, Settings, Calendar as CalendarIcon, Clock } from 'lucide-react'
 import WorkingHoursForm from './WorkingHoursForm'
 import DailySchedule from './DailySchedule'
 import { useSocket } from '@/hooks/useSocket'
 import type { Booking, WorkingHours } from '@/types/global'
 import { emitWorkingHoursUpdated } from '@/lib/socket'
+import { fetchWorkingHoursCached, invalidateWorkingHoursCache } from '@/lib/working-hours-cache'
 import { getBulgariaTime, getBulgariaDateStringDB, dateToLocalDateString, createCalendarDate, calendarDateToString } from '@/lib/bulgaria-time'
 
 interface CalendarProps {
@@ -200,29 +201,23 @@ const Calendar = ({ bookings, onBookingClick, onAddBooking, onNavigateToDailySch
     return () => document.removeEventListener('keydown', handleEscape)
   }, [showMonthYearPicker])
 
-  // Load working hours for current month only
-  const loadWorkingHours = useCallback(async () => {
-    try {
-      // Зареждаме данни само за текущия месец
-      const startDate = dateToLocalDateString(new Date(currentDate.getFullYear(), currentDate.getMonth(), 1))
-      const endDate = dateToLocalDateString(new Date(currentDate.getFullYear(), currentDate.getMonth() + 1, 0))
-      
-      const response = await fetch(`/api/admin/working-hours?startDate=${startDate}&endDate=${endDate}`, {
-        credentials: 'include'
-      })
+  // Стабилен ключ за месеца – използваме го в effect за да не пускаме effect при всеки re-render
+  const monthKey = useMemo(
+    () => `${currentDate.getFullYear()}-${String(currentDate.getMonth() + 1).padStart(2, '0')}`,
+    [currentDate.getFullYear(), currentDate.getMonth()]
+  )
 
-      if (response.ok) {
-        const data = await response.json()
-        setWorkingHours(data.workingHours)
-        
-        // НЕ скриваме loading индикатора тук - ще го скрием когато всичко е готово
-      } else {
-        setIsMonthDataLoading(false)
-      }
+  // Зареждане на работни часове през глобален кеш – един реално HTTP request на месец за целия таб
+  const loadWorkingHoursForMonth = useCallback(async () => {
+    const startDate = dateToLocalDateString(new Date(currentDate.getFullYear(), currentDate.getMonth(), 1))
+    const endDate = dateToLocalDateString(new Date(currentDate.getFullYear(), currentDate.getMonth() + 1, 0))
+    try {
+      const list = await fetchWorkingHoursCached(startDate, endDate)
+      setWorkingHours(list)
     } catch (error) {
       setIsMonthDataLoading(false)
     }
-  }, [currentDate, services.length])
+  }, [currentDate.getFullYear(), currentDate.getMonth()])
 
   // Зареждане на настройки за работно време
   const loadDefaultSettings = useCallback(async () => {
@@ -250,7 +245,10 @@ const Calendar = ({ bookings, onBookingClick, onAddBooking, onNavigateToDailySch
     loadDefaultSettings()
   }, [loadDefaultSettings])
 
-  // Консолидиран useEffect за управление на всички state updates
+  // Консолидиран effect: само синхронизация на loading/слоти. НЕ викаме loadWorkingHours тук.
+  // Причина: този effect зависи от [workingHours, availableSlots, isMonthDataLoading]. При стария код
+  // тук се викаше loadWorkingHours() при !hasWorkingHoursForMonth. Това водеше до цикъл: effect -> fetch ->
+  // setWorkingHours -> effect отново (още преди fetch да е приключил) -> нов fetch -> ... и стотици заявки.
   useEffect(() => {
     const currentMonthString = `${currentDate.getFullYear()}-${String(currentDate.getMonth() + 1).padStart(2, '0')}`
     
@@ -276,10 +274,8 @@ const Calendar = ({ bookings, onBookingClick, onAddBooking, onNavigateToDailySch
       } else {
       }
     } else {
-      // Ако не се зареждат данните, проверяваме дали трябва да заредим
-      if (!hasWorkingHoursForMonth) {
-        loadWorkingHours()
-      } else if (!hasCalculatedForMonth && hasServices) {
+      // Зареждането се пуска само от effect-а при смяна на месец (по-долу). Тук само изчисляваме слоти ако липсват.
+      if (!hasCalculatedForMonth && hasServices && hasWorkingHoursForMonth) {
         calculateAvailableSlots()
       }
     }
@@ -291,28 +287,22 @@ const Calendar = ({ bookings, onBookingClick, onAddBooking, onNavigateToDailySch
     }
   }, [bookings, currentDate])
 
-  // Следи промените в currentDate и показва индикатор за зареждане само при смяна на месеца
+  // Единственото място, където зареждаме working-hours за месеца. Deps: само [monthKey] (стринг "YYYY-MM").
+  // Преди: deps бяха [currentDate, loadWorkingHours]. loadWorkingHours беше useCallback([currentDate, services.length]) –
+  // при зареждане на services се създаваше нова референция и effect-ът се изпълняваше отново -> много заявки.
+  // Сега: monthKey е стабилен до смяна на месец; заявките минават през working-hours-cache (1 HTTP на месец).
   useEffect(() => {
-    // Показвай индикатор за зареждане само при смяна на месеца
     setIsMonthDataLoading(true)
-    
-    // Зареди работните часове за новия месец и след това изчисли свободните часове
     const loadData = async () => {
-      await loadWorkingHours()
-      
-      // Изчисли свободните часове след като се заредят работните часове
+      await loadWorkingHoursForMonth()
       if (services.length > 0) {
-        setTimeout(() => {
-          calculateAvailableSlots()
-        }, 10) // Намалих забавянето до минимум
+        setTimeout(() => calculateAvailableSlots(), 10)
       } else {
-        // Ако няма услуги, скриваме loading индикатора веднага
         setIsMonthDataLoading(false)
       }
     }
-    
     loadData()
-  }, [currentDate, loadWorkingHours])
+  }, [monthKey])
 
   // Инициализира временните стойности когато се отвори модала
   useEffect(() => {
@@ -328,37 +318,47 @@ const Calendar = ({ bookings, onBookingClick, onAddBooking, onNavigateToDailySch
 
   // WebSocket event handlers - optimized with useCallback and debouncing
   const handleWorkingHoursUpdated = useCallback((updatedWorkingHours: WorkingHours) => {
-    // Debounce updates to prevent excessive re-renders
+    if (updatedWorkingHours.date) {
+      const [y, m] = updatedWorkingHours.date.split('-').map(Number)
+      const start = `${y}-${String(m).padStart(2, '0')}-01`
+      const lastDay = new Date(y, m, 0).getDate()
+      const end = `${y}-${String(m).padStart(2, '0')}-${String(lastDay).padStart(2, '0')}`
+      invalidateWorkingHoursCache({ startDate: start, endDate: end })
+    }
     const timeoutId = setTimeout(() => {
-      setWorkingHours(prev => prev.map(wh => 
+      setWorkingHours(prev => prev.map(wh =>
         wh.date === updatedWorkingHours.date ? updatedWorkingHours : wh
       ))
-      // Recalculate available slots after working hours update
       setTimeout(() => calculateAvailableSlots(), 100)
     }, 100)
-    
     return () => clearTimeout(timeoutId)
   }, [])
 
   const handleWorkingHoursAdded = useCallback((newWorkingHours: WorkingHours) => {
-    // Debounce updates to prevent excessive re-renders
+    if (newWorkingHours.date) {
+      const [y, m] = newWorkingHours.date.split('-').map(Number)
+      const start = `${y}-${String(m).padStart(2, '0')}-01`
+      const end = `${y}-${String(m).padStart(2, '0')}-${String(new Date(y, m, 0).getDate()).padStart(2, '0')}`
+      invalidateWorkingHoursCache({ startDate: start, endDate: end })
+    }
     const timeoutId = setTimeout(() => {
       setWorkingHours(prev => [...prev, newWorkingHours])
-      // Recalculate available slots after working hours addition
       setTimeout(() => calculateAvailableSlots(), 100)
     }, 100)
-    
     return () => clearTimeout(timeoutId)
   }, [])
 
   const handleWorkingHoursDeleted = useCallback((date: string) => {
-    // Debounce updates to prevent excessive re-renders
+    if (date) {
+      const [y, m] = date.split('-').map(Number)
+      const start = `${y}-${String(m).padStart(2, '0')}-01`
+      const end = `${y}-${String(m).padStart(2, '0')}-${String(new Date(y, m, 0).getDate()).padStart(2, '0')}`
+      invalidateWorkingHoursCache({ startDate: start, endDate: end })
+    }
     const timeoutId = setTimeout(() => {
       setWorkingHours(prev => prev.filter(wh => wh.date !== date))
-      // Recalculate available slots after working hours deletion
       calculateAvailableSlots()
     }, 100)
-    
     return () => clearTimeout(timeoutId)
   }, [])
 
@@ -886,8 +886,11 @@ const Calendar = ({ bookings, onBookingClick, onAddBooking, onNavigateToDailySch
         console.log('[Calendar] ✅ Server saved successfully')
         setShowWorkingHoursForm(false)
         
-        // Reload working hours from server to ensure consistency
-        await loadWorkingHours()
+        // Инвалидираме кеша и презареждаме за текущия месец
+        const start = dateToLocalDateString(new Date(currentDate.getFullYear(), currentDate.getMonth(), 1))
+        const end = dateToLocalDateString(new Date(currentDate.getFullYear(), currentDate.getMonth() + 1, 0))
+        invalidateWorkingHoursCache({ startDate: start, endDate: end })
+        await loadWorkingHoursForMonth()
         calculateAvailableSlots()
         
         emitWorkingHoursUpdated(workingHoursData) // Emit the updated event
@@ -916,8 +919,10 @@ const Calendar = ({ bookings, onBookingClick, onAddBooking, onNavigateToDailySch
 
       if (response.ok) {
         setShowWorkingHoursForm(false)
-        loadWorkingHours() // Reload working hours
-        
+        const start = dateToLocalDateString(new Date(currentDate.getFullYear(), currentDate.getMonth(), 1))
+        const end = dateToLocalDateString(new Date(currentDate.getFullYear(), currentDate.getMonth() + 1, 0))
+        invalidateWorkingHoursCache({ startDate: start, endDate: end })
+        loadWorkingHoursForMonth()
         // If opened from DailySchedule, return to DailySchedule
         if (workingHoursFromDailySchedule) {
           setWorkingHoursFromDailySchedule(false)
@@ -1267,15 +1272,11 @@ const Calendar = ({ bookings, onBookingClick, onAddBooking, onNavigateToDailySch
 
       {/* Month/Year Picker Modal */}
       {showMonthYearPicker && (
-        <div className="fixed inset-0 bg-black bg-opacity-50 z-50" onClick={() => setShowMonthYearPicker(false)}>
-          <div className="bg-white rounded-lg shadow-2xl p-6 max-w-md w-full mx-4" 
-               onClick={(e) => e.stopPropagation()}
-               style={{ 
-                 position: 'fixed',
-                 top: '15vh', 
-                 left: '50%', 
-                 transform: 'translateX(-50%)' 
-               }}>
+        <div className="fixed inset-0 z-50 flex items-start sm:items-center justify-center p-3 sm:p-4 overflow-y-auto bg-black/50" onClick={() => setShowMonthYearPicker(false)}>
+          <div 
+            className="bg-white rounded-lg shadow-2xl p-6 w-full max-w-md min-w-0 my-auto"
+            onClick={(e) => e.stopPropagation()}
+          >
             <div className="flex items-center justify-between mb-4">
               <h3 className="text-lg font-semibold text-gray-900">Избери месец и година</h3>
               <button

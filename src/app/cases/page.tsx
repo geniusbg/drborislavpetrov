@@ -138,7 +138,7 @@ function CasesPageContent() {
       {/* Case detail modal */}
       {selectedCase && (
         <div
-          className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm"
+          className="fixed inset-0 z-[100] flex items-start sm:items-center justify-center p-3 sm:p-4 overflow-y-auto bg-black/60 backdrop-blur-sm"
           role="dialog"
           aria-modal="true"
           aria-labelledby="case-modal-title"
@@ -149,7 +149,7 @@ function CasesPageContent() {
             onClick={closeModal}
           />
           <div
-            className="relative bg-white rounded-2xl shadow-2xl w-full max-w-lg max-h-[90vh] overflow-y-auto border border-secondary-100"
+            className="relative bg-white rounded-2xl shadow-2xl w-full max-w-lg min-w-0 max-h-[90vh] overflow-y-auto overflow-x-hidden border border-secondary-100 my-auto"
             onClick={(e) => e.stopPropagation()}
           >
             <div className="sticky top-0 bg-gradient-to-r from-primary-50 to-white border-b border-primary-100 px-5 py-4 flex items-center justify-between z-10">

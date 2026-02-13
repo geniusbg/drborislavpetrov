@@ -149,14 +149,12 @@ export default function BackupConfig({ onConfigChange, onClose }: BackupConfigPr
   }, [isDragging, dragOffset, handleMouseMove, handleMouseUp])
 
   return (
-            <div className="fixed inset-0 bg-black bg-opacity-50 z-50">
+    <div className="fixed inset-0 z-50 flex items-start sm:items-center justify-center p-3 sm:p-4 overflow-y-auto bg-black/50">
       <div 
-        className="bg-white rounded-lg shadow-xl max-w-2xl w-full mx-4 max-h-[90vh] overflow-y-auto cursor-move" 
+        className="bg-white rounded-lg shadow-xl w-full max-w-2xl min-w-0 max-h-[90vh] overflow-y-auto overflow-x-hidden cursor-move my-auto"
         style={{ 
-          position: 'fixed',
-          left: '50%',
-          top: '50%',
-          transform: `translate(-50%, -50%) translate(${modalPosition.x}px, ${modalPosition.y}px)`,
+          maxWidth: 'min(42rem, calc(100vw - 1.5rem))',
+          transform: `translate(${modalPosition.x}px, ${modalPosition.y}px)`,
           cursor: isDragging ? 'grabbing' : 'grab'
         }}
         onMouseDown={handleMouseDown}

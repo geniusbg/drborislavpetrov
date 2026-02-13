@@ -815,17 +815,8 @@ const DailySchedule = ({ date, onClose, onEditWorkingHours, onEditBooking, onDel
 
   if (loading) {
     const loadingContent = (
-      <div className="fixed inset-0 bg-black bg-opacity-50 z-[60]">
-        <div className="bg-white rounded-lg shadow-2xl p-3 sm:p-6 w-full max-w-6xl" 
-             style={{ 
-               position: 'fixed',
-               top: '10vh', 
-               left: '50%',
-               transform: 'translateX(-50%)',
-               maxHeight: '80vh',
-               overflowY: 'auto',
-               maxWidth: 'calc(100vw - 4rem)'
-             }}>
+      <div className="fixed inset-0 z-[60] flex items-start sm:items-center justify-center p-3 sm:p-4 overflow-y-auto bg-black/50">
+        <div className="bg-white rounded-lg shadow-2xl p-3 sm:p-6 w-full max-w-6xl min-w-0 max-h-[90vh] overflow-y-auto overflow-x-hidden my-auto" style={{ maxWidth: 'min(48rem, calc(100vw - 1.5rem))' }}>
           <div className="flex items-center justify-center py-8">
             <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary-600"></div>
             <p className="text-center mt-2 ml-3">Зареждане...</p>
@@ -844,17 +835,8 @@ const DailySchedule = ({ date, onClose, onEditWorkingHours, onEditBooking, onDel
 
   if (!schedule) {
     const errorContent = (
-      <div className="fixed inset-0 bg-black bg-opacity-50 z-[60]">
-        <div className="bg-white rounded-lg shadow-2xl p-3 sm:p-6 w-full max-w-6xl" 
-             style={{ 
-               position: 'fixed',
-               top: '12vh', 
-               left: '50%',
-               transform: 'translateX(-50%)',
-               maxHeight: '80vh',
-               overflowY: 'auto',
-               maxWidth: 'calc(100vw - 4rem)'
-             }}>
+      <div className="fixed inset-0 z-[60] flex items-start sm:items-center justify-center p-3 sm:p-4 overflow-y-auto bg-black/50">
+        <div className="bg-white rounded-lg shadow-2xl p-3 sm:p-6 w-full max-w-6xl min-w-0 max-h-[90vh] overflow-y-auto overflow-x-hidden my-auto" style={{ maxWidth: 'min(48rem, calc(100vw - 1.5rem))' }}>
           <div className="flex flex-col items-center justify-center py-8">
             <p className="text-center text-red-600 font-medium">Грешка при зареждане на графика</p>
             <button
@@ -877,18 +859,12 @@ const DailySchedule = ({ date, onClose, onEditWorkingHours, onEditBooking, onDel
   }
   
   const modalContent = (
-    <div className="fixed inset-0 bg-black bg-opacity-50 z-[60]" onClick={onClose}>
-      <div className="bg-white rounded-lg shadow-2xl p-3 sm:p-6 w-full max-w-6xl" 
-           onClick={(e) => e.stopPropagation()}
-           style={{ 
-        position: 'fixed',
-        top: '12vh', 
-        left: '50%',
-        transform: 'translateX(-50%)',
-        maxHeight: '80vh',
-        overflowY: 'auto',
-        maxWidth: 'calc(100vw - 4rem)'
-      }}>
+    <div className="fixed inset-0 z-[60] flex items-start sm:items-center justify-center p-3 sm:p-4 overflow-y-auto bg-black/50" onClick={onClose}>
+      <div 
+        className="bg-white rounded-lg shadow-2xl p-3 sm:p-6 w-full max-w-6xl min-w-0 max-h-[90vh] overflow-y-auto overflow-x-hidden my-auto"
+        style={{ maxWidth: 'min(48rem, calc(100vw - 1.5rem))' }}
+        onClick={(e) => e.stopPropagation()}
+      >
         <div className="flex items-center justify-between mb-6">
           <div>
             <h2 className="text-2xl font-bold text-gray-900">
@@ -1500,18 +1476,16 @@ const DailySchedule = ({ date, onClose, onEditWorkingHours, onEditBooking, onDel
 
       {/* Booking Form Modal */}
       {showBookingForm && (
-        <div className="fixed inset-0 bg-black bg-opacity-50 z-[60]" onClick={handleBookingCancel}>
-          <div className="bg-white rounded-lg shadow-2xl p-6 w-full max-w-2xl mx-4" 
-               data-modal="booking-form" 
-               onClick={(e) => e.stopPropagation()}
-               style={{ 
-                 position: 'fixed',
-                 top: '10vh', 
-                 left: '50%', 
-                 transform: 'translateX(-50%)',
-                 maxHeight: '80vh',
-                 overflowY: 'auto'
-               }}>
+        <div
+          className="fixed inset-0 z-[60] flex items-start sm:items-center justify-center p-3 sm:p-4 overflow-y-auto bg-black/50"
+          onClick={handleBookingCancel}
+        >
+          <div
+            className="bg-white rounded-xl shadow-2xl w-full max-w-2xl min-w-0 max-h-[90vh] flex flex-col my-auto"
+            data-modal="booking-form"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <div className="p-4 sm:p-6 overflow-y-auto overflow-x-hidden flex-1 min-h-0">
             <div className="flex items-center justify-between mb-6">
               <h2 className="text-xl font-bold text-gray-900">
                 {editingBooking ? 'Редактирай резервация' : 'Нова резервация'}
@@ -1531,6 +1505,7 @@ const DailySchedule = ({ date, onClose, onEditWorkingHours, onEditBooking, onDel
               onDelete={editingBooking?.id ? handleDeleteBooking : undefined}
               isStatusOnly={false}
             />
+            </div>
           </div>
         </div>
       )}

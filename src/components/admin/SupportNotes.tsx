@@ -305,15 +305,13 @@ export default function SupportNotes({ onClose }: SupportNotesProps) {
   }
 
   return (
-          <div className="fixed inset-0 bg-black bg-opacity-50 z-50" onClick={onClose}>
+    <div className="fixed inset-0 z-50 flex items-start sm:items-center justify-center p-3 sm:p-4 overflow-y-auto bg-black/50" onClick={onClose}>
       <div 
-        className="bg-white rounded-lg shadow-xl max-w-6xl w-full mx-4 max-h-[90vh] overflow-y-auto cursor-move" 
+        className="bg-white rounded-lg shadow-xl w-full max-w-6xl min-w-0 max-h-[90vh] overflow-y-auto overflow-x-hidden cursor-move my-auto"
         onClick={(e) => e.stopPropagation()} 
         style={{ 
-          position: 'fixed',
-          left: '50%',
-          top: '50%',
-          transform: `translate(-50%, -50%) translate(${modalPosition.x}px, ${modalPosition.y}px)`,
+          maxWidth: 'min(72rem, calc(100vw - 1.5rem))',
+          transform: `translate(${modalPosition.x}px, ${modalPosition.y}px)`,
           cursor: isDragging ? 'grabbing' : 'grab'
         }}
         onMouseDown={handleMouseDown}
@@ -486,14 +484,12 @@ export default function SupportNotes({ onClose }: SupportNotesProps) {
 
         {/* Add/Edit Modal */}
         {showAddModal && (
-          <div className="fixed inset-0 bg-black bg-opacity-50 z-60">
+          <div className="fixed inset-0 z-[60] flex items-start sm:items-center justify-center p-3 sm:p-4 overflow-y-auto bg-black/50">
             <div 
-              className="bg-white rounded-lg shadow-xl max-w-md w-full mx-4 cursor-move" 
+              className="bg-white rounded-lg shadow-xl w-full max-w-md min-w-0 max-h-[90vh] overflow-y-auto overflow-x-hidden cursor-move my-auto"
               style={{ 
-                position: 'fixed',
-                left: '50%',
-                top: '50%',
-                transform: `translate(-50%, -50%) translate(${addModalPosition.x}px, ${addModalPosition.y}px)`,
+                maxWidth: 'min(28rem, calc(100vw - 1.5rem))',
+                transform: `translate(${addModalPosition.x}px, ${addModalPosition.y}px)`,
                 cursor: isAddModalDragging ? 'grabbing' : 'grab'
               }}
               onMouseDown={handleAddModalMouseDown}

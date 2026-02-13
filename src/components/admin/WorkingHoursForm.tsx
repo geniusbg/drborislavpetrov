@@ -161,14 +161,12 @@ const WorkingHoursForm = ({ selectedDate, onSave, onCancel, onDelete, initialDat
   }, [onCancel])
 
   const modalContent = (
-    <div className="fixed inset-0 bg-black bg-opacity-50 z-[70]">
+    <div className="fixed inset-0 z-[70] flex items-start sm:items-center justify-center p-3 sm:p-4 overflow-y-auto bg-black/50">
       <div 
-        className="bg-white rounded-lg p-6 w-full max-w-md mx-4 cursor-move" 
+        className="bg-white rounded-lg p-6 w-full max-w-md min-w-0 max-h-[90vh] overflow-y-auto overflow-x-hidden cursor-move my-auto"
         style={{ 
-          position: 'fixed',
-          left: '50%',
-          top: '50%',
-          transform: `translate(-50%, -50%) translate(${modalPosition.x}px, ${modalPosition.y}px)`,
+          maxWidth: 'min(28rem, calc(100vw - 1.5rem))',
+          transform: `translate(${modalPosition.x}px, ${modalPosition.y}px)`,
           cursor: isDragging ? 'grabbing' : 'grab'
         }}
         onMouseDown={handleMouseDown}
