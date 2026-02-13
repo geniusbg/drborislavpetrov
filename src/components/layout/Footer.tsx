@@ -6,9 +6,9 @@ const Footer = () => {
   const currentYear = getBulgariaTime().getFullYear()
 
   return (
-    <footer className="bg-secondary-900 text-white">
-      <div className="container-custom py-12">
-        <div className="grid lg:grid-cols-4 gap-8">
+    <footer className="bg-secondary-900 text-white overflow-x-hidden">
+      <div className="container-custom py-12 max-w-full min-w-0">
+        <div className="grid lg:grid-cols-4 gap-8 min-w-0">
           {/* Practice Info */}
           <div className="lg:col-span-2">
             <div className="flex items-center space-x-2 mb-6 animate-fade-in">

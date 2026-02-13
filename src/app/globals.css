@@ -65,7 +65,11 @@ html {
   scroll-padding-top: 5.5rem; /* h-16 lg:h-20 + малко въздух */
 }
 
-/* Base styles */
+/* Base styles – предотвратява хоризонтален скрол на мобилни */
+html, body {
+  overflow-x: hidden;
+}
+
 body {
   font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', 'Oxygen', 'Ubuntu', 'Cantarell', 'Fira Sans', 'Droid Sans', 'Helvetica Neue', sans-serif;
   -webkit-font-smoothing: antialiased;

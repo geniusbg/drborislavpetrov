@@ -3,11 +3,11 @@ import { Calendar, Clock, MapPin, Phone } from 'lucide-react'
 
 const Hero = () => {
   return (
-    <section id="home" className="pt-20 lg:pt-24 bg-gradient-to-br from-primary-50 to-white">
-      <div className="container-custom section-padding">
-        <div className="grid lg:grid-cols-2 gap-12 items-center">
+    <section id="home" className="pt-20 lg:pt-24 bg-gradient-to-br from-primary-50 to-white overflow-x-hidden">
+      <div className="container-custom section-padding max-w-full min-w-0">
+        <div className="grid lg:grid-cols-2 gap-12 items-center min-w-0">
           {/* Content */}
-          <div className="space-y-8 animate-fade-in">
+          <div className="space-y-8 animate-fade-in min-w-0">
             <div className="space-y-4">
               <h1 className="text-4xl lg:text-6xl font-bold text-secondary-900 leading-tight">
                 Професионална{' '}
@@ -20,7 +20,7 @@ const Hero = () => {
             </div>
 
             {/* Features */}
-            <div className="grid sm:grid-cols-2 gap-4">
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 min-w-0">
               <div className="flex items-center space-x-3">
                 <Calendar className="w-5 h-5 text-primary-600" />
                 <span className="text-secondary-700">Онлайн резервации</span>
@@ -51,7 +51,7 @@ const Hero = () => {
           </div>
 
           {/* Image/Visual */}
-          <div className="relative animate-slide-up">
+          <div className="relative animate-slide-up min-w-0">
             <div className="bg-gradient-to-br from-primary-100 to-primary-200 rounded-3xl p-8 lg:p-12">
               <div className="aspect-square bg-white rounded-2xl shadow-custom flex items-center justify-center">
                 <div className="text-center space-y-4">

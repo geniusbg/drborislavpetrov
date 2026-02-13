@@ -65,9 +65,9 @@ function CasesPageContent() {
   const selectedCase = selectedId ? cases.find((c) => c.id === selectedId) : null
 
   return (
-    <main className="min-h-screen bg-gradient-to-b from-white to-secondary-50/50">
+    <main className="min-h-screen bg-gradient-to-b from-white to-secondary-50/50 overflow-x-hidden">
       <Header />
-      <div className="container-custom pt-28 pb-12 sm:pb-16 lg:pb-20">
+      <div className="container-custom pt-28 pb-12 sm:pb-16 lg:pb-20 max-w-full min-w-0">
         <div className="text-center mb-12">
           <span className="inline-block text-primary-600 font-medium text-sm uppercase tracking-wider mb-2">
             Галерия
@@ -85,7 +85,7 @@ function CasesPageContent() {
         ) : cases.length === 0 ? (
           <p className="text-center text-secondary-500 py-12">Няма публикувани случаи.</p>
         ) : (
-          <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-8">
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-8 min-w-0">
             {cases.map((c) => (
               <button
                 key={c.id}

@@ -29,8 +29,8 @@ const Services = () => {
   ]
 
   return (
-    <section id="services" className="section-padding bg-white">
-      <div className="container-custom">
+    <section id="services" className="section-padding bg-white overflow-x-hidden">
+      <div className="container-custom max-w-full min-w-0">
         <div className="text-center mb-16 animate-fade-in">
           <h2 className="text-3xl lg:text-4xl font-bold text-secondary-900 mb-4">
             Нашите услуги
@@ -40,7 +40,7 @@ const Services = () => {
           </p>
         </div>
 
-        <div className="grid lg:grid-cols-2 gap-8 animate-fade-in">
+        <div className="grid lg:grid-cols-2 gap-8 animate-fade-in min-w-0">
           {services.map((service, index) => (
             <div key={index} className="card hover:shadow-xl transition-shadow duration-300 animate-fade-in" style={{ animationDelay: `${index * 0.1}s` }}>
               <div className="flex items-start space-x-4">
@@ -73,7 +73,7 @@ const Services = () => {
             <h3 className="text-2xl font-semibold text-secondary-900 mb-4">
               Защо да изберете нас?
             </h3>
-            <div className="grid sm:grid-cols-3 gap-6 mt-8">
+            <div className="grid grid-cols-1 sm:grid-cols-3 gap-6 mt-8 min-w-0">
               <div className="text-center animate-fade-in" style={{ animationDelay: '0.6s' }}>
                 <div className="w-16 h-16 bg-primary-100 rounded-full flex items-center justify-center mx-auto mb-4">
                   <span className="text-2xl">🎯</span>

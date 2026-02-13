@@ -25,11 +25,11 @@ const About = () => {
   ]
 
   return (
-    <section id="about" className="section-padding bg-secondary-50">
-      <div className="container-custom">
-        <div className="grid lg:grid-cols-2 gap-12 items-center animate-fade-in">
+    <section id="about" className="section-padding bg-secondary-50 overflow-x-hidden">
+      <div className="container-custom max-w-full min-w-0">
+        <div className="grid lg:grid-cols-2 gap-12 items-center animate-fade-in min-w-0">
           {/* Content */}
-          <div className="space-y-8 animate-fade-in">
+          <div className="space-y-8 animate-fade-in min-w-0">
             <div className="space-y-4">
               <h2 className="text-3xl lg:text-4xl font-bold text-secondary-900">
                 За д-р Борислав Петров
@@ -87,9 +87,9 @@ const About = () => {
           </div>
 
           {/* Stats & Visual */}
-          <div className="space-y-8 animate-slide-up">
+          <div className="space-y-8 animate-slide-up min-w-0">
             {/* Stats Grid */}
-            <div className="grid grid-cols-2 gap-6">
+            <div className="grid grid-cols-2 gap-6 min-w-0">
               {achievements.map((achievement, index) => (
                 <div key={index} className="bg-white rounded-xl p-6 text-center shadow-sm animate-fade-in" style={{ animationDelay: `${index * 0.2}s` }}>
                   <div className="w-12 h-12 bg-primary-100 rounded-lg flex items-center justify-center mx-auto mb-4">

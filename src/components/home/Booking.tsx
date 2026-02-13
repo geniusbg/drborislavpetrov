@@ -194,8 +194,8 @@ const Booking = () => {
   }
 
   return (
-    <section id="booking" className="section-padding bg-gradient-to-br from-primary-50 to-white">
-      <div className="container-custom">
+    <section id="booking" className="section-padding bg-gradient-to-br from-primary-50 to-white overflow-x-hidden">
+      <div className="container-custom max-w-full min-w-0">
                             <div className="text-center mb-16 animate-fade-in">
                       <h2 className="text-3xl lg:text-4xl font-bold text-secondary-900 mb-4">
                         Резервирайте час
@@ -211,15 +211,15 @@ const Booking = () => {
                       </div>
                     </div>
 
-        <div className="grid lg:grid-cols-2 gap-12 animate-fade-in">
+        <div className="grid lg:grid-cols-2 gap-12 animate-fade-in min-w-0">
           {/* Booking Form */}
-          <div className="card animate-slide-up">
+          <div className="card animate-slide-up min-w-0 overflow-hidden">
             <h3 className="text-2xl font-semibold text-secondary-900 mb-6">
               Попълнете формата
             </h3>
-            <form onSubmit={handleSubmit} className="space-y-6">
-              <div className="grid sm:grid-cols-2 gap-4">
-                <div className="animate-fade-in" style={{ animationDelay: '0.1s' }}>
+            <form onSubmit={handleSubmit} className="space-y-6 min-w-0">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 min-w-0">
+                <div className="animate-fade-in min-w-0" style={{ animationDelay: '0.1s' }}>
                   <label htmlFor="name" className="block text-sm font-medium text-secondary-700 mb-2">
                     Име *
                   </label>
@@ -232,7 +232,7 @@ const Booking = () => {
                       value={bookingData.name}
                       onChange={handleChange}
                       required
-                      className={`input-field pl-10 ${errors.name ? 'border-red-500' : ''}`}
+                      className={`input-field w-full max-w-full pl-10 box-border ${errors.name ? 'border-red-500' : ''}`}
                       placeholder="Вашето име"
                     />
                     {errors.name && (
@@ -240,7 +240,7 @@ const Booking = () => {
                     )}
                   </div>
                 </div>
-                <div className="animate-fade-in" style={{ animationDelay: '0.2s' }}>
+                <div className="animate-fade-in min-w-0" style={{ animationDelay: '0.2s' }}>
                   <label htmlFor="phone" className="block text-sm font-medium text-secondary-700 mb-2">
                     Телефон *
                   </label>
@@ -253,7 +253,7 @@ const Booking = () => {
                       value={bookingData.phone}
                       onChange={handleChange}
                       required
-                      className={`input-field pl-10 ${errors.phone ? 'border-red-500' : ''}`}
+                      className={`input-field w-full max-w-full pl-10 box-border ${errors.phone ? 'border-red-500' : ''}`}
                       placeholder="0887 229 669"
                     />
                     {errors.phone && (
@@ -275,14 +275,14 @@ const Booking = () => {
                     name="email"
                     value={bookingData.email}
                     onChange={handleChange}
-                    className="input-field pl-10"
+                    className="input-field w-full max-w-full pl-10 box-border"
                     placeholder="your@email.com"
                   />
                 </div>
               </div>
 
-              <div className="grid sm:grid-cols-2 gap-4">
-                                            <div>
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 min-w-0">
+                <div className="min-w-0">
                               <label htmlFor="service" className="block text-sm font-medium text-secondary-700 mb-2">
                                 Услуга * <span className="text-red-500">(важно)</span>
                               </label>
@@ -292,7 +292,7 @@ const Booking = () => {
                                 value={bookingData.service}
                                 onChange={handleChange}
                                 required
-                                className={`input-field ${errors.service ? 'border-red-500' : ''}`}
+                                className={`input-field w-full max-w-full box-border ${errors.service ? 'border-red-500' : ''}`}
                               >
                                 <option value="">Изберете услуга</option>
                                 {services.map((service) => (
@@ -308,7 +308,7 @@ const Booking = () => {
                                 Изберете точно услугата, от която имате нужда. Времетраенето не може да се промени след резервиране.
                               </p>
                             </div>
-                <div>
+                <div className="min-w-0">
                   <label htmlFor="date" className="block text-sm font-medium text-secondary-700 mb-2">
                     Дата *
                   </label>
@@ -322,7 +322,7 @@ const Booking = () => {
                       onChange={handleChange}
                       required
                       min={minDate}
-                      className={`input-field w-full min-h-[2.75rem] pl-12 sm:pl-10 ${errors.date ? 'border-red-500' : ''}`}
+                      className={`input-field w-full max-w-full min-h-[2.75rem] pl-12 sm:pl-10 box-border ${errors.date ? 'border-red-500' : ''}`}
                     />
                     {errors.date && (
                       <p className="text-red-600 text-xs mt-1">{errors.date}</p>
@@ -343,7 +343,7 @@ const Booking = () => {
                     value={bookingData.time}
                     onChange={handleChange}
                     required
-                    className={`input-field w-full min-h-[2.75rem] pl-12 sm:pl-10 appearance-none ${errors.time ? 'border-red-500' : ''}`}
+                    className={`input-field w-full max-w-full min-h-[2.75rem] pl-12 sm:pl-10 appearance-none box-border ${errors.time ? 'border-red-500' : ''}`}
                     disabled={!isServiceSelected || !isDateSelected || isLoadingSlots}
                   >
                     <option value="">
@@ -373,7 +373,7 @@ const Booking = () => {
                     value={bookingData.message}
                     onChange={handleChange}
                     rows={4}
-                    className="input-field pl-10 resize-none"
+                    className="input-field w-full max-w-full pl-10 resize-none box-border"
                     placeholder="Допълнителна информация за вашия случай..."
                   />
                 </div>
@@ -397,7 +397,7 @@ const Booking = () => {
           </div>
 
           {/* Booking Info */}
-          <div className="space-y-8 animate-fade-in">
+          <div className="space-y-8 animate-fade-in min-w-0">
             <div className="card animate-fade-in" style={{ animationDelay: '0.2s' }}>
               <h3 className="text-xl font-semibold text-secondary-900 mb-4">
                 Защо да резервирате онлайн?

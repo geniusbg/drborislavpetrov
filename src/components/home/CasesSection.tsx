@@ -39,8 +39,8 @@ export default function CasesSection() {
   if (!loaded || cases.length === 0) return null
 
   return (
-    <section id="cases" className="section-padding bg-gradient-to-b from-white to-secondary-50/50">
-      <div className="container-custom">
+    <section id="cases" className="section-padding bg-gradient-to-b from-white to-secondary-50/50 overflow-x-hidden">
+      <div className="container-custom max-w-full min-w-0">
         <div className="text-center mb-12">
           <span className="inline-block text-primary-600 font-medium text-sm uppercase tracking-wider mb-2">
             Галерия
@@ -50,7 +50,7 @@ export default function CasesSection() {
           </h2>
           <div className="w-16 h-1 bg-primary-500 rounded-full mx-auto" aria-hidden />
         </div>
-        <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-8">
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-8 min-w-0">
           {cases.slice(0, 6).map((c) => (
             <Link
               key={c.id}

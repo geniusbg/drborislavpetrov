@@ -127,8 +127,8 @@ const Contact = () => {
   ]
 
   return (
-    <section id="contact" className="section-padding bg-white">
-      <div className="container-custom">
+    <section id="contact" className="section-padding bg-white overflow-x-hidden">
+      <div className="container-custom max-w-full min-w-0">
         <div className="text-center mb-16 animate-fade-in">
           <h2 className="text-3xl lg:text-4xl font-bold text-secondary-900 mb-4">
             Свържете се с нас
@@ -138,10 +138,10 @@ const Contact = () => {
           </p>
         </div>
 
-        <div className="grid lg:grid-cols-2 gap-12">
+        <div className="grid lg:grid-cols-2 gap-12 min-w-0">
           {/* Contact Information */}
-          <div className="space-y-8 animate-fade-in">
-            <div className="grid sm:grid-cols-2 gap-6 animate-fade-in">
+          <div className="space-y-8 animate-fade-in min-w-0">
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-6 animate-fade-in min-w-0">
               {offices.map((office, index) => (
                 <div key={office.title} className="card animate-fade-in" style={{ animationDelay: `${index * 0.1}s` }}>
                   <div className="flex items-start space-x-4">
@@ -241,13 +241,13 @@ const Contact = () => {
           </div>
 
           {/* Contact Form */}
-          <div className="card animate-slide-up">
+          <div className="card animate-slide-up min-w-0 overflow-hidden">
             <h3 className="text-2xl font-semibold text-secondary-900 mb-6">
               Изпратете ни съобщение
             </h3>
-            <form onSubmit={handleSubmit} className="space-y-6">
-              <div className="grid sm:grid-cols-2 gap-4">
-                <div className="animate-fade-in" style={{ animationDelay: '0.1s' }}>
+            <form onSubmit={handleSubmit} className="space-y-6 min-w-0">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 min-w-0">
+                <div className="animate-fade-in min-w-0" style={{ animationDelay: '0.1s' }}>
                   <label htmlFor="name" className="block text-sm font-medium text-secondary-700 mb-2">
                     Име *
                   </label>
@@ -258,14 +258,14 @@ const Contact = () => {
                     value={formData.name}
                     onChange={handleChange}
                     required
-                    className={`input-field ${errors.name ? 'border-red-500' : ''}`}
+                    className={`input-field w-full max-w-full box-border ${errors.name ? 'border-red-500' : ''}`}
                     placeholder="Вашето име"
                   />
                   {errors.name && (
                     <p className="text-red-600 text-xs mt-1">{errors.name}</p>
                   )}
                 </div>
-                <div className="animate-fade-in" style={{ animationDelay: '0.2s' }}>
+                <div className="animate-fade-in min-w-0" style={{ animationDelay: '0.2s' }}>
                   <label htmlFor="email" className="block text-sm font-medium text-secondary-700 mb-2">
                     Имейл *
                   </label>
@@ -276,7 +276,7 @@ const Contact = () => {
                     value={formData.email}
                     onChange={handleChange}
                     required
-                    className={`input-field ${errors.email ? 'border-red-500' : ''}`}
+                    className={`input-field w-full max-w-full box-border ${errors.email ? 'border-red-500' : ''}`}
                     placeholder="your@email.com"
                   />
                   {errors.email && (
@@ -295,7 +295,7 @@ const Contact = () => {
                   name="phone"
                   value={formData.phone}
                   onChange={handleChange}
-                  className="input-field"
+                  className="input-field w-full max-w-full box-border"
                   placeholder="0887 229 669"
                 />
               </div>
@@ -311,7 +311,7 @@ const Contact = () => {
                   onChange={handleChange}
                   required
                   rows={5}
-                  className={`input-field resize-none ${errors.message ? 'border-red-500' : ''}`}
+                  className={`input-field w-full max-w-full resize-none box-border ${errors.message ? 'border-red-500' : ''}`}
                   placeholder="Напишете вашето съобщение..."
                 />
                 {errors.message && (
@@ -347,7 +347,7 @@ const Contact = () => {
           <p className="text-secondary-600 text-center mt-2 max-w-2xl mx-auto">
             Два удобно разположени кабинета за по-лесен достъп до вас.
           </p>
-          <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 lg:gap-8 mt-8 w-full">
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 lg:gap-8 mt-8 w-full min-w-0">
             {offices.map((office) => (
               <div key={office.title} className="bg-white rounded-xl border border-secondary-200 overflow-hidden shadow-sm hover:shadow-md transition-shadow w-full">
                 <div className="p-4 sm:p-5 border-b border-secondary-100">
