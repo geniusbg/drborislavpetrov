@@ -281,7 +281,7 @@ const Booking = () => {
                 </div>
               </div>
 
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 min-w-0">
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4 min-w-0">
                 <div className="min-w-0">
                               <label htmlFor="service" className="block text-sm font-medium text-secondary-700 mb-2">
                                 Услуга * <span className="text-red-500">(важно)</span>
@@ -312,8 +312,8 @@ const Booking = () => {
                   <label htmlFor="date" className="block text-sm font-medium text-secondary-700 mb-2">
                     Дата *
                   </label>
-                  <div className="relative flex items-center">
-                    <Calendar className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-secondary-400 pointer-events-none flex-shrink-0" aria-hidden />
+                  <div className="flex items-center gap-3 min-w-0">
+                    <Calendar className="w-4 h-4 text-secondary-400 flex-shrink-0" aria-hidden />
                     <input
                       type="date"
                       id="date"
@@ -322,7 +322,7 @@ const Booking = () => {
                       onChange={handleChange}
                       required
                       min={minDate}
-                      className={`input-field w-full max-w-full min-h-[2.75rem] pl-12 sm:pl-10 box-border ${errors.date ? 'border-red-500' : ''}`}
+                      className={`input-field w-full max-w-full min-h-[2.75rem] min-w-0 box-border ${errors.date ? 'border-red-500' : ''}`}
                     />
                     {errors.date && (
                       <p className="text-red-600 text-xs mt-1">{errors.date}</p>
@@ -335,15 +335,15 @@ const Booking = () => {
                 <label htmlFor="time" className="block text-sm font-medium text-secondary-700 mb-2">
                   Час *
                 </label>
-                <div className="relative flex items-center">
-                  <Clock className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-secondary-400 pointer-events-none flex-shrink-0" aria-hidden />
+                <div className="flex items-center gap-3 min-w-0">
+                  <Clock className="w-4 h-4 text-secondary-400 flex-shrink-0" aria-hidden />
                   <select
                     id="time"
                     name="time"
                     value={bookingData.time}
                     onChange={handleChange}
                     required
-                    className={`input-field w-full max-w-full min-h-[2.75rem] pl-12 sm:pl-10 appearance-none box-border ${errors.time ? 'border-red-500' : ''}`}
+                    className={`input-field w-full max-w-full min-h-[2.75rem] min-w-0 appearance-none box-border ${errors.time ? 'border-red-500' : ''}`}
                     disabled={!isServiceSelected || !isDateSelected || isLoadingSlots}
                   >
                     <option value="">
