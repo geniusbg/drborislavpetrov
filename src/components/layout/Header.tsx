@@ -1,18 +1,35 @@
 'use client'
 
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import Link from 'next/link'
 import { Menu, X, Phone } from 'lucide-react'
 import PWAInstallButton from '@/components/PWAInstallButton'
 
+const CASES_LABEL_FALLBACK = 'Клинични случаи'
+
 const Header = () => {
   const [isMenuOpen, setIsMenuOpen] = useState(false)
+  const [casesNavLabel, setCasesNavLabel] = useState(CASES_LABEL_FALLBACK)
+
+  useEffect(() => {
+    let cancelled = false
+    fetch('/api/cases?homepage=1')
+      .then((r) => r.json())
+      .then((data) => {
+        if (!cancelled && typeof data?.sectionTitle === 'string' && data.sectionTitle.trim()) {
+          setCasesNavLabel(data.sectionTitle.trim())
+        }
+      })
+      .catch(() => {})
+    return () => { cancelled = true }
+  }, [])
 
   const navigation = [
-    { name: 'Начало', href: '#home' },
-    { name: 'За мен', href: '#about' },
-    { name: 'Услуги', href: '#services' },
-    { name: 'Контакти', href: '#contact' },
+    { name: 'Начало', href: '/#home' },
+    { name: 'За мен', href: '/#about' },
+    { name: 'Услуги', href: '/#services' },
+    { name: casesNavLabel, href: '/cases' },
+    { name: 'Контакти', href: '/#contact' },
   ]
 
   return (
@@ -20,7 +37,7 @@ const Header = () => {
       <div className="container-custom">
         <div className="flex items-center justify-between h-16 lg:h-20">
           {/* Logo */}
-          <Link href="#home" className="flex items-center space-x-2 animate-fade-in">
+          <Link href="/#home" className="flex items-center space-x-2 animate-fade-in">
             <div className="w-10 h-10 bg-primary-600 rounded-lg flex items-center justify-center">
               <span className="text-white font-bold text-lg">ДП</span>
             </div>
@@ -43,7 +60,7 @@ const Header = () => {
               </Link>
             ))}
             <Link
-              href="#booking"
+              href="/#booking"
               className="btn-primary flex items-center space-x-2 animate-fade-in"
               style={{ animationDelay: '0.4s' }}
             >
@@ -81,7 +98,7 @@ const Header = () => {
                 </Link>
               ))}
               <Link
-                href="#booking"
+                href="/#booking"
                 className="btn-primary flex items-center justify-center space-x-2"
                 onClick={() => setIsMenuOpen(false)}
               >

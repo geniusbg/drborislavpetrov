@@ -65,61 +65,71 @@ function CasesPageContent() {
   const selectedCase = selectedId ? cases.find((c) => c.id === selectedId) : null
 
   return (
-    <main className="min-h-screen bg-gray-50">
+    <main className="min-h-screen bg-gradient-to-b from-white to-secondary-50/50">
       <Header />
-      <div className="container-custom section-padding pt-24">
-        <div className="text-center mb-10">
-          <h1 className="text-3xl lg:text-4xl font-bold text-secondary-900 mb-4">
+      <div className="container-custom pt-28 pb-12 sm:pb-16 lg:pb-20">
+        <div className="text-center mb-12">
+          <span className="inline-block text-primary-600 font-medium text-sm uppercase tracking-wider mb-2">
+            Галерия
+          </span>
+          <h1 className="text-3xl lg:text-4xl font-bold text-secondary-900 mb-3">
             {sectionTitle}
           </h1>
+          <div className="w-16 h-1 bg-primary-500 rounded-full mx-auto mb-2" aria-hidden />
+          <p className="text-secondary-600 max-w-xl mx-auto">
+            Преглед на избрани клинични случаи и процедури
+          </p>
         </div>
         {!loaded ? (
-          <p className="text-center text-gray-500">Зареждане...</p>
+          <p className="text-center text-secondary-500 py-12">Зареждане...</p>
         ) : cases.length === 0 ? (
-          <p className="text-center text-gray-500">Няма публикувани случаи.</p>
+          <p className="text-center text-secondary-500 py-12">Няма публикувани случаи.</p>
         ) : (
-          <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-6">
+          <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-8">
             {cases.map((c) => (
               <button
                 key={c.id}
                 type="button"
                 onClick={() => openModal(c.id)}
-                className="text-left bg-white rounded-xl overflow-hidden shadow-sm hover:shadow-md transition-shadow border border-gray-100"
+                className="group text-left bg-white rounded-2xl overflow-hidden shadow-md hover:shadow-xl transition-all duration-300 border border-secondary-100 hover:border-primary-200 hover:-translate-y-1"
               >
-                <div className="aspect-[4/3] bg-white relative overflow-hidden flex items-center justify-center">
+                <div className="aspect-[4/3] bg-secondary-50 relative overflow-hidden flex items-center justify-center">
                   {c.main_image_path ? (
                     <img
                       src={c.main_image_path}
                       alt=""
-                      className="w-full h-full object-contain"
+                      className="w-full h-full object-contain transition-transform duration-300 group-hover:scale-105"
                     />
                   ) : (
-                    <div className="w-full h-full flex items-center justify-center text-gray-400">
-                      <span className="text-4xl">📷</span>
+                    <div className="w-full h-full flex items-center justify-center text-secondary-300">
+                      <span className="text-5xl">📷</span>
                     </div>
                   )}
+                  <div className="absolute inset-0 bg-gradient-to-t from-black/20 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300 pointer-events-none" />
                 </div>
-                <div className="p-4">
-                  <h2 className="font-semibold text-secondary-900 mb-2 line-clamp-2">
+                <div className="p-5">
+                  <h2 className="font-semibold text-lg text-secondary-900 mb-2 line-clamp-2 group-hover:text-primary-700 transition-colors">
                     {c.title}
                   </h2>
-                  <p className="text-sm text-secondary-600 line-clamp-2">
+                  <p className="text-sm text-secondary-600 line-clamp-2 mb-4">
                     {c.short_description}
                   </p>
-                  <span className="inline-block mt-2 text-sm font-medium text-primary-600">
-                    Виж още →
+                  <span className="inline-flex items-center gap-1.5 text-sm font-medium text-primary-600 group-hover:gap-2.5 transition-all">
+                    Виж още
+                    <span className="inline-block">→</span>
                   </span>
                 </div>
               </button>
             ))}
           </div>
         )}
-        <div className="mt-8 text-center">
+        <div className="mt-12 text-center">
           <Link
             href="/"
-            className="text-primary-600 hover:underline font-medium"
+            className="inline-flex items-center gap-2 text-primary-600 hover:text-primary-700 font-medium transition-colors"
           >
-            ← Начало
+            <span className="inline-block">←</span>
+            Начало
           </Link>
         </div>
       </div>
@@ -128,7 +138,7 @@ function CasesPageContent() {
       {/* Case detail modal */}
       {selectedCase && (
         <div
-          className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-black/50"
+          className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm"
           role="dialog"
           aria-modal="true"
           aria-labelledby="case-modal-title"
@@ -139,25 +149,25 @@ function CasesPageContent() {
             onClick={closeModal}
           />
           <div
-            className="relative bg-white rounded-xl shadow-2xl w-full max-w-lg max-h-[90vh] overflow-y-auto"
+            className="relative bg-white rounded-2xl shadow-2xl w-full max-w-lg max-h-[90vh] overflow-y-auto border border-secondary-100"
             onClick={(e) => e.stopPropagation()}
           >
-            <div className="sticky top-0 bg-white border-b border-gray-200 px-4 py-3 flex items-center justify-between z-10">
-              <h2 id="case-modal-title" className="text-lg font-semibold text-gray-900 truncate pr-2">
+            <div className="sticky top-0 bg-gradient-to-r from-primary-50 to-white border-b border-primary-100 px-5 py-4 flex items-center justify-between z-10">
+              <h2 id="case-modal-title" className="text-lg font-semibold text-secondary-900 truncate pr-2">
                 {selectedCase.title}
               </h2>
               <button
                 type="button"
                 onClick={closeModal}
-                className="flex-shrink-0 p-2 rounded-lg text-gray-500 hover:bg-gray-100"
+                className="flex-shrink-0 p-2 rounded-xl text-secondary-500 hover:bg-primary-100 hover:text-primary-700 transition-colors"
                 aria-label="Затвори"
               >
                 <X className="w-5 h-5" />
               </button>
             </div>
-            <div className="p-4">
+            <div className="p-5">
               {selectedCase.main_image_path && (
-                <div className="rounded-lg flex items-center justify-center min-h-[120px] mb-4 overflow-hidden">
+                <div className="rounded-xl bg-secondary-50 flex items-center justify-center min-h-[120px] mb-5 overflow-hidden">
                   <img
                     src={selectedCase.main_image_path}
                     alt=""
@@ -166,17 +176,17 @@ function CasesPageContent() {
                 </div>
               )}
               {selectedCase.body ? (
-                <div className="prose prose-sm max-w-none text-gray-700 whitespace-pre-wrap mb-4">
+                <div className="text-secondary-700 whitespace-pre-wrap mb-5 leading-relaxed">
                   {selectedCase.body}
                 </div>
               ) : (
-                <p className="text-secondary-600 mb-4">{selectedCase.short_description}</p>
+                <p className="text-secondary-600 mb-5">{selectedCase.short_description}</p>
               )}
               {selectedCase.gallery && selectedCase.gallery.length > 0 && (
-                <div className="space-y-4 border-t border-gray-200 pt-4">
+                <div className="space-y-6 pt-5 border-t border-secondary-200">
                   {selectedCase.gallery.map((item, idx) => (
-                    <div key={idx}>
-                      <div className="rounded-lg flex items-center justify-center min-h-[80px] overflow-hidden mb-2">
+                    <div key={idx} className="space-y-2">
+                      <div className="rounded-xl bg-secondary-50 flex items-center justify-center min-h-[80px] overflow-hidden">
                         <img
                           src={item.path}
                           alt=""
@@ -184,7 +194,9 @@ function CasesPageContent() {
                         />
                       </div>
                       {item.caption ? (
-                        <p className="text-sm text-gray-600 whitespace-pre-wrap">{item.caption}</p>
+                        <p className="text-sm text-secondary-600 whitespace-pre-wrap pl-1 border-l-2 border-primary-200">
+                          {item.caption}
+                        </p>
                       ) : null}
                     </div>
                   ))}
@@ -203,7 +215,7 @@ export default function CasesPage() {
     <Suspense fallback={
       <main className="min-h-screen bg-gray-50">
         <Header />
-        <div className="container-custom section-padding pt-24 flex justify-center items-center min-h-[40vh]">
+        <div className="container-custom pt-28 pb-12 sm:pb-16 lg:pb-20 flex justify-center items-center min-h-[40vh]">
           <p className="text-gray-500">Зареждане...</p>
         </div>
         <Footer />

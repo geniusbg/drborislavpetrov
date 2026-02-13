@@ -60,6 +60,11 @@ input[type="time"] {
   --secondary-900: #0f172a;
 }
 
+/* Отстъп при скрол до якор, за да не се крие съдържанието под фиксирания хедър */
+html {
+  scroll-padding-top: 5.5rem; /* h-16 lg:h-20 + малко въздух */
+}
+
 /* Base styles */
 body {
   font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', 'Oxygen', 'Ubuntu', 'Cantarell', 'Fira Sans', 'Droid Sans', 'Helvetica Neue', sans-serif;
