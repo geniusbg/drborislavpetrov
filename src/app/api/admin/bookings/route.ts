@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import { getDatabase } from '@/lib/database'
 import type { PoolClient } from 'pg'
 import { emitBookingAdded, emitBookingDeleted, emitBookingUpdate } from '@/lib/socket'
+import { verifyRequestToken } from '@/lib/auth-helpers'
 
 // Global request counter for debugging
 let apiRequestCounter = 0
@@ -21,6 +22,14 @@ async function ensureHasUserIdColumn(db: PoolClient): Promise<boolean> {
     hasUserIdColumnCache = false
     return false
   }
+}
+
+/** Връща числов service ID от подадено id (число/стринг) или име на услуга */
+async function resolveServiceId(db: PoolClient, service: string | number): Promise<number | null> {
+  const num = typeof service === 'number' ? service : parseInt(String(service), 10)
+  if (!Number.isNaN(num) && num > 0) return num
+  const byName = await db.query('SELECT id FROM services WHERE name = $1 LIMIT 1', [String(service)])
+  return byName.rows[0]?.id != null ? Number(byName.rows[0].id) : null
 }
 
 // Функция за проверка на свободни часове
@@ -291,9 +300,8 @@ export async function GET(request: NextRequest) {
 
 export async function POST(request: NextRequest) {
   try {
-    const adminToken = request.headers.get('x-admin-token')
-    
-    if (!adminToken) {
+    const auth = await verifyRequestToken(request)
+    if (!auth.valid) {
       return NextResponse.json(
         { error: 'Unauthorized' },
         { status: 401 }
@@ -455,8 +463,8 @@ export async function POST(request: NextRequest) {
 
 export async function PUT(request: NextRequest) {
   try {
-    const adminToken = request.headers.get('x-admin-token')
-    if (!adminToken) {
+    const auth = await verifyRequestToken(request)
+    if (!auth.valid) {
       return NextResponse.json(
         { error: 'Unauthorized' },
         { status: 401 }
@@ -490,7 +498,15 @@ export async function PUT(request: NextRequest) {
       console.log('🔍 [PUT Bookings] Update booking details:', { name, email, phone, service, serviceDuration, date, time, message })
       
       if (date && time && service) {
-        const availabilityCheck = await checkTimeSlotAvailability(db, date, time, parseInt(service), serviceDuration, parseInt(id))
+        const serviceId = await resolveServiceId(db, service)
+        if (serviceId == null) {
+          db.release()
+          return NextResponse.json(
+            { error: 'Услугата не е намерена (ид или име)' },
+            { status: 400 }
+          )
+        }
+        const availabilityCheck = await checkTimeSlotAvailability(db, date, time, serviceId, serviceDuration || 30, parseInt(String(id), 10))
         if (!availabilityCheck.available) {
           db.release()
           return NextResponse.json(
@@ -567,9 +583,8 @@ export async function PUT(request: NextRequest) {
 
 export async function DELETE(request: NextRequest) {
   try {
-    const adminToken = request.headers.get('x-admin-token')
-    
-    if (!adminToken) {
+    const auth = await verifyRequestToken(request)
+    if (!auth.valid) {
       return NextResponse.json(
         { error: 'Unauthorized' },
         { status: 401 }
