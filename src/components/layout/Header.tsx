@@ -28,7 +28,7 @@ const Header = () => {
     { name: 'Начало', href: '/#home' },
     { name: 'За мен', href: '/#about' },
     { name: 'Услуги', href: '/#services' },
-    { name: casesNavLabel, href: '/cases' },
+    { name: casesNavLabel, href: '/#cases' },
     { name: 'Контакти', href: '/#contact' },
   ]
 

@@ -239,8 +239,8 @@ export async function GET(request: NextRequest) {
                u.id as userId,
                u.name as userName, 
                u.email as userEmail,
-               s.id as serviceId,
-               b.service as originalService
+              s.id as "serviceId",
+              b.service as "originalService"
         FROM bookings b
         LEFT JOIN services s ON (
           CASE 
@@ -539,8 +539,8 @@ export async function PUT(request: NextRequest) {
              COALESCE(b.serviceduration, s.duration, 30) as serviceDuration,
              u.name as userName, 
              u.email as userEmail,
-             s.id as serviceId,
-             b.service as originalService
+            s.id as "serviceId",
+            b.service as "originalService"
       FROM bookings b
       LEFT JOIN services s ON (
         CASE 

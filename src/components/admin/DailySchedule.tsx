@@ -145,10 +145,9 @@ const DailySchedule = ({ date, onClose, onEditWorkingHours, onEditBooking, onDel
         loadDailySchedule(true) // Force refresh to bypass cache
       }
 
-      const handleBookingDeleted = (deletedBooking: Booking) => {
-        if (deletedBooking.date !== date) return
-
-        console.log('📅 DailySchedule: Booking deleted for current date, force reloading schedule')
+      const handleBookingDeleted = (_bookingId: string) => {
+        // booking-deleted event emits bookingId only; reload to reflect deletion
+        console.log('📅 DailySchedule: Booking deleted (id only), force reloading schedule')
         loadDailySchedule(true) // Force refresh to bypass cache
       }
 
@@ -630,7 +629,12 @@ const DailySchedule = ({ date, onClose, onEditWorkingHours, onEditBooking, onDel
   }
 
   const getServiceName = (serviceId: string | number) => {
-    const service = services.find(s => s.id.toString() === serviceId.toString())
+    const raw = String(serviceId ?? '').trim()
+    if (!raw) return 'Услуга'
+    // If it's already a name (not numeric), show it directly
+    if (!/^[0-9]+$/.test(raw)) return raw
+
+    const service = services.find(s => s.id.toString() === raw)
     return service?.name || 'Услуга'
   }
 

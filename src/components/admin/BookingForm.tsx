@@ -132,11 +132,22 @@ const BookingForm = ({ booking, onSubmit, onCancel, onDelete }: BookingFormProps
   // Update form data when booking changes - only on initial load or when booking ID changes
   useEffect(() => {
     if (booking) {
+      const b = booking as unknown as { serviceId?: number | string; service_id?: number | string; serviceid?: number | string }
+      const serviceIdFromApi = (b.serviceId ?? b.service_id ?? b.serviceid)
+      const serviceIdString = serviceIdFromApi != null && String(serviceIdFromApi) !== '' ? String(serviceIdFromApi) : null
+
+      // Prefer serviceId (admin API provides it even when bookings.service stores service name)
+      const initialServiceValue = (() => {
+        if (serviceIdString) return serviceIdString
+        const raw = String(booking.service || '')
+        return /^[0-9]+$/.test(raw) ? raw : ''
+      })()
+
       setFormData({
         name: booking.name || '',
         email: booking.email || '',
         phone: booking.phone || '',
-        service: booking.service || '',
+        service: initialServiceValue,
         serviceName: booking.serviceName || '',
         serviceDuration: booking.serviceDuration || 30,
         date: booking.date || '',
@@ -162,6 +173,38 @@ const BookingForm = ({ booking, onSubmit, onCancel, onDelete }: BookingFormProps
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [booking?.id])
 
+  // When editing a booking created from public site, bookings.service may store service NAME.
+  // After services load, map booking.serviceName -> service.id so the select can show the correct option.
+  useEffect(() => {
+    if (!booking) return
+    if (services.length === 0) return
+
+    const bAny = booking as unknown as { serviceId?: number | string; service_id?: number | string; serviceid?: number | string }
+    const serviceIdFromApi = (bAny.serviceId ?? bAny.service_id ?? bAny.serviceid)
+    const serviceIdString = serviceIdFromApi != null && String(serviceIdFromApi) !== '' ? String(serviceIdFromApi) : null
+
+    const resolvedId = (() => {
+      if (serviceIdString) return serviceIdString
+      const raw = String(booking.service || '')
+      if (/^[0-9]+$/.test(raw)) return raw
+      const name = String(booking.serviceName || booking.service || '').trim().toLowerCase()
+      const match = services.find((s) => (s.name || '').trim().toLowerCase() === name)
+      return match ? String(match.id) : null
+    })()
+
+    if (!resolvedId) return
+    if (String(formData.service || '') === resolvedId) return
+
+    const selectedService = services.find((s) => String(s.id) === resolvedId)
+    setFormData((prev) => ({
+      ...prev,
+      service: resolvedId,
+      serviceName: selectedService?.name || prev.serviceName || booking.serviceName || booking.service || '',
+      serviceDuration: selectedService?.duration || prev.serviceDuration || 30
+    }))
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [services, booking?.id])
+
   // Handle Escape key for closing modal
   useEffect(() => {
     const handleEscape = (event: KeyboardEvent) => {
@@ -178,12 +221,26 @@ const BookingForm = ({ booking, onSubmit, onCancel, onDelete }: BookingFormProps
     e.preventDefault()
     setIsSubmitting(true)
     
+    // Compare service values using serviceId when available (booking.service can be a service name)
+    const bookingServiceComparable = (() => {
+      if (!booking) return ''
+      const bAny = booking as unknown as { serviceId?: number | string; service_id?: number | string }
+      const sid = (bAny.serviceId ?? bAny.service_id)
+      if (sid != null && String(sid) !== '') return String(sid)
+      const raw = String(booking.service || '')
+      if (/^[0-9]+$/.test(raw)) return raw
+      const name = String(booking.serviceName || booking.service || '')
+      const match = services.find((s) => s.name === name)
+      return match ? String(match.id) : raw
+    })()
+    const formServiceComparable = String(formData.service || '')
+
     // Check if this is only a status update by comparing with original booking
     const isStatusOnlyUpdate = booking ? 
       (formData.name === booking.name &&
       formData.email === booking.email &&
       formData.phone === booking.phone &&
-      formData.service === booking.service &&
+      formServiceComparable === bookingServiceComparable &&
       formData.date === booking.date &&
       formData.time === booking.time &&
       // Handle null/empty message comparison
@@ -195,7 +252,7 @@ const BookingForm = ({ booking, onSubmit, onCancel, onDelete }: BookingFormProps
       (formData.name === booking.name &&
       formData.email === booking.email &&
       formData.phone === booking.phone &&
-      formData.service === booking.service &&
+      formServiceComparable === bookingServiceComparable &&
       formData.date === booking.date &&
       formData.time === booking.time &&
       (formData.message || '') === (booking.message || '') &&

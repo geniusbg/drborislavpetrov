@@ -131,11 +131,9 @@ const Calendar = ({ bookings, onBookingClick, onAddBooking, onNavigateToDailySch
         }
       }
       
-      const handleBookingDeleted = (deletedBooking: Booking) => {
-        if (deletedBooking.date) {
-          // Recalculate available slots for the affected date
-          calculateAvailableSlots()
-        }
+      const handleBookingDeleted = (_bookingId: string) => {
+        // booking-deleted event emits bookingId only
+        calculateAvailableSlots()
       }
       
       // Add event listeners
@@ -399,6 +397,16 @@ const Calendar = ({ bookings, onBookingClick, onAddBooking, onNavigateToDailySch
     return booking.status === statusFilter
   })
 
+  // Group ALL bookings by date (used for availability calculation; should not depend on UI filter)
+  const bookingsByDateAll = useMemo(() => {
+    return uniqueBookings.reduce((acc, booking) => {
+      const date = booking.date
+      if (!acc[date]) acc[date] = []
+      acc[date].push(booking)
+      return acc
+    }, {} as Record<string, Booking[]>)
+  }, [uniqueBookings])
+
   // Get current month's first day and last day
   const firstDayOfMonth = createCalendarDate(currentDate.getFullYear(), currentDate.getMonth(), 1)
   const lastDayOfMonth = createCalendarDate(currentDate.getFullYear(), currentDate.getMonth() + 1, 0)
@@ -433,6 +441,15 @@ const Calendar = ({ bookings, onBookingClick, onAddBooking, onNavigateToDailySch
     acc[date].push(booking)
     return acc
   }, {} as Record<string, Booking[]>)
+
+  // Recalculate available slots when bookings change (e.g. after loadBookings())
+  useEffect(() => {
+    if (services.length === 0) return
+    const t = setTimeout(() => calculateAvailableSlots(), 50)
+    return () => clearTimeout(t)
+    // Intentionally depend on `bookings` so the calendar updates without refresh.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [bookings])
 
   // Debug: Log available data for current month (only once when loading starts)
   useEffect(() => {
@@ -553,7 +570,7 @@ const Calendar = ({ bookings, onBookingClick, onAddBooking, onNavigateToDailySch
       const endTimeMinutes = endHour * 60 + endMin
       
       // Получи резервациите за деня
-      const dayBookings = bookingsByDate[dateString] || []
+      const dayBookings = bookingsByDateAll[dateString] || []
       
       // Получи почивките за деня
       const breaks = workingHoursData?.breaks || []

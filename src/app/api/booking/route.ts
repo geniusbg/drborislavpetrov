@@ -157,7 +157,10 @@ export async function POST(request: NextRequest) {
 
     // Send confirmation email
     try {
-      await sendBookingConfirmation(booking.rows[0])
+      const row = booking.rows[0]
+      if (row?.email) {
+        await sendBookingConfirmation(row)
+      }
     } catch (emailError) {
       console.error('Error sending confirmation email:', emailError)
     }
@@ -169,9 +172,12 @@ export async function POST(request: NextRequest) {
       console.error('Error sending admin notification:', emailError)
     }
 
+    const hasEmail = !!booking.rows[0]?.email
     return NextResponse.json({
       success: true,
-      message: 'Резервацията е създадена успешно! Ще получите потвърждение на имейла.',
+      message: hasEmail
+        ? 'Резервацията е създадена успешно! Ще получите потвърждение на имейла.'
+        : 'Резервацията е създадена успешно! Ще се свържем с вас по телефона.',
       bookingId
     })
 

@@ -265,7 +265,7 @@ const Booking = () => {
 
               <div>
                 <label htmlFor="email" className="block text-sm font-medium text-secondary-700 mb-2">
-                  Имейл
+                  Имейл (по желание)
                 </label>
                 <div className="relative">
                   <Mail className="absolute left-3 top-1/2 transform -translate-y-1/2 w-4 h-4 text-secondary-400" />
@@ -275,9 +275,12 @@ const Booking = () => {
                     name="email"
                     value={bookingData.email}
                     onChange={handleChange}
-                    className="input-field w-full max-w-full pl-10 box-border"
+                    className={`input-field w-full max-w-full pl-10 box-border ${errors.email ? 'border-red-500' : ''}`}
                     placeholder="your@email.com"
                   />
+                  {errors.email && (
+                    <p className="text-red-600 text-xs mt-1">{errors.email}</p>
+                  )}
                 </div>
               </div>
 
@@ -322,7 +325,7 @@ const Booking = () => {
                       onChange={handleChange}
                       required
                       min={minDate}
-                      className={`input-field w-full max-w-full min-h-[2.75rem] min-w-0 box-border ${errors.date ? 'border-red-500' : ''}`}
+                      className={`input-field w-full max-w-full min-h-[2.75rem] min-w-0 box-border px-4 ${errors.date ? 'border-red-500' : ''}`}
                     />
                     {errors.date && (
                       <p className="text-red-600 text-xs mt-1">{errors.date}</p>
@@ -343,7 +346,7 @@ const Booking = () => {
                     value={bookingData.time}
                     onChange={handleChange}
                     required
-                    className={`input-field w-full max-w-full min-h-[2.75rem] min-w-0 appearance-none box-border ${errors.time ? 'border-red-500' : ''}`}
+                    className={`input-field w-full max-w-full min-h-[2.75rem] min-w-0 appearance-none box-border pl-4 pr-10 ${errors.time ? 'border-red-500' : ''}`}
                     disabled={!isServiceSelected || !isDateSelected || isLoadingSlots}
                   >
                     <option value="">
@@ -373,7 +376,7 @@ const Booking = () => {
                     value={bookingData.message}
                     onChange={handleChange}
                     rows={4}
-                    className="input-field w-full max-w-full pl-10 resize-none box-border"
+                    className="input-field w-full max-w-full pl-10 resize-none box-border bg-white border border-secondary-200 focus:outline-none focus:ring-2 focus:ring-primary-200 focus:border-primary-500 placeholder:text-secondary-400"
                     placeholder="Допълнителна информация за вашия случай..."
                   />
                 </div>

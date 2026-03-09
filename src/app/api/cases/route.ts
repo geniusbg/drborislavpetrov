@@ -25,13 +25,13 @@ export async function GET(request: NextRequest) {
     const db = await getDatabase()
     try {
       const query = homepageOnly
-        ? `SELECT id, title, short_description, main_image_path, body, gallery, order_index, homepage_order
+        ? `SELECT id, title, short_description, main_image_path, body, gallery, order_index, homepage_order, created_at
            FROM cases
            WHERE show_on_homepage = true
-           ORDER BY homepage_order ASC, id ASC`
-        : `SELECT id, title, short_description, main_image_path, body, gallery, order_index
+           ORDER BY created_at DESC, id DESC`
+        : `SELECT id, title, short_description, main_image_path, body, gallery, order_index, created_at
            FROM cases
-           ORDER BY order_index ASC, id ASC`
+           ORDER BY created_at DESC, id DESC`
       const result = await db.query(query)
       const cases = result.rows.map((row: { gallery?: string | null; [k: string]: unknown }) => {
         let gallery: { path: string; caption: string }[] = []
